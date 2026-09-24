@@ -4,7 +4,8 @@
 Python does not implement the game. It inspects the authoritative JavaScript,
 checks authority/privacy invariants, verifies that the real browser proof covers
 the complete replayable loop, mobile layout, pre-reveal privacy, and the
-server-side timeout path, then runs the Node game tests independently.
+server-side timeout path, red-teams the production deployment workflow, then
+runs the Node game tests independently.
 """
 from __future__ import annotations
 
@@ -88,6 +89,24 @@ def verify_e2e(e2e: str) -> None:
     require(e2e, r'"0%"', "timeout proof does not assert the no-answer reveal result")
 
 
+def verify_deploy_workflow(deploy: str) -> None:
+    require(deploy, r'(?m)^\s*workflow_dispatch\s*:', "production deploy is not manual workflow-dispatch only")
+    forbid(deploy, r'(?m)^\s+push\s*:', "production deploy must not run automatically on push")
+    require(deploy, r'expected_head_sha', "deploy workflow is missing exact-head input")
+    require(deploy, r'deployment_approval_id', "deploy workflow is missing founder approval reference")
+    require(deploy, r'CURRENT_MAIN_SHA=.*refs/remotes/origin/main', "deploy workflow does not read current main for exact-head authority")
+    require(deploy, r'test \"\$CURRENT_MAIN_SHA\" = \"\$EXPECTED_HEAD_SHA\"', "deploy workflow does not fail closed on main drift")
+    require(deploy, r'CLOUDFLARE_API_TOKEN', "deploy workflow is missing Cloudflare API-token authority")
+    require(deploy, r'CLOUDFLARE_ACCOUNT_ID', "deploy workflow is missing Cloudflare account authority")
+    require(deploy, r'cloudflare/wrangler-action@25853364521e0d392ece9b0c1e97a4b37b638087', "Wrangler action is not pinned to the approved immutable v4 commit")
+    require(deploy, r'wranglerVersion:\s*\"4\.135\.0\"', "deploy workflow does not pin the repo's Wrangler version")
+    require(deploy, r'deployment_url:\s*\$\{\{\s*steps\.deploy\.outputs\.deployment-url\s*\}\}', "deploy workflow does not bind proof to Wrangler's emitted deployment URL")
+    require(deploy, r'PLAYWRIGHT_BASE_URL:\s*\$\{\{\s*needs\.deploy\.outputs\.deployment_url\s*\}\}', "production Playwright is not targeted at the deployed URL")
+    require(deploy, r'npm run test:e2e', "production deployment does not run the full Playwright suite")
+    require(deploy, r'production-proof\.txt', "production workflow does not leave a durable proof receipt")
+    require(deploy, r'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02', "production proof artifacts are not pinned to the approved upload action")
+
+
 def run_node_tests() -> None:
     tests = sorted(str(path.relative_to(ROOT)) for path in (ROOT / "test").glob("*.test.mjs"))
     if not tests:
@@ -101,11 +120,13 @@ def main() -> None:
     worker = read("src/worker.js")
     game = read("src/game.js")
     e2e = read("e2e/multiplayer.spec.js")
+    deploy = read(".github/workflows/deploy.yml")
     verify_worker(worker)
     verify_game(game)
     verify_e2e(e2e)
+    verify_deploy_workflow(deploy)
     run_node_tests()
-    print("BUGFINDER PASS: authority, privacy, continuity, mobile, timeout, full multiplayer proof shape, and Node tests are green")
+    print("BUGFINDER PASS: game authority/privacy/continuity, mobile+timeout multiplayer proof, production deploy authority, and Node tests are green")
 
 
 if __name__ == "__main__":
