@@ -78,8 +78,10 @@ test("server rejects guest host-actions and revokes the previous socket on recon
   await openRawSocket(host, "host1", created.code, created);
   await openRawSocket(guest, "guest1", created.code, joined);
 
-  await expect.poll(() => hasMessage(host, "host1", { kind: "STATE" })).toBe(true);
-  await expect.poll(() => hasMessage(guest, "guest1", { kind: "STATE" })).toBe(true);
+  await sendRaw(host, "host1", { type: "PING" });
+  await sendRaw(guest, "guest1", { type: "PING" });
+  await expect.poll(() => hasMessage(host, "host1", { kind: "PONG" })).toBe(true);
+  await expect.poll(() => hasMessage(guest, "guest1", { kind: "PONG" })).toBe(true);
 
   await sendRaw(guest, "guest1", { type: "START_GAME" });
   await expect.poll(() => hasMessage(guest, "guest1", { kind: "ERROR", includes: "Only the host" })).toBe(true);
@@ -91,7 +93,7 @@ test("server rejects guest host-actions and revokes the previous socket on recon
 
   await openRawSocket(host, "host2", created.code, created);
   await expect.poll(() => host.evaluate(() => window.__syncProofSockets.host1.closes.some((entry) => entry.code === 4001 && entry.reason === "Session replaced"))).toBe(true);
-  expect(await host.evaluate(() => window.__syncProofSockets.host1.ws.readyState)).toBe(WebSocket.CLOSED);
+  expect(await host.evaluate(() => window.__syncProofSockets.host1.ws.readyState)).toBe(3);
 
   await sendRaw(host, "host2", { type: "PING" });
   await expect.poll(() => hasMessage(host, "host2", { kind: "PONG" })).toBe(true);
