@@ -2,11 +2,13 @@ import { DurableObject } from "cloudflare:workers";
 import { advance, createRoomState, joinPlayer, publicFingerprint, publicState, revealRound, startGame, submitChoice } from "./game.js";
 
 const enc = new TextEncoder();
+const MAX_MESSAGE_BYTES = 2048;
 const json = (data, init = {}) => new Response(JSON.stringify(data), {
   ...init,
   headers: { "content-type": "application/json; charset=utf-8", ...(init.headers || {}) }
 });
 const makeId = (prefix) => `${prefix}_${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}`;
+const sessionKey = (playerId) => `session:${playerId}`;
 
 function roomCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -25,6 +27,13 @@ function stable(value) {
 async function hash(value) {
   const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(JSON.stringify(stable(value)))));
   return Array.from(bytes).map((byte) => byte.toString(16).padStart(2, "0")).join("").slice(0, 20);
+}
+
+function messageBytes(message) {
+  if (typeof message === "string") return enc.encode(message).byteLength;
+  if (message instanceof ArrayBuffer) return message.byteLength;
+  if (ArrayBuffer.isView(message)) return message.byteLength;
+  return MAX_MESSAGE_BYTES + 1;
 }
 
 export default {
@@ -104,13 +113,28 @@ export class GameRoom extends DurableObject {
 
       const pair = new WebSocketPair();
       const [client, server] = Object.values(pair);
-      server.serializeAttachment({ playerId });
+      const connectionId = makeId("c");
+      server.serializeAttachment({ playerId, connectionId });
       this.ctx.acceptWebSocket(server);
 
+      await this.ctx.storage.put(sessionKey(playerId), connectionId);
       if (!player.connected) {
         state = { ...state, players: { ...state.players, [playerId]: { ...player, connected: true } } };
         state = await this.commit(state, "PLAYER_CONNECTED", playerId);
+      } else {
+        state = await this.commit(state, "PLAYER_RECONNECTED", playerId);
       }
+
+      for (const socket of this.ctx.getWebSockets()) {
+        if (socket === server) continue;
+        try {
+          const attachment = socket.deserializeAttachment() || {};
+          if (attachment.playerId === playerId && attachment.connectionId !== connectionId) {
+            socket.close(4001, "Session replaced");
+          }
+        } catch {}
+      }
+
       this.broadcast(state);
       return new Response(null, { status: 101, webSocket: client });
     }
@@ -121,7 +145,15 @@ export class GameRoom extends DurableObject {
   async webSocketMessage(ws, message) {
     let state = await this.ctx.storage.get("state");
     if (!state) return;
-    const { playerId } = ws.deserializeAttachment() || {};
+    const { playerId, connectionId } = ws.deserializeAttachment() || {};
+    const activeConnectionId = playerId ? await this.ctx.storage.get(sessionKey(playerId)) : null;
+    if (!playerId || !connectionId || activeConnectionId !== connectionId || !state.players?.[playerId]?.connected) {
+      return this.sendError(ws, "Stale session");
+    }
+    if (messageBytes(message) > MAX_MESSAGE_BYTES) {
+      try { ws.close(1009, "Message too large"); } catch {}
+      return;
+    }
 
     let action;
     try {
@@ -169,16 +201,23 @@ export class GameRoom extends DurableObject {
   }
 
   async webSocketClose(ws) {
-    const { playerId } = ws.deserializeAttachment() || {};
+    const { playerId, connectionId } = ws.deserializeAttachment() || {};
     let state = await this.ctx.storage.get("state");
     if (!state?.players?.[playerId]) return;
 
+    const activeConnectionId = await this.ctx.storage.get(sessionKey(playerId));
+    if (!connectionId || activeConnectionId !== connectionId) return;
+
     const stillConnected = this.ctx.getWebSockets().some((socket) => {
       if (socket === ws) return false;
-      try { return socket.deserializeAttachment()?.playerId === playerId; } catch { return false; }
+      try {
+        const attachment = socket.deserializeAttachment() || {};
+        return attachment.playerId === playerId && attachment.connectionId === connectionId;
+      } catch { return false; }
     });
     if (stillConnected || !state.players[playerId].connected) return;
 
+    await this.ctx.storage.delete(sessionKey(playerId));
     state = { ...state, players: { ...state.players, [playerId]: { ...state.players[playerId], connected: false } } };
     state = await this.commit(state, "PLAYER_DISCONNECTED", playerId);
     this.broadcast(state);
