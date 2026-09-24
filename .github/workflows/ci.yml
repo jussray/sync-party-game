@@ -10,19 +10,21 @@ permissions:
 
 jobs:
   core-proof:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: "22.23.2"
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          python-version: "3.12"
+          python-version: "3.12.14"
       - name: Syntax checks
         run: |
           node --check src/game.js
@@ -34,7 +36,7 @@ jobs:
         run: node --test test/*.test.mjs
       - name: Python bug finder
         run: python scripts/bugfinder.py
-      - name: Install pinned runtime dependencies
+      - name: Install runtime dependencies
         run: npm install --no-audit --no-fund
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
@@ -44,7 +46,7 @@ jobs:
           PW_TRACE: "on"
       - name: Preserve Playwright evidence (screenshots, traces, report)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: playwright-evidence
           path: |
@@ -55,13 +57,15 @@ jobs:
   attack-proof:
     # Seeded 8-player attack harness against the real Worker + Durable Object (wrangler dev, local mode).
     # The two-context Playwright proof runs in core-proof above.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          node-version: 22
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.23.2"
           cache: npm
       - run: npm ci
       - name: Start local Worker + Durable Object
@@ -73,7 +77,7 @@ jobs:
         run: |
           for seed in 7 11 23; do ATTACK_SEED=$seed ATTACK_GAMES=2 node scripts/attack.mjs; done
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: attack-wrangler-log-${{ github.sha }}
           path: wrangler-dev.log

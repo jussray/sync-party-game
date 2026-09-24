@@ -247,3 +247,35 @@ test("accessibility: keyboard path, toggles, muted play info, reduced motion", a
   await noHorizontalScroll(page);
   await context.close();
 });
+
+test("Durable Object alarm locks and reveals a round when nobody answers (laptop host + phone guest)", async ({ browser }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "mixed-device timer proof runs once");
+  test.setTimeout(60_000);
+  const hostContext = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const guestContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const host = await hostContext.newPage();
+  const guest = await guestContext.newPage();
+  await host.goto("/");
+  await host.getByLabel("Your nickname", { exact: true }).fill("TimerHost");
+  await host.getByRole("button", { name: /Create a game/ }).click();
+  const code = (await host.locator(".room-code").textContent()).trim();
+  await guest.goto(`/?room=${code}`);
+  await guest.getByLabel("Nickname", { exact: true }).fill("TimerGuest");
+  await guest.getByRole("button", { name: /Join a game/ }).click();
+  await expect(host.getByText(/2 connected/)).toBeVisible();
+  await host.getByRole("button", { name: /Start game/ }).click();
+  await expect(guest.getByText("Round 1 of 5")).toBeVisible();
+  // final-five-second visual pressure is shown to muted players
+  await expect(guest.locator("#timer.danger")).toBeVisible({ timeout: 15_000 });
+  await expect(guest.locator("#gameCard.pressure")).toBeVisible();
+  await shots(testInfo, guest, "08-final-five-pressure-phone");
+  await expect(guest.getByText("LOCKED 🔒")).toBeVisible({ timeout: 15_000 });
+  for (const page of [host, guest]) {
+    await expect(page.getByText("ROOM SYNC")).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator(".sync-meter strong")).toHaveText("0%");
+  }
+  await expectSameAuthority(host, guest);
+  await noHorizontalScroll(guest);
+  await hostContext.close();
+  await guestContext.close();
+});
