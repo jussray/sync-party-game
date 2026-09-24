@@ -19,11 +19,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: Syntax checks
         run: |
           node --check src/game.js
           node --check src/worker.js
           node --check public/app.js
           node --check playwright.config.js
+          python -m py_compile scripts/bugfinder.py
       - name: Pure game tests
         run: node --test test/*.test.mjs
+      - name: Python bug finder
+        run: python scripts/bugfinder.py
