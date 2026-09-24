@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { advance, createRoomState, joinPlayer, revealRound, startGame, submitChoice } from "../src/game.js";
+import { advance, createRoomState, joinPlayer, publicFingerprint, publicState, revealRound, startGame, submitChoice } from "../src/game.js";
 
 const player = (id, name, connected = true) => ({ id, name, resumeToken: `r-${id}`, connected });
 function started(ids = ["a", "b", "c"]) {
@@ -33,6 +33,25 @@ test("choice is immutable after lock", () => {
 test("choice validation rejects impossible answer index", () => {
   const state = started(["a", "b"]);
   assert.throws(() => submitChoice(state, "a", 999), /Invalid choice/);
+});
+test("hidden choices cannot be inferred from public state or fingerprint", () => {
+  const base = started(["a", "b"]);
+  const choseZero = submitChoice(base, "a", 0);
+  const choseFour = submitChoice(base, "a", 4);
+
+  assert.deepEqual(publicState(choseZero).answers, { a: true });
+  assert.deepEqual(publicState(choseFour).answers, { a: true });
+  assert.deepEqual(publicFingerprint(choseZero), publicFingerprint(choseFour));
+  assert.equal(Object.prototype.hasOwnProperty.call(publicState(choseZero).players[0], "resumeToken"), false);
+});
+test("revealed choices become part of the public fingerprint only after reveal", () => {
+  let state = started(["a", "b"]);
+  state = submitChoice(state, "a", 2);
+  state = submitChoice(state, "b", 3);
+  state = revealRound(state);
+
+  assert.deepEqual(publicState(state).answers, { a: 2, b: 3 });
+  assert.deepEqual(publicFingerprint(state).answers, { a: 2, b: 3 });
 });
 test("classic awards the majority and computes sync percent", () => {
   const revealed = answer(started(), { a: 0, b: 0, c: 1 });
