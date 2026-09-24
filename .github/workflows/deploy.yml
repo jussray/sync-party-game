@@ -1,0 +1,259 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_head_sha:
+        description: Exact current main SHA approved for production
+        required: true
+        type: string
+      deployment_approval_id:
+        description: Founder approval / decision reference
+        required: true
+        type: string
+      deployment_reason:
+        description: Short production deployment reason
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-party-production
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  authority-gate:
+    name: Exact-head production authority
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    environment: production
+    env:
+      EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+      DEPLOYMENT_APPROVAL_ID: ${{ inputs.deployment_approval_id }}
+      DEPLOYMENT_REASON: ${{ inputs.deployment_reason }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Checkout exact approved commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.expected_head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify exact approved head is current main
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$EXPECTED_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error title=Invalid exact head::expected_head_sha must be a lowercase 40-character commit SHA."
+            exit 1
+          fi
+          if [[ ! "$DEPLOYMENT_APPROVAL_ID" =~ ^[A-Za-z0-9._:-]{4,200}$ ]]; then
+            echo "::error title=Invalid approval reference::deployment_approval_id must be an auditable 4-200 character reference."
+            exit 1
+          fi
+          ACTUAL_HEAD_SHA="$(git rev-parse HEAD)"
+          git fetch --no-tags --depth=1 origin refs/heads/main:refs/remotes/origin/main
+          CURRENT_MAIN_SHA="$(git rev-parse refs/remotes/origin/main)"
+          printf 'Approved: %s\nChecked out: %s\nCurrent main: %s\n' "$EXPECTED_HEAD_SHA" "$ACTUAL_HEAD_SHA" "$CURRENT_MAIN_SHA"
+          test "$ACTUAL_HEAD_SHA" = "$EXPECTED_HEAD_SHA"
+          test "$CURRENT_MAIN_SHA" = "$EXPECTED_HEAD_SHA"
+
+      - name: Validate Cloudflare deployment authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=()
+          [[ -n "${CLOUDFLARE_API_TOKEN:-}" ]] || missing+=(CLOUDFLARE_API_TOKEN)
+          [[ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]] || missing+=(CLOUDFLARE_ACCOUNT_ID)
+          if (( ${#missing[@]} > 0 )); then
+            printf '::error title=Missing Cloudflare deployment authority::Set these GitHub production/repository secrets: %s\n' "${missing[*]}"
+            exit 1
+          fi
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_API_TOKEN" CLOUDFLARE_ACCOUNT_ID="$CLOUDFLARE_ACCOUNT_ID" python3 - <<'PY'
+          import os
+          import re
+          import sys
+
+          token = os.environ['CLOUDFLARE_API_TOKEN']
+          account_id = os.environ['CLOUDFLARE_ACCOUNT_ID']
+          try:
+              token.encode('ascii')
+          except UnicodeEncodeError:
+              print('::error title=Malformed Cloudflare token::Token contains non-ASCII characters.')
+              sys.exit(1)
+          if any(ch.isspace() or ord(ch) < 33 or ord(ch) > 126 for ch in token):
+              print('::error title=Malformed Cloudflare token::Token contains whitespace or non-printable characters.')
+              sys.exit(1)
+          if not re.fullmatch(r'[0-9a-f]{32}', account_id):
+              print('::error title=Invalid Cloudflare account ID::Expected 32 lowercase hexadecimal characters.')
+              sys.exit(1)
+          print('Cloudflare deployment credential shape verified; secret values were not printed.')
+          PY
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.23.2"
+          cache: npm
+
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12.14"
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Re-run cheap proof gates before mutation
+        run: |
+          python scripts/secret_scan.py
+          node --test test/*.test.mjs
+          python scripts/bugfinder.py
+
+      - name: Record authority receipt
+        shell: bash
+        run: |
+          {
+            echo "## SYNC production authority receipt"
+            echo
+            echo "- Exact approved head: \`$EXPECTED_HEAD_SHA\`"
+            echo "- Approval reference: \`$DEPLOYMENT_APPROVAL_ID\`"
+            echo "- Reason: ${DEPLOYMENT_REASON:-not supplied}"
+            echo "- Trigger: manual workflow dispatch"
+            echo "- Deployment plane: Cloudflare Worker + Durable Object"
+            echo "- Product mutation occurs only after this exact-head gate succeeds"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: Cloudflare production deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: production
+    needs: authority-gate
+    outputs:
+      deployment_url: ${{ steps.deploy.outputs.deployment-url }}
+    steps:
+      - name: Checkout exact approved commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.expected_head_sha }}
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.23.2"
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Deploy Worker and Durable Object
+        id: deploy
+        uses: cloudflare/wrangler-action@25853364521e0d392ece9b0c1e97a4b37b638087 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.135.0"
+          packageManager: npm
+          command: deploy
+
+      - name: Validate emitted deployment URL
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$DEPLOYMENT_URL" =~ ^https:// ]]; then
+            echo "::error title=Missing public deployment URL::Wrangler did not emit a valid HTTPS deployment-url."
+            exit 1
+          fi
+          echo "Production URL emitted by Wrangler: $DEPLOYMENT_URL"
+          echo "- Deployment URL: $DEPLOYMENT_URL" >> "$GITHUB_STEP_SUMMARY"
+
+  production-proof:
+    name: Public multiplayer Playwright proof
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    needs: deploy
+    env:
+      PLAYWRIGHT_BASE_URL: ${{ needs.deploy.outputs.deployment_url }}
+      EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+      DEPLOYMENT_APPROVAL_ID: ${{ inputs.deployment_approval_id }}
+    steps:
+      - name: Checkout exact deployed commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.expected_head_sha }}
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.23.2"
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Public URL smoke check
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$PLAYWRIGHT_BASE_URL" =~ ^https:// ]]; then
+            echo "::error title=Invalid public target::PLAYWRIGHT_BASE_URL must be HTTPS."
+            exit 1
+          fi
+          curl --fail --silent --show-error --location --retry 5 --retry-delay 2 "$PLAYWRIGHT_BASE_URL" >/dev/null
+
+      - name: Run full multiplayer suite against production
+        run: npm run test:e2e
+
+      - name: Write production proof receipt
+        if: success()
+        shell: bash
+        run: |
+          mkdir -p test-results
+          cat > test-results/production-proof.txt <<EOF
+          repository=jussray/sync-party-game
+          sha=$EXPECTED_HEAD_SHA
+          approval=$DEPLOYMENT_APPROVAL_ID
+          url=$PLAYWRIGHT_BASE_URL
+          github_run_id=$GITHUB_RUN_ID
+          proof=full Playwright suite against public Cloudflare deployment
+          result=VERIFIED
+          EOF
+          cat test-results/production-proof.txt
+          {
+            echo "## Public multiplayer proof"
+            echo
+            echo "- Exact deployed head: \`$EXPECTED_HEAD_SHA\`"
+            echo "- Public URL: $PLAYWRIGHT_BASE_URL"
+            echo "- Playwright: PASS"
+            echo "- Phone + laptop path: PASS"
+            echo "- Hidden-choice privacy: PASS"
+            echo "- Reconnect: PASS"
+            echo "- Five rounds + results + same-room rematch: PASS"
+            echo "- Durable Object timeout alarm: PASS"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Preserve production proof evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sync-party-production-proof-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: warn
+          retention-days: 30
