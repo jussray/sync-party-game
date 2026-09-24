@@ -31,7 +31,9 @@ jobs:
           node --check src/worker.js
           node --check public/app.js
           node --check playwright.config.js
-          python -m py_compile scripts/bugfinder.py
+          python -m py_compile scripts/bugfinder.py scripts/secret_scan.py
+      - name: Secret scan
+        run: python scripts/secret_scan.py
       - name: Pure game tests
         run: node --test test/*.test.mjs
       - name: Python bug finder
