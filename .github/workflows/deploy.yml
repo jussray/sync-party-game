@@ -1,6 +1,10 @@
 name: Deploy
 
 on:
+  workflow_run:
+    workflows: ["core-proof"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       expected_head_sha:
@@ -25,24 +29,32 @@ concurrency:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  TARGET_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_head_sha }}
+  DEPLOYMENT_APPROVAL_ID: ${{ github.event_name == 'workflow_run' && format('auto-core-proof-{0}', github.event.workflow_run.id) || inputs.deployment_approval_id }}
+  DEPLOYMENT_REASON: ${{ github.event_name == 'workflow_run' && 'Automatic deploy after successful core-proof on current main' || inputs.deployment_reason }}
+  DEPLOYMENT_TRIGGER: ${{ github.event_name }}
+  SOURCE_PROOF_RUN_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || 'manual' }}
 
 jobs:
   authority-gate:
     name: Exact-head production authority
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.event == 'push')
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     environment: production
     env:
-      EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
-      DEPLOYMENT_APPROVAL_ID: ${{ inputs.deployment_approval_id }}
-      DEPLOYMENT_REASON: ${{ inputs.deployment_reason }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - name: Checkout exact approved commit
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ inputs.expected_head_sha }}
+          ref: ${{ env.TARGET_SHA }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -50,20 +62,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ ! "$EXPECTED_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "::error title=Invalid exact head::expected_head_sha must be a lowercase 40-character commit SHA."
+          if [[ ! "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error title=Invalid exact head::Target SHA must be a lowercase 40-character commit SHA."
             exit 1
           fi
           if [[ ! "$DEPLOYMENT_APPROVAL_ID" =~ ^[A-Za-z0-9._:-]{4,200}$ ]]; then
-            echo "::error title=Invalid approval reference::deployment_approval_id must be an auditable 4-200 character reference."
+            echo "::error title=Invalid approval reference::Deployment approval id must be an auditable 4-200 character reference."
             exit 1
           fi
           ACTUAL_HEAD_SHA="$(git rev-parse HEAD)"
           git fetch --no-tags --depth=1 origin refs/heads/main:refs/remotes/origin/main
           CURRENT_MAIN_SHA="$(git rev-parse refs/remotes/origin/main)"
-          printf 'Approved: %s\nChecked out: %s\nCurrent main: %s\n' "$EXPECTED_HEAD_SHA" "$ACTUAL_HEAD_SHA" "$CURRENT_MAIN_SHA"
-          test "$ACTUAL_HEAD_SHA" = "$EXPECTED_HEAD_SHA"
-          test "$CURRENT_MAIN_SHA" = "$EXPECTED_HEAD_SHA"
+          printf 'Target: %s\nChecked out: %s\nCurrent main: %s\nSource proof run: %s\n' "$TARGET_SHA" "$ACTUAL_HEAD_SHA" "$CURRENT_MAIN_SHA" "$SOURCE_PROOF_RUN_ID"
+          test "$ACTUAL_HEAD_SHA" = "$TARGET_SHA"
+          test "$CURRENT_MAIN_SHA" = "$TARGET_SHA"
 
       - name: Validate Cloudflare deployment authority
         shell: bash
@@ -123,12 +135,13 @@ jobs:
           {
             echo "## SYNC production authority receipt"
             echo
-            echo "- Exact approved head: \`$EXPECTED_HEAD_SHA\`"
+            echo "- Exact target head: \`$TARGET_SHA\`"
             echo "- Approval reference: \`$DEPLOYMENT_APPROVAL_ID\`"
             echo "- Reason: ${DEPLOYMENT_REASON:-not supplied}"
-            echo "- Trigger: manual workflow dispatch"
+            echo "- Trigger: $DEPLOYMENT_TRIGGER"
+            echo "- Source core-proof run: $SOURCE_PROOF_RUN_ID"
             echo "- Deployment plane: Cloudflare Worker + Durable Object"
-            echo "- Product mutation occurs only after this exact-head gate succeeds"
+            echo "- Product mutation occurs only after exact-head and credential gates succeed"
           } >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
@@ -143,7 +156,7 @@ jobs:
       - name: Checkout exact approved commit
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ inputs.expected_head_sha }}
+          ref: ${{ env.TARGET_SHA }}
           persist-credentials: false
 
       - name: Setup Node
@@ -185,13 +198,11 @@ jobs:
     needs: deploy
     env:
       PLAYWRIGHT_BASE_URL: ${{ needs.deploy.outputs.deployment_url }}
-      EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
-      DEPLOYMENT_APPROVAL_ID: ${{ inputs.deployment_approval_id }}
     steps:
       - name: Checkout exact deployed commit
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ inputs.expected_head_sha }}
+          ref: ${{ env.TARGET_SHA }}
           persist-credentials: false
 
       - name: Setup Node
@@ -226,8 +237,10 @@ jobs:
           mkdir -p test-results
           cat > test-results/production-proof.txt <<EOF
           repository=jussray/sync-party-game
-          sha=$EXPECTED_HEAD_SHA
+          sha=$TARGET_SHA
           approval=$DEPLOYMENT_APPROVAL_ID
+          trigger=$DEPLOYMENT_TRIGGER
+          source_proof_run=$SOURCE_PROOF_RUN_ID
           url=$PLAYWRIGHT_BASE_URL
           github_run_id=$GITHUB_RUN_ID
           proof=full Playwright suite against public Cloudflare deployment
@@ -237,8 +250,10 @@ jobs:
           {
             echo "## Public multiplayer proof"
             echo
-            echo "- Exact deployed head: \`$EXPECTED_HEAD_SHA\`"
+            echo "- Exact deployed head: \`$TARGET_SHA\`"
             echo "- Public URL: $PLAYWRIGHT_BASE_URL"
+            echo "- Trigger: $DEPLOYMENT_TRIGGER"
+            echo "- Source core-proof run: $SOURCE_PROOF_RUN_ID"
             echo "- Playwright: PASS"
             echo "- Phone + laptop path: PASS"
             echo "- Hidden-choice privacy: PASS"
