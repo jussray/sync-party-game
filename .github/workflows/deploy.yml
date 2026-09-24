@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       expected_head_sha:
-        description: Exact current main SHA approved for production
+        description: Exact approved deployment candidate SHA
         required: true
         type: string
       deployment_approval_id:
@@ -31,13 +31,13 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   TARGET_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_head_sha }}
   DEPLOYMENT_APPROVAL_ID: ${{ github.event_name == 'workflow_run' && format('auto-core-proof-{0}', github.event.workflow_run.id) || inputs.deployment_approval_id }}
-  DEPLOYMENT_REASON: ${{ github.event_name == 'workflow_run' && 'Automatic deploy after successful core-proof on current main' || inputs.deployment_reason }}
+  DEPLOYMENT_REASON: ${{ github.event_name == 'workflow_run' && 'Automatic deploy after successful core-proof production candidate' || inputs.deployment_reason }}
   DEPLOYMENT_TRIGGER: ${{ github.event_name }}
   SOURCE_PROOF_RUN_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || 'manual' }}
 
 jobs:
   authority-gate:
-    name: Exact-head production authority
+    name: Immutable candidate + safe-drift production authority
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' &&
@@ -51,19 +51,19 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - name: Checkout exact approved commit
+      - name: Checkout exact approved candidate
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ env.TARGET_SHA }}
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Verify exact approved head is current main
+      - name: Verify deployment candidate lease against current main
         shell: bash
         run: |
           set -euo pipefail
           if [[ ! "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "::error title=Invalid exact head::Target SHA must be a lowercase 40-character commit SHA."
+            echo "::error title=Invalid deployment candidate::Target SHA must be a lowercase 40-character commit SHA."
             exit 1
           fi
           if [[ ! "$DEPLOYMENT_APPROVAL_ID" =~ ^[A-Za-z0-9._:-]{4,200}$ ]]; then
@@ -71,11 +71,11 @@ jobs:
             exit 1
           fi
           ACTUAL_HEAD_SHA="$(git rev-parse HEAD)"
-          git fetch --no-tags --depth=1 origin refs/heads/main:refs/remotes/origin/main
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
           CURRENT_MAIN_SHA="$(git rev-parse refs/remotes/origin/main)"
-          printf 'Target: %s\nChecked out: %s\nCurrent main: %s\nSource proof run: %s\n' "$TARGET_SHA" "$ACTUAL_HEAD_SHA" "$CURRENT_MAIN_SHA" "$SOURCE_PROOF_RUN_ID"
+          printf 'Candidate: %s\nChecked out: %s\nCurrent main: %s\nSource proof run: %s\n' "$TARGET_SHA" "$ACTUAL_HEAD_SHA" "$CURRENT_MAIN_SHA" "$SOURCE_PROOF_RUN_ID"
           test "$ACTUAL_HEAD_SHA" = "$TARGET_SHA"
-          test "$CURRENT_MAIN_SHA" = "$TARGET_SHA"
+          python scripts/deploy_candidate_guard.py "$TARGET_SHA" "$CURRENT_MAIN_SHA"
 
       - name: Validate Cloudflare deployment authority
         shell: bash
@@ -135,13 +135,14 @@ jobs:
           {
             echo "## SYNC production authority receipt"
             echo
-            echo "- Exact target head: \`$TARGET_SHA\`"
+            echo "- Exact deployment candidate: \`$TARGET_SHA\`"
             echo "- Approval reference: \`$DEPLOYMENT_APPROVAL_ID\`"
             echo "- Reason: ${DEPLOYMENT_REASON:-not supplied}"
             echo "- Trigger: $DEPLOYMENT_TRIGGER"
             echo "- Source core-proof run: $SOURCE_PROOF_RUN_ID"
+            echo "- Candidate lease: candidate must remain an ancestor of main; only explicit non-deploying drift may follow it"
             echo "- Deployment plane: Cloudflare Worker + Durable Object"
-            echo "- Product mutation occurs only after exact-head and credential gates succeed"
+            echo "- Product mutation occurs only after candidate, drift, proof, and credential gates succeed"
           } >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
@@ -153,7 +154,7 @@ jobs:
     outputs:
       deployment_url: ${{ steps.deploy.outputs.deployment-url }}
     steps:
-      - name: Checkout exact approved commit
+      - name: Checkout exact approved candidate
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ env.TARGET_SHA }}
@@ -199,7 +200,7 @@ jobs:
     env:
       PLAYWRIGHT_BASE_URL: ${{ needs.deploy.outputs.deployment_url }}
     steps:
-      - name: Checkout exact deployed commit
+      - name: Checkout exact deployed candidate
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ env.TARGET_SHA }}
@@ -250,7 +251,7 @@ jobs:
           {
             echo "## Public multiplayer proof"
             echo
-            echo "- Exact deployed head: \`$TARGET_SHA\`"
+            echo "- Exact deployed candidate: \`$TARGET_SHA\`"
             echo "- Public URL: $PLAYWRIGHT_BASE_URL"
             echo "- Trigger: $DEPLOYMENT_TRIGGER"
             echo "- Source core-proof run: $SOURCE_PROOF_RUN_ID"
