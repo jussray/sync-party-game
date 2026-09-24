@@ -1,22 +1,44 @@
 # Sync Party
 
-**Amazon Appdev 2026 hackathon build.**
-
-Sync Party is a multiplayer party-game system designed around a shared Fire TV arena, private phone interactions, timed social pressure, adaptive game events, and Amazon-native capabilities where they materially improve the experience.
+Sync Party is a reusable real-time multiplayer party-game system. The product identity is competition-independent: players join quickly, make private choices under time pressure, reveal together, score from one authoritative room state, and replay without rebuilding the room.
 
 ## North Star
 
-Ship the most complete, memorable, technically undeniable multiplayer Fire TV experience we can prove end to end.
+Ship the most reliable, memorable multiplayer room loop we can prove end to end: create → join → choose → reveal → score → replay.
 
-## Competition contract
+## Immediate mission: Handshake
 
-- Primary target: Fire TV.
-- Shared screen: Fire TV is the room arena.
-- Private interaction: players join from phones and make private choices.
-- Pressure loop: countdown, escalating sound, clear visual urgency, reveal, score, replay.
-- Amazon integrations must be real, useful, and visible in evidence. No decorative SDK use.
-- Judging lens: Technical Implementation 25%, Design 25%, Potential Impact 25%, Idea Quality 25%.
-- Deadline baseline: October 23, 2026 at 3:00 PM EDT. Re-verify against the official Devpost rules before submission.
+The first release gate is the Handshake **Create a Multiplayer Game with OpenAI** mission.
+
+Required public path:
+- its own public URL
+- room-code joining
+- no login
+- no app install
+- phone and laptop support
+- reusable/replayable multiplayer rooms
+- synchronized player screens
+
+Handshake-specific proof is tracked in `docs/audits/2026-09-24-handshake-multiplayer-audit.md` and `docs/PROOF-LEDGER.md`.
+
+## Secondary competition adapter: Amazon Appdev 2026
+
+Fire TV, Alexa+, AWS, 10-foot UI, and Amazon-specific judging/evidence are a separate adapter track. They must not redefine or block the core web multiplayer engine or Handshake release path.
+
+Amazon-specific guardrails remain in `docs/HACKATHON-CONTRACT.md` and `docs/FRICTION-LOG.md`.
+
+## Core product contract
+
+- 2–8 players
+- room-code join
+- separate player identity from connection identity
+- authoritative shared state
+- reconnect after refresh/drop
+- hidden choices before reveal
+- synchronized reveal and scoring
+- replay/rematch without recreating the room
+- light/dark mode
+- party music/SFX with escalating countdown pressure and mute/accessibility controls
 
 ## Proof policy
 
@@ -24,17 +46,16 @@ A feature is not done because code exists. It is done only when the real user pa
 
 Use four states only: `VERIFIED`, `INFERRED`, `UNKNOWN`, `BLOCKED`.
 
-For UI/runtime work, preserve browser/device evidence. For Amazon-device claims, preserve Amazon runtime or simulator evidence. Never fabricate green status, hide failing signals, or substitute mocks for the submission path.
+For UI/runtime work, preserve browser evidence. For Amazon-device claims, preserve Amazon runtime or simulator evidence separately. Never fabricate green status, hide failing signals, or substitute mocks for the real submission path.
 
 ## Repository authority
 
 - Authoritative repository: `jussray/sync-party-game`
 - Default branch: `main`
 - Owner / final product authority: `@jussray`
-- Competition guardrails: `docs/HACKATHON-CONTRACT.md`
 - Evidence record: `docs/PROOF-LEDGER.md`
-- Amazon friction record: `docs/FRICTION-LOG.md`
+- Competition routing: `docs/COMPETITION-MATRIX.md`
 
 ## Rights
 
-Public repository visibility is not a license grant. See `COPYRIGHT.md`. Separately identified components may receive an explicit open-source license later when that serves the competition or product strategy.
+Public repository visibility is not a license grant. See `COPYRIGHT.md`. Separately identified components may receive an explicit open-source license later when that serves the product strategy.
