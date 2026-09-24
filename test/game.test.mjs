@@ -39,6 +39,12 @@ test("classic awards the majority and computes sync percent", () => {
   assert.deepEqual(revealed.lastResults.winners.sort(), ["a", "b"]);
   assert.equal(revealed.lastResults.syncPercent, 67);
 });
+test("classic awards nobody when there is no true majority", () => {
+  const revealed = answer(started(["a", "b"]), { a: 0, b: 1 });
+  assert.deepEqual(revealed.lastResults.winners, []);
+  assert.deepEqual(revealed.scores, { a: 0, b: 0 });
+  assert.equal(revealed.lastResults.syncPercent, 50);
+});
 test("twin awards answers chosen by exactly two players", () => {
   let state = started(["a", "b", "c", "d"]);
   state = answer(state, { a: 0, b: 0, c: 1, d: 2 });
