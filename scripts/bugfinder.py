@@ -90,12 +90,22 @@ def verify_e2e(e2e: str) -> None:
 
 
 def verify_deploy_workflow(deploy: str) -> None:
-    require(deploy, r'(?m)^\s*workflow_dispatch\s*:', "production deploy is not manual workflow-dispatch only")
-    forbid(deploy, r'(?m)^\s+push\s*:', "production deploy must not run automatically on push")
-    require(deploy, r'expected_head_sha', "deploy workflow is missing exact-head input")
-    require(deploy, r'deployment_approval_id', "deploy workflow is missing founder approval reference")
+    require(deploy, r'(?m)^\s*workflow_run\s*:', "production deploy is not chained to the verified core-proof workflow")
+    require(deploy, r'workflows:\s*\["core-proof"\]', "automatic production deploy is not bound to core-proof")
+    require(deploy, r'types:\s*\[completed\]', "automatic production deploy is not gated on proof completion")
+    require(deploy, r'branches:\s*\[main\]', "automatic production deploy is not restricted to main")
+    require(deploy, r'(?m)^\s*workflow_dispatch\s*:', "production deploy lost the manual recovery path")
+    forbid(deploy, r'(?m)^\s+push\s*:', "production deploy must not mutate directly from an unverified push trigger")
+    require(deploy, r"github\.event\.workflow_run\.conclusion == 'success'", "automatic deploy does not require successful core-proof")
+    require(deploy, r"github\.event\.workflow_run\.head_branch == 'main'", "automatic deploy does not re-check the proof branch")
+    require(deploy, r"github\.event\.workflow_run\.event == 'push'", "automatic deploy can be triggered by an unexpected source event")
+    require(deploy, r'TARGET_SHA:.*github\.event\.workflow_run\.head_sha', "automatic deploy is not bound to the exact green proof SHA")
+    require(deploy, r'expected_head_sha', "manual recovery deploy is missing exact-head input")
+    require(deploy, r'deployment_approval_id', "manual recovery deploy is missing founder approval reference")
+    require(deploy, r'auto-core-proof-', "automatic deploy does not leave an auditable approval reference")
     require(deploy, r'CURRENT_MAIN_SHA=.*refs/remotes/origin/main', "deploy workflow does not read current main for exact-head authority")
-    require(deploy, r'test \"\$CURRENT_MAIN_SHA\" = \"\$EXPECTED_HEAD_SHA\"', "deploy workflow does not fail closed on main drift")
+    require(deploy, r'test \"\$CURRENT_MAIN_SHA\" = \"\$TARGET_SHA\"', "deploy workflow does not fail closed on main drift")
+    require(deploy, r'cancel-in-progress:\s*false', "production concurrency can cancel an in-flight mutation")
     require(deploy, r'CLOUDFLARE_API_TOKEN', "deploy workflow is missing Cloudflare API-token authority")
     require(deploy, r'CLOUDFLARE_ACCOUNT_ID', "deploy workflow is missing Cloudflare account authority")
     require(deploy, r'cloudflare/wrangler-action@25853364521e0d392ece9b0c1e97a4b37b638087', "Wrangler action is not pinned to the approved immutable v4 commit")
@@ -104,6 +114,7 @@ def verify_deploy_workflow(deploy: str) -> None:
     require(deploy, r'PLAYWRIGHT_BASE_URL:\s*\$\{\{\s*needs\.deploy\.outputs\.deployment_url\s*\}\}', "production Playwright is not targeted at the deployed URL")
     require(deploy, r'npm run test:e2e', "production deployment does not run the full Playwright suite")
     require(deploy, r'production-proof\.txt', "production workflow does not leave a durable proof receipt")
+    require(deploy, r'SOURCE_PROOF_RUN_ID', "production receipt is not linked back to the source core-proof run")
     require(deploy, r'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02', "production proof artifacts are not pinned to the approved upload action")
 
 
@@ -126,7 +137,7 @@ def main() -> None:
     verify_e2e(e2e)
     verify_deploy_workflow(deploy)
     run_node_tests()
-    print("BUGFINDER PASS: game authority/privacy/continuity, mobile+timeout multiplayer proof, production deploy authority, and Node tests are green")
+    print("BUGFINDER PASS: game authority/privacy/continuity, mobile+timeout multiplayer proof, autonomous exact-green production deploy authority, and Node tests are green")
 
 
 if __name__ == "__main__":
