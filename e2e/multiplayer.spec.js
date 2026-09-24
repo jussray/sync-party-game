@@ -7,8 +7,14 @@ test("two independent browsers share authoritative state, theme, and reconnect",
   const guest = await guestContext.newPage();
 
   await host.goto("/");
+  const initialTheme = await host.locator("html").getAttribute("data-theme");
+  expect(["light", "dark"]).toContain(initialTheme);
+  const toggledTheme = initialTheme === "dark" ? "light" : "dark";
   await host.getByRole("button", { name: /Toggle light or dark theme/ }).click();
-  await expect(host.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(host.locator("html")).toHaveAttribute("data-theme", toggledTheme);
+  await host.reload();
+  await expect(host.locator("html")).toHaveAttribute("data-theme", toggledTheme);
+
   await host.getByLabel("Your nickname").fill("Ray");
   await host.getByRole("button", { name: /Create a game/ }).click();
   const code = (await host.locator(".room-code").textContent()).trim();
