@@ -1,7 +1,7 @@
 # Multiplayer runtime proof receipt — 2026-09-24
 
 - Timestamp: 2026-09-24T19:45Z–20:00Z
-- Exact commit: `592e2aba97e2a71def0b7e924ca48f122e7a33d4` (feature `2a8dfea` merged with main `8473f9c` → `3a4bd7f`, then main `b8efce1` → `592e2ab`; all proofs below re-run on `592e2ab`)
+- Exact commit: `ddb239f4a0893a81c693c00247decfe9965d259f` (feature `2a8dfea` + main merges `8473f9c`, `b8efce1`, `2fc19e5`; every proof below re-run on `ddb239f`)
 - Branch: `claude/sync-pressure-party-multiplayer-rpszoh`
 - Environment: Linux cloud container, Node 22.22.2, wrangler 4.135.0 (`wrangler dev`, local mode: real workerd Worker + SQLite Durable Object, no mocks), @playwright/test 1.63.0 on preinstalled Chromium (`PW_CHROMIUM_PATH=/opt/pw-browsers/chromium`)
 - Scope: LOCAL runtime only. **Not** production. No public URL exists yet.
@@ -25,11 +25,11 @@ Concurrency note (INFERRED, not a fix): 8 simultaneous submissions per round nev
 | Command | Expected | Observed |
 |---|---|---|
 | `npm run verify` | node tests + Python bug finder green | 15/15 pass; `BUGFINDER PASS` |
-| `PW_TRACE=on PW_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test` | 4 tests (flow + a11y × desktop, Pixel 7) | **4 passed (45.0 s)** |
+| `PW_TRACE=on PW_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test` | flow + a11y × desktop, Pixel 7; alarm/pressure test (laptop host + phone guest) | **5 passed, 1 intentionally skipped (alarm test runs once), 1.0 m** |
 | `ATTACK_SEED={7,11,23} ATTACK_GAMES=2 node scripts/attack.mjs` | 8 players converge; no lost/leaked/forged/double-advanced state | **ATTACK PASS ×3**, 6 games, receipts 83–84 per game, contiguous hash chain |
 | Mutation: expose answers in `locked` | spec must fail | Failed at "no answer values reach another client before reveal" (then reverted) |
 
-Proof path covered by `e2e/multiplayer.spec.js` (two `browser.newContext` contexts): landing → theme toggle + persistence → create → code → guest join → presence 2/2 both sides → start → identical round/mode/prompt ×5 modes (Classic, Twin, Odd One Out, Reverse, Perfect Sync) → host submit → guest WebSocket frames contain no answer values → forged overwrite + `SET_SCORE` on a fresh socket rejected (`Choice already locked`, `Unknown action`) → LOCKED beat → identical result rows, SYNC %, state hash → guest reload keeps identity + hash → final leaderboard equal, final room SYNC 70% both → rematch same room, playable to 100% → receipts chain ends at the client's hash. Accessibility test: sound off by default, toggle `aria-pressed`, keyboard-only create, reduced-motion honored, share link pre-fills code, no horizontal scroll.
+Proof path covered by `e2e/multiplayer.spec.js` (two `browser.newContext` contexts): landing → theme toggle + persistence → create → code → guest join → presence 2/2 both sides → start → identical round/mode/prompt ×5 modes (Classic, Twin, Odd One Out, Reverse, Perfect Sync) → host submit → guest WebSocket frames contain no answer values → forged overwrite + `SET_SCORE` on a fresh socket rejected (`Choice already locked`, `Unknown action`) → LOCKED beat → identical result rows, SYNC %, state hash → guest reload keeps identity + hash → final leaderboard equal, final room SYNC 70% both → rematch same room, playable to 100% → receipts chain ends at the client's hash. Alarm test: nobody answers → timer turns `danger`, card gets `pressure` in final 5 s (screenshot `08-final-five-pressure-phone.png`) → LOCKED → REVEAL 0% on both, same hash. Accessibility test: sound off by default, toggle `aria-pressed`, keyboard-only create, reduced-motion honored, share link pre-fills code, no horizontal scroll.
 
 Attack harness covers: 9th join rejected, forged token and forged player rejected, non-host start, score/phase mutation intents, malformed JSON / `null`, duplicate START, late join rejected, random refresh each round, simultaneous + duplicate + overwrite submissions, timer expiry via DO alarm, host drop + transfer, duplicate NEXT_ROUND, rematch.
 
