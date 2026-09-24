@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#09152f" />
+  <title>SYNC ✦ Think alike. Beat the clock.</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">✦ SYNC</a>
+    <div class="controls">
+      <button id="themeToggle" class="icon-btn" aria-label="Toggle light or dark theme">☀︎</button>
+      <button id="soundToggle" class="icon-btn" aria-pressed="false" aria-label="Toggle party sound">♫</button>
+    </div>
+  </header>
+  <main id="app" class="shell" aria-live="polite"></main>
+  <div id="toast" class="toast" role="status"></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
