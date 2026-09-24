@@ -43,22 +43,25 @@ test("two independent browsers: 5 modes, private answers, same reveal/score/SYNC
   await expect(host.getByText("Think alike. Beat the clock.")).toBeVisible();
   const themeButton = host.getByRole("button", { name: /Toggle light or dark theme/ });
   const initialTheme = await host.locator("html").getAttribute("data-theme");
+  const toggledTheme = initialTheme === "dark" ? "light" : "dark";
   await themeButton.click();
-  await expect(host.locator("html")).toHaveAttribute("data-theme", initialTheme === "dark" ? "light" : "dark");
+  await expect(host.locator("html")).toHaveAttribute("data-theme", toggledTheme);
+  await host.reload(); // theme preference persists
+  await expect(host.locator("html")).toHaveAttribute("data-theme", toggledTheme);
   await shots(testInfo, host, "01-landing-toggled-theme");
   await themeButton.click();
   await expect(host.locator("html")).toHaveAttribute("data-theme", initialTheme);
   await noHorizontalScroll(host);
 
   // 3-5. host creates room
-  await host.getByLabel("Your nickname").fill("Ray");
+  await host.getByLabel("Your nickname", { exact: true }).fill("Ray");
   await host.getByRole("button", { name: /Create a game/ }).click();
   const code = (await host.locator(".room-code").textContent()).trim();
   expect(code).toMatch(/^[A-Z0-9]{5}$/);
 
   // 6-9. guest joins in an independent context
   await guest.goto("/");
-  await guest.getByLabel("Room code").fill(code);
+  await guest.getByLabel("Room code", { exact: true }).fill(code);
   await guest.getByLabel("Nickname", { exact: true }).fill("Night");
   await guest.getByRole("button", { name: /Join a game/ }).click();
 
@@ -149,12 +152,16 @@ test("two independent browsers: 5 modes, private answers, same reveal/score/SYNC
     // 22-24. guest refresh mid-game -> same identity, same authoritative state
     if (round === 2) {
       const before = await fingerprint(host);
+      const identityBefore = await guest.evaluate((roomCode) => localStorage.getItem(`sync.room.${roomCode}`), code);
+      expect(identityBefore).toBeTruthy();
       await guest.reload();
+      await expect(guest).toHaveURL(new RegExp(`room=${code}`));
       await expect(guest.getByText("ROOM SYNC")).toBeVisible();
       await expect(guest.locator(".mode-label")).toHaveText(MODES[round]);
       await expectSameAuthority(host, guest);
       expect((await fingerprint(guest)).seq).toBeGreaterThanOrEqual(before.seq);
       await expect(guest.getByText(/Your score: \d+ pts/)).toBeVisible();
+      expect(await guest.evaluate((roomCode) => localStorage.getItem(`sync.room.${roomCode}`), code)).toBe(identityBefore);
       await expect(host.locator("#fingerprint")).toBeVisible();
     }
 
@@ -221,7 +228,7 @@ test("accessibility: keyboard path, toggles, muted play info, reduced motion", a
   await expect(sound).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByText(/never carries required game information/)).toBeVisible();
   // keyboard only: focus nickname, type, Enter submits create form
-  await page.getByLabel("Your nickname").focus();
+  await page.getByLabel("Your nickname", { exact: true }).focus();
   await page.keyboard.type("Keys");
   await page.keyboard.press("Enter");
   await expect(page.locator(".room-code")).toHaveText(/^[A-Z0-9]{5}$/);
@@ -235,7 +242,7 @@ test("accessibility: keyboard path, toggles, muted play info, reduced motion", a
   const code = (await page.locator(".room-code").textContent()).trim();
   const other = await (await browser.newContext(deviceOptions(testInfo.project.use))).newPage();
   await other.goto(`/?room=${code}`);
-  await expect(other.getByLabel("Room code")).toHaveValue(code);
+  await expect(other.getByLabel("Room code", { exact: true })).toHaveValue(code);
   await expect(other.getByLabel("Nickname", { exact: true })).toBeFocused();
   await noHorizontalScroll(page);
   await context.close();
