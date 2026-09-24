@@ -61,7 +61,7 @@ async function hasMessage(page, key, predicate) {
       if (phase && message.state?.phase !== phase) return false;
       return true;
     });
-  }, predicate);
+  }, { socketKey: key, ...predicate });
 }
 
 test("server rejects guest host-actions and revokes the previous socket on reconnect", async ({ browser }) => {
