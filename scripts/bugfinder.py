@@ -46,6 +46,8 @@ def verify_worker(worker: str) -> None:
     forbid(worker, r'startGame\(\{\s*\.\.\.state,\s*phase:\s*["\']results["\']\s*\}', "REMATCH can spoof the room phase")
     forbid(worker, r'\.\.\.action\s*[,}]', "client action object is spread into authoritative state")
     forbid(worker, r'action\.(?:scores|score|phase|hostId|stateHash)\b', "client controls an authoritative state field")
+    require(worker, r'hash\(publicFingerprint\(next\)\)', "public state hash can expose hidden choice values")
+    forbid(worker, r'answers:\s*next\.answers', "public state hash includes raw hidden answers")
     require(worker, r'previousStateHash', "continuity receipt is missing previous state hash")
     require(worker, r'stateHash', "continuity receipt is missing state hash")
 
@@ -55,6 +57,8 @@ def verify_game(game: str) -> None:
     require(game, r'if \(state\.hostId !== actorId\) throw new Error\("Only the host can advance"\)', "advance authority guard missing")
     require(game, r'Choice already locked', "duplicate choice protection missing")
     require(game, r'resumeToken,\s*\.\.\.safe', "public state no longer strips resume tokens")
+    require(game, r'export function publicFingerprint', "public fingerprint privacy boundary is missing")
+    require(game, r'answers:\s*publicAnswers\(state\)', "public fingerprint no longer uses redacted answers")
     require(game, r'state\.phase === "reveal" \|\| state\.phase === "results"', "answers may be exposed before reveal")
     require(game, r'top\s*>\s*total\s*/\s*2', "Classic mode no longer requires a true majority")
 
