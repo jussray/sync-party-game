@@ -1,6 +1,7 @@
 export const GAME_VERSION = 1;
 export const ROUND_SECONDS = 15;
 export const DEFAULT_ROUNDS = 5;
+export const LOCK_MS = 1500; // brief tension beat between LOCK and REVEAL
 
 export const MODES = [
   { id: "classic", label: "Classic Sync", instruction: "Match the majority." },
@@ -35,6 +36,7 @@ export function createRoomState(code, hostPlayer, rounds = DEFAULT_ROUNDS) {
     answers: {},
     scores: { [hostPlayer.id]: 0 },
     deadline: null,
+    revealAt: null,
     lastResults: null,
     syncHistory: [],
     seq: 0,
@@ -101,8 +103,26 @@ export function submitChoice(state, actorId, choiceIndex) {
   return { ...state, answers: { ...state.answers, [actorId]: choiceIndex } };
 }
 
+export function allConnectedAnswered(state) {
+  const connected = Object.values(state.players).filter((player) => player.connected).map((player) => player.id);
+  return connected.length >= 2 && connected.every((id) => Object.prototype.hasOwnProperty.call(state.answers, id));
+}
+
+// CHOOSING -> LOCKED: no more choices accepted; answers stay private until REVEAL.
+export function lockRound(state, now = Date.now()) {
+  if (state.phase !== "choosing") throw new Error("Cannot lock now");
+  return { ...state, phase: "locked", deadline: null, revealAt: now + LOCK_MS };
+}
+
+// If the host dropped, hand authority to the earliest-joined connected player so the room never stalls.
+export function transferHostIfGone(state) {
+  if (state.players[state.hostId]?.connected) return state;
+  const next = Object.values(state.players).find((player) => player.connected);
+  return next ? { ...state, hostId: next.id } : state;
+}
+
 export function revealRound(state) {
-  if (state.phase !== "choosing") return state;
+  if (state.phase !== "locked") throw new Error("Cannot reveal now");
 
   const entries = Object.entries(state.answers);
   const counts = {};
@@ -136,6 +156,7 @@ export function revealRound(state) {
     phase: "reveal",
     scores,
     deadline: null,
+    revealAt: null,
     syncHistory: [...state.syncHistory, syncPercent],
     lastResults: {
       mode: state.mode,

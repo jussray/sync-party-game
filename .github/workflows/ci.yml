@@ -2,7 +2,7 @@ name: core-proof
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'claude/**']
   pull_request:
 
 permissions:
@@ -34,3 +34,38 @@ jobs:
         run: node --test test/*.test.mjs
       - name: Python bug finder
         run: python scripts/bugfinder.py
+
+  multiplayer-proof:
+    # Real Worker + Durable Object (wrangler dev, local mode) driven by two independent
+    # Playwright browser contexts on desktop + phone, then the seeded 8-player attack harness.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Start local Worker + Durable Object
+        run: |
+          nohup npx wrangler dev --port 8787 --ip 127.0.0.1 > wrangler-dev.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:8787/ && exit 0; sleep 1; done
+          cat wrangler-dev.log; exit 1
+      - name: Playwright multiplayer proof (desktop + phone)
+        run: npx playwright test
+        env:
+          PW_TRACE: "on"
+      - name: Seeded 8-player attack harness
+        run: |
+          for seed in 7 11 23; do ATTACK_SEED=$seed ATTACK_GAMES=2 node scripts/attack.mjs; done
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-local-${{ github.sha }}
+          path: |
+            playwright-report/
+            test-results/
+            wrangler-dev.log
+          retention-days: 30

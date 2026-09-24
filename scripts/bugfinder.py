@@ -58,7 +58,7 @@ def verify_game(game: str) -> None:
 
 
 def verify_e2e(e2e: str) -> None:
-    contexts = len(re.findall(r'browser\.newContext\(\)', e2e))
+    contexts = len(re.findall(r'browser\.newContext\(', e2e))
     if contexts < 2:
         fail("Playwright proof does not use two independent browser contexts")
     require(e2e, r'guest\.reload\(\)', "Playwright proof does not exercise reconnect")

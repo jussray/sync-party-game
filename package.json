@@ -9,7 +9,8 @@
     "test": "node --test test/*.test.mjs",
     "test:e2e": "playwright test",
     "bugfinder": "python3 scripts/bugfinder.py",
-    "verify": "npm test && npm run bugfinder"
+    "verify": "npm test && npm run bugfinder",
+    "attack": "node scripts/attack.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

@@ -63,6 +63,7 @@ h1,h2,p { margin-top: 0; }
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; padding: 12px 16px; border-radius: 14px; background: #121629; color: white; transition: .2s; box-shadow: var(--shadow); }
 .toast.show { opacity: 1; transform: translate(-50%,0); }
 .pressure { border-color: rgba(255,80,90,.6); box-shadow: var(--shadow), 0 0 70px rgba(255,60,80,.18); }
+.fingerprint { text-align: center; color: var(--muted); font: .72rem ui-monospace, SFMono-Regular, Menlo, monospace; padding: 0 16px 24px; overflow-wrap: anywhere; }
 .setting-note { margin-top: 14px; color: var(--muted); font-size: .85rem; }
 .mini-card { padding: 22px; border-radius: 22px; box-shadow: none; }
 .code-input { text-transform: uppercase; letter-spacing: .18em; font-weight: 900; }
@@ -75,5 +76,11 @@ h1,h2,p { margin-top: 0; }
 .sync-track span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #3f8cff, var(--accent-2), var(--accent)); }
 .final-sync { display: grid; gap: 7px; place-items: center; padding: 18px; margin: 18px 0; background: var(--panel-2); border: 1px solid var(--line); border-radius: 20px; }
 .btn:disabled, .choice:disabled { cursor: not-allowed; opacity: .68; transform: none; }
+.icon-btn:focus-visible, .btn:focus-visible, .choice:focus-visible, .brand:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.lock-title { font-size: clamp(2.6rem, 9vw, 5rem); font-weight: 1000; letter-spacing: -.05em; margin: 10px 0 0; }
+.locked-card { border-color: var(--accent-2); }
+.reveal-card { --energy: 0; box-shadow: var(--shadow), 0 0 calc(20px + 90px * var(--energy)) rgba(255,63,159, calc(.08 + .3 * var(--energy))); }
+.reveal-card.perfect, .final-sync.perfect { border-color: var(--accent); animation: perfectGlow .9s ease-in-out infinite alternate; }
+@keyframes perfectGlow { from { box-shadow: var(--shadow), 0 0 40px rgba(255,63,159,.3); } to { box-shadow: var(--shadow), 0 0 120px rgba(156,77,255,.55); } }
 @media (max-width: 720px) { .two { grid-template-columns: 1fr; } .hero-card,.card { border-radius: 24px; padding: 24px 18px; } .shell { padding-top: 8px; } .mode-card { align-items: flex-start; flex-direction: column; } }
 @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }

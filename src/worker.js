@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { advance, createRoomState, joinPlayer, publicState, revealRound, startGame, submitChoice } from "./game.js";
+import { advance, allConnectedAnswered, createRoomState, joinPlayer, lockRound, publicState, revealRound, startGame, submitChoice, transferHostIfGone } from "./game.js";
 
 const enc = new TextEncoder();
 const json = (data, init = {}) => new Response(JSON.stringify(data), {
@@ -44,7 +44,7 @@ export default {
       }));
     }
 
-    const match = url.pathname.match(/^\/api\/rooms\/([A-Z0-9]{5})\/(join|ws)$/);
+    const match = url.pathname.match(/^\/api\/rooms\/([A-Z0-9]{5})\/(join|ws|receipts)$/);
     if (match) {
       const [, code, action] = match;
       const stub = env.ROOMS.get(env.ROOMS.idFromName(code));
@@ -92,6 +92,13 @@ export class GameRoom extends DurableObject {
       return json({ code: state.code, playerId: player.id, resumeToken: player.resumeToken, host: false });
     }
 
+    if (url.pathname === "/internal/receipts" && request.method === "GET") {
+      // Public continuity chain: event, seq, hashes. Contains no resume tokens or pre-reveal answers.
+      const receipts = await this.ctx.storage.get("receipts");
+      if (!receipts) return json({ error: "Room not found" }, { status: 404 });
+      return json(receipts);
+    }
+
     if (url.pathname === "/internal/ws") {
       if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") return new Response("Expected websocket", { status: 426 });
       let state = await this.ctx.storage.get("state");
@@ -129,6 +136,7 @@ export class GameRoom extends DurableObject {
     } catch {
       return this.sendError(ws, "Bad message");
     }
+    if (!action || typeof action !== "object" || typeof action.type !== "string") return this.sendError(ws, "Bad message");
 
     try {
       if (action.type === "START_GAME") {
@@ -138,14 +146,7 @@ export class GameRoom extends DurableObject {
       } else if (action.type === "SUBMIT_CHOICE") {
         state = submitChoice(state, playerId, action.choiceIndex);
         state = await this.commit(state, "ANSWER_LOCKED", playerId);
-
-        const activeIds = Object.values(state.players).filter((player) => player.connected).map((player) => player.id);
-        const allActiveAnswered = activeIds.length >= 2 && activeIds.every((id) => Object.prototype.hasOwnProperty.call(state.answers, id));
-        if (allActiveAnswered) {
-          state = revealRound(state);
-          state = await this.commit(state, "ROUND_REVEALED", "system");
-          await this.ctx.storage.deleteAlarm();
-        }
+        if (allConnectedAnswered(state)) state = await this.lock(state, "ROUND_LOCKED");
       } else if (action.type === "NEXT_ROUND") {
         state = advance(state, playerId);
         state = await this.commit(state, state.phase === "results" ? "GAME_FINISHED" : "ROUND_STARTED", playerId);
@@ -179,16 +180,36 @@ export class GameRoom extends DurableObject {
     });
     if (stillConnected || !state.players[playerId].connected) return;
 
-    state = { ...state, players: { ...state.players, [playerId]: { ...state.players[playerId], connected: false } } };
+    state = transferHostIfGone({ ...state, players: { ...state.players, [playerId]: { ...state.players[playerId], connected: false } } });
     state = await this.commit(state, "PLAYER_DISCONNECTED", playerId);
+    // Remaining connected players may now all have answered.
+    if (state.phase === "choosing" && allConnectedAnswered(state)) state = await this.lock(state, "ROUND_LOCKED");
     this.broadcast(state);
+  }
+
+  async webSocketError(ws) {
+    return this.webSocketClose(ws);
+  }
+
+  // CHOOSING -> LOCKED (tension beat), then the alarm performs LOCKED -> REVEAL.
+  async lock(state, event) {
+    state = lockRound(state);
+    state = await this.commit(state, event, "system");
+    await this.ctx.storage.setAlarm(state.revealAt);
+    return state;
   }
 
   async alarm() {
     let state = await this.ctx.storage.get("state");
-    if (!state || state.phase !== "choosing") return;
-    state = revealRound(state);
-    state = await this.commit(state, "ROUND_REVEALED_TIMEOUT", "system");
+    if (!state) return;
+    if (state.phase === "choosing") {
+      if (Date.now() < state.deadline) return this.ctx.storage.setAlarm(state.deadline);
+      state = await this.lock(state, "ROUND_LOCKED_TIMEOUT");
+    } else if (state.phase === "locked") {
+      if (Date.now() < state.revealAt) return this.ctx.storage.setAlarm(state.revealAt);
+      state = revealRound(state);
+      state = await this.commit(state, "ROUND_REVEALED", "system");
+    } else return;
     this.broadcast(state);
   }
 
@@ -200,6 +221,7 @@ export class GameRoom extends DurableObject {
       code: next.code,
       phase: next.phase,
       roundIndex: next.roundIndex,
+      hostId: next.hostId,
       mode: next.mode?.id || null,
       players: Object.fromEntries(Object.entries(next.players).sort(([a], [b]) => a.localeCompare(b)).map(([id, player]) => [id, { connected: player.connected, name: player.name }])),
       scores: next.scores,
@@ -216,6 +238,8 @@ export class GameRoom extends DurableObject {
       room: committed.code,
       gameVersion: committed.gameVersion,
       seq: committed.seq,
+      round: committed.roundIndex,
+      phase: committed.phase,
       previousStateHash,
       stateHash,
       at: Date.now()
