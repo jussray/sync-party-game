@@ -151,7 +151,8 @@ export class GameRoom extends DurableObject {
         state = await this.commit(state, state.phase === "results" ? "GAME_FINISHED" : "ROUND_STARTED", playerId);
         if (state.deadline) await this.ctx.storage.setAlarm(state.deadline);
       } else if (action.type === "REMATCH") {
-        state = startGame({ ...state, phase: "results" }, playerId);
+        if (state.phase !== "results") throw new Error("Cannot rematch now");
+        state = startGame(state, playerId);
         state = await this.commit(state, "REMATCH_STARTED", playerId);
         await this.ctx.storage.setAlarm(state.deadline);
       } else if (action.type === "PING") {
