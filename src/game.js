@@ -44,14 +44,37 @@ export function createRoomState(code, hostPlayer, rounds = DEFAULT_ROUNDS) {
   };
 }
 
+export function publicAnswers(state) {
+  return state.phase === "reveal" || state.phase === "results"
+    ? state.answers
+    : Object.fromEntries(Object.keys(state.answers).map((id) => [id, true]));
+}
+
+export function publicFingerprint(state) {
+  return {
+    gameVersion: state.gameVersion,
+    code: state.code,
+    phase: state.phase,
+    roundIndex: state.roundIndex,
+    hostId: state.hostId,
+    mode: state.mode?.id || null,
+    players: Object.fromEntries(
+      Object.entries(state.players)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([id, player]) => [id, { connected: player.connected, name: player.name }])
+    ),
+    scores: state.scores,
+    answers: publicAnswers(state),
+    syncHistory: state.syncHistory,
+    seq: state.seq
+  };
+}
+
 export function publicState(state) {
   const players = Object.values(state.players)
     .map(({ resumeToken, ...safe }) => safe)
     .sort((a, b) => (a.id === state.hostId ? -1 : b.id === state.hostId ? 1 : a.name.localeCompare(b.name)));
-  const answers = state.phase === "reveal" || state.phase === "results"
-    ? state.answers
-    : Object.fromEntries(Object.keys(state.answers).map((id) => [id, true]));
-  return { ...state, players, answers };
+  return { ...state, players, answers: publicAnswers(state) };
 }
 
 export function joinPlayer(state, player) {

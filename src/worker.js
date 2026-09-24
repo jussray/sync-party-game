@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { advance, allConnectedAnswered, createRoomState, joinPlayer, lockRound, publicState, revealRound, startGame, submitChoice, transferHostIfGone } from "./game.js";
+import { advance, allConnectedAnswered, createRoomState, joinPlayer, lockRound, publicFingerprint, publicState, revealRound, startGame, submitChoice, transferHostIfGone } from "./game.js";
 
 const enc = new TextEncoder();
 const json = (data, init = {}) => new Response(JSON.stringify(data), {
@@ -216,20 +216,7 @@ export class GameRoom extends DurableObject {
   async commit(state, event, actor) {
     const previousStateHash = state.stateHash || null;
     const next = { ...state, seq: state.seq + 1 };
-    const fingerprint = {
-      gameVersion: next.gameVersion,
-      code: next.code,
-      phase: next.phase,
-      roundIndex: next.roundIndex,
-      hostId: next.hostId,
-      mode: next.mode?.id || null,
-      players: Object.fromEntries(Object.entries(next.players).sort(([a], [b]) => a.localeCompare(b)).map(([id, player]) => [id, { connected: player.connected, name: player.name }])),
-      scores: next.scores,
-      answers: next.answers,
-      syncHistory: next.syncHistory,
-      seq: next.seq
-    };
-    const stateHash = await hash(fingerprint);
+    const stateHash = await hash(publicFingerprint(next));
     const committed = { ...next, stateHash };
     const receipts = (await this.ctx.storage.get("receipts")) || [];
     receipts.push({

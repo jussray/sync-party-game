@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { advance, allConnectedAnswered, createRoomState, joinPlayer, lockRound, publicState, revealRound, startGame, submitChoice, transferHostIfGone } from "../src/game.js";
+import { advance, allConnectedAnswered, createRoomState, joinPlayer, lockRound, publicFingerprint, publicState, revealRound, startGame, submitChoice, transferHostIfGone } from "../src/game.js";
 
 const player = (id, name, connected = true) => ({ id, name, resumeToken: `r-${id}`, connected });
 function started(ids = ["a", "b", "c"]) {
@@ -33,6 +33,28 @@ test("choice is immutable after lock", () => {
 test("choice validation rejects impossible answer index", () => {
   const state = started(["a", "b"]);
   assert.throws(() => submitChoice(state, "a", 999), /Invalid choice/);
+});
+test("hidden choices cannot be inferred from public state or fingerprint", () => {
+  const base = started(["a", "b"]);
+  const choseZero = submitChoice(base, "a", 0);
+  const choseFour = submitChoice(base, "a", 4);
+
+  assert.deepEqual(publicState(choseZero).answers, { a: true });
+  assert.deepEqual(publicState(choseFour).answers, { a: true });
+  assert.deepEqual(publicFingerprint(choseZero), publicFingerprint(choseFour));
+  assert.equal(Object.prototype.hasOwnProperty.call(publicState(choseZero).players[0], "resumeToken"), false);
+});
+test("revealed choices become part of the public fingerprint only after reveal", () => {
+  let state = started(["a", "b"]);
+  state = submitChoice(state, "a", 2);
+  state = submitChoice(state, "b", 3);
+  const lockedA = lockRound(state, 5000);
+  const lockedB = lockRound(submitChoice(submitChoice(started(["a", "b"]), "a", 4), "b", 0), 5000);
+  assert.deepEqual(publicFingerprint(lockedA), publicFingerprint(lockedB), "LOCKED fingerprint leaks nothing");
+  state = revealRound(lockedA);
+
+  assert.deepEqual(publicState(state).answers, { a: 2, b: 3 });
+  assert.deepEqual(publicFingerprint(state).answers, { a: 2, b: 3 });
 });
 test("classic awards the majority and computes sync percent", () => {
   const revealed = answer(started(), { a: 0, b: 0, c: 1 });
