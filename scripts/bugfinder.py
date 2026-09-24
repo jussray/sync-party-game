@@ -3,7 +3,8 @@
 
 Python does not implement the game. It inspects the authoritative JavaScript,
 checks authority/privacy invariants, verifies that the real two-browser proof
-exists, and then runs the Node game tests as an independent orchestration lane.
+covers the complete replayable loop, and then runs the Node game tests as an
+independent orchestration lane.
 """
 from __future__ import annotations
 
@@ -55,6 +56,7 @@ def verify_game(game: str) -> None:
     require(game, r'Choice already locked', "duplicate choice protection missing")
     require(game, r'resumeToken,\s*\.\.\.safe', "public state no longer strips resume tokens")
     require(game, r'state\.phase === "reveal" \|\| state\.phase === "results"', "answers may be exposed before reveal")
+    require(game, r'top\s*>\s*total\s*/\s*2', "Classic mode no longer requires a true majority")
 
 
 def verify_e2e(e2e: str) -> None:
@@ -65,22 +67,19 @@ def verify_e2e(e2e: str) -> None:
     require(e2e, r'Create a game', "Playwright proof does not create a room through UI")
     require(e2e, r'Join a game', "Playwright proof does not join a room through UI")
     require(e2e, r'100%', "Playwright proof does not assert synchronized reveal result")
+    require(e2e, r'round:\s*5', "Playwright proof does not reach the final round")
+    require(e2e, r'See final scores', "Playwright proof does not transition to final results")
+    require(e2e, r'GAME OVER', "Playwright proof does not verify final results on both clients")
+    require(e2e, r'FINAL ROOM SYNC', "Playwright proof does not verify the final room synchronization summary")
+    require(e2e, r'Play again', "Playwright proof does not exercise same-room rematch")
+    require(e2e, r'room=\$\{code\}', "Playwright proof does not preserve the room across replay")
 
 
 def run_node_tests() -> None:
-    process = subprocess.run(
-        ["node", "--test", "test/*.test.mjs"],
-        cwd=ROOT,
-        text=True,
-        capture_output=True,
-        shell=False,
-    )
-    # Node does not expand globs without a shell, so retry with discovered files.
-    if process.returncode != 0:
-        tests = sorted(str(path.relative_to(ROOT)) for path in (ROOT / "test").glob("*.test.mjs"))
-        if not tests:
-            fail("no Node game tests found")
-        process = subprocess.run(["node", "--test", *tests], cwd=ROOT, text=True, capture_output=True)
+    tests = sorted(str(path.relative_to(ROOT)) for path in (ROOT / "test").glob("*.test.mjs"))
+    if not tests:
+        fail("no Node game tests found")
+    process = subprocess.run(["node", "--test", *tests], cwd=ROOT, text=True, capture_output=True)
     if process.returncode != 0:
         fail("Node game tests failed under Python orchestration:\n" + process.stdout + process.stderr)
 
@@ -93,7 +92,7 @@ def main() -> None:
     verify_game(game)
     verify_e2e(e2e)
     run_node_tests()
-    print("BUGFINDER PASS: authority, privacy, continuity, multiplayer proof shape, and Node tests are green")
+    print("BUGFINDER PASS: authority, privacy, continuity, full multiplayer proof shape, and Node tests are green")
 
 
 if __name__ == "__main__":
