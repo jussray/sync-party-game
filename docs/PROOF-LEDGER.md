@@ -18,17 +18,18 @@ A `VERIFIED` row must contain evidence tied to an exact commit SHA or immutable 
 |---|---|---|---|---|
 | Repository provenance anchored | VERIFIED | `ee3e0264a3038695d43763709262f9a871262f02` | Git history | Preserve lineage |
 | Product-first competition routing | VERIFIED | `776a2683b9e6560e24cd5d0bfb3ff0352a97c02e` | `README.md` + `docs/COMPETITION-MATRIX.md` | Prevent adapter drift |
+| Pure game transition/scoring rules | VERIFIED | `5ad72763808da6c9e7f826738216ccf1195e4f76` | 9/9 Node tests; `docs/receipts/2026-09-24-implementation-proof.md` | Keep runtime authority separate from pure rules |
 | Main branch protection / ruleset | BLOCKED | — | GitHub branch metadata reports `protected:false` | Enable ruleset requiring appropriate checks/review |
-| Room create / join | UNKNOWN | — | — | Implement + multiplayer proof |
-| 2+ player synchronized state | UNKNOWN | — | — | Real concurrent clients |
-| Timed choice lock | UNKNOWN | — | — | Deterministic timing test |
-| Hidden choices before reveal | UNKNOWN | — | — | Multi-client visibility test |
-| Synchronized reveal + score | UNKNOWN | — | — | Multi-client state equality proof |
-| Recovery from disconnect / reconnect | UNKNOWN | — | — | Failure-path test |
-| Replay/rematch same room | UNKNOWN | — | — | End-to-end run |
-| Pressure audio / visual escalation | UNKNOWN | — | — | UI + accessibility proof |
-| Light / dark mode | UNKNOWN | — | — | Visual/browser proof |
-| Deterministic room/state fingerprint | UNKNOWN | — | — | Protocol test |
+| Room create / join | UNKNOWN | `5ad72763808da6c9e7f826738216ccf1195e4f76` implemented | Code exists only | Real concurrent clients |
+| 2+ player synchronized state | UNKNOWN | `5ad72763808da6c9e7f826738216ccf1195e4f76` implemented | — | Real concurrent clients |
+| Timed choice lock | UNKNOWN | `5ad72763808da6c9e7f826738216ccf1195e4f76` implemented | Pure duplicate-lock rule verified, timer runtime unproved | Deterministic timing/browser test |
+| Hidden choices before reveal | UNKNOWN | `5ad72763808da6c9e7f826738216ccf1195e4f76` implemented | — | Multi-client visibility test |
+| Synchronized reveal + score | UNKNOWN | `5ad72763808da6c9e7f826738216ccf1195e4f76` implemented | Pure scoring rules verified, network synchronization unproved | Multi-client state equality proof |
+| Recovery from disconnect / reconnect | UNKNOWN | `5ad72763808da6c9e7f826738216ccf1195e4f76` implemented | — | Failure-path browser test |
+| Replay/rematch same room | UNKNOWN | `5ad72763808da6c9e7f826738216ccf1195e4f76` implemented | — | End-to-end run |
+| Pressure audio / visual escalation | UNKNOWN | `5ad72763808da6c9e7f826738216ccf1195e4f76` implemented | — | UI + accessibility proof |
+| Light / dark mode | UNKNOWN | `5ad72763808da6c9e7f826738216ccf1195e4f76` implemented | — | Visual/browser proof |
+| Deterministic room/state fingerprint | UNKNOWN | `5ad72763808da6c9e7f826738216ccf1195e4f76` implemented | — | Runtime/protocol test |
 | Secret scan / publication review | UNKNOWN | — | — | CI / manual evidence |
 
 ## Handshake gates — PRIMARY
@@ -37,12 +38,12 @@ A `VERIFIED` row must contain evidence tied to an exact commit SHA or immutable 
 |---|---|---|---|---|
 | Mission contract verified | VERIFIED | 2026-09-24 source check | Handshake mission page + `docs/audits/2026-09-24-handshake-multiplayer-audit.md` | Re-check before submission |
 | Own public URL | UNKNOWN | — | — | Deploy |
-| Room-code join | UNKNOWN | — | — | Production multiplayer proof |
-| No login required | UNKNOWN | — | — | Production browser proof |
-| No app install required | UNKNOWN | — | — | Production browser proof |
-| Phone + laptop usable | UNKNOWN | — | — | Responsive/device proof |
-| Replayable multiplayer loop | UNKNOWN | — | — | Production E2E |
-| Separate-context Playwright proof | UNKNOWN | — | — | Required before completion claim |
+| Room-code join | UNKNOWN | `5ad72763808da6c9e7f826738216ccf1195e4f76` implemented | — | Production multiplayer proof |
+| No login required | UNKNOWN | `5ad72763808da6c9e7f826738216ccf1195e4f76` designed without auth | — | Production browser proof |
+| No app install required | UNKNOWN | web implementation exists | — | Production browser proof |
+| Phone + laptop usable | UNKNOWN | responsive CSS implemented | — | Responsive/device proof |
+| Replayable multiplayer loop | UNKNOWN | rematch implemented | — | Production E2E |
+| Separate-context Playwright proof | BLOCKED | spec committed at `5ad72763808da6c9e7f826738216ccf1195e4f76` | Local dependency install timed out | Run where Playwright + Worker runtime are available |
 
 ## Amazon adapter gates — SECONDARY
 
