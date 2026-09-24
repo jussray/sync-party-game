@@ -116,7 +116,7 @@ export function revealRound(state) {
   let winners = [];
   const modeId = state.mode?.id || "classic";
   if (modeId === "classic") {
-    winners = entries.filter(([, choice]) => counts[choice] === top && top > 0).map(([id]) => id);
+    winners = top > total / 2 ? entries.filter(([, choice]) => counts[choice] === top).map(([id]) => id) : [];
   } else if (modeId === "twin") {
     winners = entries.filter(([, choice]) => counts[choice] === 2).map(([id]) => id);
   } else if (modeId === "odd") {
