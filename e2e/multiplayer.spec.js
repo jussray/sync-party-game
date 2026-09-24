@@ -36,9 +36,15 @@ test("two independent browsers share authoritative state, theme, and reconnect",
   await expect(host.getByText("100%", { exact: true })).toBeVisible();
   await expect(guest.getByText("100%", { exact: true })).toBeVisible();
 
+  const guestIdentityBeforeReload = await guest.evaluate((roomCode) => localStorage.getItem(`sync.room.${roomCode}`), code);
+  expect(guestIdentityBeforeReload).toBeTruthy();
+
   await guest.reload();
+  await expect(guest).toHaveURL(new RegExp(`room=${code}`));
   await expect(guest.getByText(/ROOM SYNC/)).toBeVisible();
-  await expect(guest.getByText("Night", { exact: true })).toBeVisible();
+  await expect(guest.getByText("100%", { exact: true })).toBeVisible();
+  const guestIdentityAfterReload = await guest.evaluate((roomCode) => localStorage.getItem(`sync.room.${roomCode}`), code);
+  expect(guestIdentityAfterReload).toBe(guestIdentityBeforeReload);
 
   await hostContext.close();
   await guestContext.close();
