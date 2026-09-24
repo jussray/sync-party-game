@@ -11,7 +11,7 @@ permissions:
 jobs:
   core-proof:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 12
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,3 +34,18 @@ jobs:
         run: node --test test/*.test.mjs
       - name: Python bug finder
         run: python scripts/bugfinder.py
+      - name: Install pinned runtime dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Two-browser Wrangler runtime proof
+        run: npm run test:e2e
+      - name: Preserve Playwright failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-evidence
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
