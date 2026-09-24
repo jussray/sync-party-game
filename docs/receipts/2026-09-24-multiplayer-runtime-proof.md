@@ -20,6 +20,8 @@
 
 Concurrency note (INFERRED, not a fix): 8 simultaneous submissions per round never lost or overwrote an answer across 6 attacked games; the DO uses only storage awaits + `crypto.subtle` inside a mutation, so no serialization layer was added.
 
+Re-run note: main advanced to `ac29919` (bug finder only). The merge of `ac29919` into this branch changed only `e2e/` + `scripts/bugfinder.py` (no `src/`/`public/` change); `npm run verify` (15/15, BUGFINDER PASS) and Playwright (5 passed, 1 skipped) were re-run on it.
+
 ## Commands and observed results
 
 | Command | Expected | Observed |

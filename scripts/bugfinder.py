@@ -2,9 +2,9 @@
 """Independent red-team verifier for Sync Party.
 
 Python does not implement the game. It inspects the authoritative JavaScript,
-checks authority/privacy invariants, verifies that the real two-browser proof
-covers the complete replayable loop, and then runs the Node game tests as an
-independent orchestration lane.
+checks authority/privacy invariants, verifies that the real browser proof covers
+the complete replayable loop, mobile layout, pre-reveal privacy, and the
+server-side timeout path, then runs the Node game tests independently.
 """
 from __future__ import annotations
 
@@ -50,6 +50,7 @@ def verify_worker(worker: str) -> None:
     forbid(worker, r'answers:\s*next\.answers', "public state hash includes raw hidden answers")
     require(worker, r'previousStateHash', "continuity receipt is missing previous state hash")
     require(worker, r'stateHash', "continuity receipt is missing state hash")
+    require(worker, r'async alarm\(\)', "Durable Object timeout alarm handler is missing")
 
 
 def verify_game(game: str) -> None:
@@ -64,12 +65,17 @@ def verify_game(game: str) -> None:
 
 
 def verify_e2e(e2e: str) -> None:
-    contexts = len(re.findall(r'browser\.newContext\(', e2e))
+    contexts = len(re.findall(r'browser\.newContext\s*\(', e2e))
     if contexts < 2:
-        fail("Playwright proof does not use two independent browser contexts")
+        fail("Playwright proof does not use at least two independent browser contexts")
+    require(e2e, r'width:\s*1280', "Playwright proof does not exercise a laptop-sized host viewport")
+    require(e2e, r'width:\s*390', "Playwright proof does not exercise a phone-sized guest viewport")
+    require(e2e, r'expectFitsViewport\(guest\)', "Playwright proof does not assert mobile horizontal fit")
     require(e2e, r'guest\.reload\(\)', "Playwright proof does not exercise reconnect")
     require(e2e, r'Create a game', "Playwright proof does not create a room through UI")
     require(e2e, r'Join a game', "Playwright proof does not join a room through UI")
+    require(e2e, r'\.choice\.selected', "Playwright proof does not assert that another player's locked choice stays hidden")
+    require(e2e, r'toBeEnabled\(\)', "Playwright proof does not confirm the other player can still choose privately")
     require(e2e, r'100%', "Playwright proof does not assert synchronized reveal result")
     require(e2e, r'round:\s*5|round\s*<\s*5', "Playwright proof does not reach the final round")
     require(e2e, r'See final scores', "Playwright proof does not transition to final results")
@@ -77,6 +83,9 @@ def verify_e2e(e2e: str) -> None:
     require(e2e, r'FINAL ROOM SYNC', "Playwright proof does not verify the final room synchronization summary")
     require(e2e, r'Play again', "Playwright proof does not exercise same-room rematch")
     require(e2e, r'room=\$\{code\}', "Playwright proof does not preserve the room across replay")
+    require(e2e, r'Durable Object alarm reveals a round', "Playwright proof does not exercise the server timeout alarm")
+    require(e2e, r'timeout:\s*20000', "timeout proof does not allow the real round deadline to elapse")
+    require(e2e, r'"0%"', "timeout proof does not assert the no-answer reveal result")
 
 
 def run_node_tests() -> None:
@@ -96,7 +105,7 @@ def main() -> None:
     verify_game(game)
     verify_e2e(e2e)
     run_node_tests()
-    print("BUGFINDER PASS: authority, privacy, continuity, full multiplayer proof shape, and Node tests are green")
+    print("BUGFINDER PASS: authority, privacy, continuity, mobile, timeout, full multiplayer proof shape, and Node tests are green")
 
 
 if __name__ == "__main__":

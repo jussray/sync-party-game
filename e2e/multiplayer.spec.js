@@ -14,7 +14,7 @@ async function fingerprint(page) {
 async function expectSameAuthority(host, guest) {
   await expect.poll(async () => JSON.stringify(await fingerprint(guest))).toBe(JSON.stringify(await fingerprint(host)));
 }
-async function noHorizontalScroll(page) {
+async function expectFitsViewport(page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 }
 // Record every STATE frame a page receives over the wire.
@@ -51,7 +51,7 @@ test("two independent browsers: 5 modes, private answers, same reveal/score/SYNC
   await shots(testInfo, host, "01-landing-toggled-theme");
   await themeButton.click();
   await expect(host.locator("html")).toHaveAttribute("data-theme", initialTheme);
-  await noHorizontalScroll(host);
+  await expectFitsViewport(host);
 
   // 3-5. host creates room
   await host.getByLabel("Your nickname", { exact: true }).fill("Ray");
@@ -87,7 +87,7 @@ test("two independent browsers: 5 modes, private answers, same reveal/score/SYNC
     }
     await expect(guest.locator(".prompt")).toHaveText(await host.locator(".prompt").textContent());
     await expect(host.locator("#timer")).toHaveText(/^\d+s$/);
-    await noHorizontalScroll(guest);
+    await expectFitsViewport(guest);
     if (round === 0) await shots(testInfo, guest, "03-choosing-guest");
 
     // Round 5 (Perfect Sync): both choose the same answer -> 100% payoff. Else: different answers.
@@ -102,6 +102,7 @@ test("two independent browsers: 5 modes, private answers, same reveal/score/SYNC
     const leaked = guestFrames.filter((s) => (s.phase === "choosing" || s.phase === "locked") && Object.values(s.answers).some((v) => v !== true));
     expect(leaked, "no answer values reach another client before reveal").toEqual([]);
     await expect(guest.locator(".choice.selected")).toHaveCount(0);
+    await expect(guest.locator(".choice").nth(guestChoice)).toBeEnabled(); // guest still chooses privately
 
     // 18a. host cannot overwrite a locked choice, even with a hand-crafted intent on a fresh socket
     if (round === 0) {
@@ -244,11 +245,11 @@ test("accessibility: keyboard path, toggles, muted play info, reduced motion", a
   await other.goto(`/?room=${code}`);
   await expect(other.getByLabel("Room code", { exact: true })).toHaveValue(code);
   await expect(other.getByLabel("Nickname", { exact: true })).toBeFocused();
-  await noHorizontalScroll(page);
+  await expectFitsViewport(page);
   await context.close();
 });
 
-test("Durable Object alarm locks and reveals a round when nobody answers (laptop host + phone guest)", async ({ browser }, testInfo) => {
+test("Durable Object alarm reveals a round when nobody answers: final-five pressure, LOCKED, 0% (laptop host + phone guest)", async ({ browser }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "mixed-device timer proof runs once");
   test.setTimeout(60_000);
   const hostContext = await browser.newContext({ viewport: { width: 1280, height: 800 } });
@@ -271,11 +272,11 @@ test("Durable Object alarm locks and reveals a round when nobody answers (laptop
   await shots(testInfo, guest, "08-final-five-pressure-phone");
   await expect(guest.getByText("LOCKED 🔒")).toBeVisible({ timeout: 15_000 });
   for (const page of [host, guest]) {
-    await expect(page.getByText("ROOM SYNC")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("ROOM SYNC")).toBeVisible({ timeout: 20000 });
     await expect(page.locator(".sync-meter strong")).toHaveText("0%");
   }
   await expectSameAuthority(host, guest);
-  await noHorizontalScroll(guest);
+  await expectFitsViewport(guest);
   await hostContext.close();
   await guestContext.close();
 });
