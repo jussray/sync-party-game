@@ -1,22 +1,35 @@
 name: core-proof
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [proof, main]
 
 permissions:
   contents: read
 
+env:
+  EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
 jobs:
   core-proof:
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
-      - name: Checkout
+      - name: Checkout exact proof head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          ref: ${{ env.EXPECTED_HEAD_SHA }}
           persist-credentials: false
           fetch-depth: 0
+      - name: Verify exact proof head
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          printf 'expected=%s\nactual=%s\n' "$EXPECTED_HEAD_SHA" "$actual"
+          test "$actual" = "$EXPECTED_HEAD_SHA"
       - name: Candidate ancestry guard
         if: github.ref_name == 'proof'
         run: |
