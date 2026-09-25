@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Sync Party",
+    "slug": "sync-party",
+    "scheme": "syncparty",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "updates": { "enabled": false },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.jussray.syncparty",
+      "buildNumber": "1"
+    },
+    "android": {
+      "package": "com.jussray.syncparty",
+      "versionCode": 1
+    },
+    "plugins": ["expo-router"]
+  }
+}
