@@ -40,6 +40,14 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    if (url.pathname === "/api/version" && request.method === "GET") {
+      return json({
+        service: "sync-party-game",
+        sha: env.DEPLOY_SHA || null,
+        build: env.DEPLOY_BUILD || null
+      }, { headers: { "cache-control": "no-store" } });
+    }
+
     if (url.pathname === "/api/rooms/create" && request.method === "POST") {
       const body = await request.json().catch(() => ({}));
       const name = cleanName(body.name);
