@@ -4,15 +4,17 @@
 Python does not implement the game. It inspects the authoritative JavaScript,
 checks authority/privacy invariants, verifies that the real browser proof covers
 the complete replayable loop, mobile layout, pre-reveal privacy, and the
-server-side timeout path, red-teams the production deployment workflow, then
-runs the Node game tests independently.
+server-side timeout path, red-teams production deployment authority and the
+candidate-lease drift classifier, then runs the Node game tests independently.
 """
 from __future__ import annotations
 
+import json
 import pathlib
 import re
 import subprocess
 import sys
+import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
@@ -89,6 +91,70 @@ def verify_e2e(e2e: str) -> None:
     require(e2e, r'"0%"', "timeout proof does not assert the no-answer reveal result")
 
 
+def verify_candidate_guard_source(guard: str, policy_text: str) -> None:
+    require(guard, r'merge-base",\s*"--is-ancestor"', "candidate guard does not require candidate ancestry")
+    require(guard, r'diff",\s*"--name-only"', "candidate guard does not inspect drift paths")
+    require(guard, r'fnmatch\.fnmatchcase', "candidate guard does not apply explicit drift globs")
+    require(guard, r'unknown-paths-invalidate-candidate', "candidate guard lost fail-closed unknown-path policy")
+    require(guard, r'approve a new candidate', "candidate guard does not revoke authority on unsafe drift")
+
+    try:
+        policy = json.loads(policy_text)
+    except json.JSONDecodeError as exc:
+        fail(f"deployment authority policy is invalid JSON: {exc}")
+    if policy.get("version") != 1:
+        fail("deployment authority policy version drifted")
+    if policy.get("policy") != "unknown-paths-invalidate-candidate":
+        fail("deployment authority policy is no longer fail-closed")
+    globs = policy.get("safe_drift_globs")
+    if not isinstance(globs, list) or "docs/**" not in globs:
+        fail("deployment authority policy does not explicitly allow documentation-only drift")
+    forbidden_safe = ("src/**", "public/**", ".github/**", "scripts/**", "package*.json", "wrangler.toml")
+    if any(item in globs for item in forbidden_safe):
+        fail("deployment authority policy accidentally allowlists runtime/config paths")
+
+
+def verify_candidate_guard_behavior() -> None:
+    guard = ROOT / "scripts" / "deploy_candidate_guard.py"
+    policy_source = ROOT / ".deployment-authority.json"
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = pathlib.Path(tmp)
+
+        def run(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+            result = subprocess.run(args, cwd=repo, text=True, capture_output=True, check=False)
+            if check and result.returncode != 0:
+                fail(f"candidate-lease self-test command failed: {' '.join(args)}\n{result.stdout}{result.stderr}")
+            return result
+
+        run("git", "init", "-q")
+        run("git", "config", "user.email", "bugfinder@example.invalid")
+        run("git", "config", "user.name", "SYNC Bugfinder")
+        (repo / "src").mkdir()
+        (repo / "docs").mkdir()
+        (repo / "src" / "runtime.js").write_text("export const v = 1;\n", encoding="utf-8")
+        (repo / "docs" / "receipt.md").write_text("baseline\n", encoding="utf-8")
+        (repo / ".deployment-authority.json").write_text(policy_source.read_text(encoding="utf-8"), encoding="utf-8")
+        run("git", "add", ".")
+        run("git", "commit", "-qm", "candidate")
+        candidate = run("git", "rev-parse", "HEAD").stdout.strip()
+
+        (repo / "docs" / "receipt.md").write_text("baseline\nreceipt update\n", encoding="utf-8")
+        run("git", "add", "docs/receipt.md")
+        run("git", "commit", "-qm", "docs only")
+        docs_head = run("git", "rev-parse", "HEAD").stdout.strip()
+        safe = run(sys.executable, str(guard), candidate, docs_head, check=False)
+        if safe.returncode != 0:
+            fail("candidate lease rejects documentation-only drift:\n" + safe.stdout + safe.stderr)
+
+        (repo / "src" / "runtime.js").write_text("export const v = 2;\n", encoding="utf-8")
+        run("git", "add", "src/runtime.js")
+        run("git", "commit", "-qm", "runtime change")
+        runtime_head = run("git", "rev-parse", "HEAD").stdout.strip()
+        unsafe = run(sys.executable, str(guard), candidate, runtime_head, check=False)
+        if unsafe.returncode == 0:
+            fail("candidate lease accepted runtime drift")
+
+
 def verify_deploy_workflow(deploy: str) -> None:
     require(deploy, r'(?m)^\s*workflow_run\s*:', "production deploy is not chained to the verified core-proof workflow")
     require(deploy, r'workflows:\s*\["core-proof"\]', "automatic production deploy is not bound to core-proof")
@@ -100,11 +166,12 @@ def verify_deploy_workflow(deploy: str) -> None:
     require(deploy, r"github\.event\.workflow_run\.head_branch == 'main'", "automatic deploy does not re-check the proof branch")
     require(deploy, r"github\.event\.workflow_run\.event == 'push'", "automatic deploy can be triggered by an unexpected source event")
     require(deploy, r'TARGET_SHA:.*github\.event\.workflow_run\.head_sha', "automatic deploy is not bound to the exact green proof SHA")
-    require(deploy, r'expected_head_sha', "manual recovery deploy is missing exact-head input")
+    require(deploy, r'expected_head_sha', "manual recovery deploy is missing exact candidate input")
     require(deploy, r'deployment_approval_id', "manual recovery deploy is missing founder approval reference")
     require(deploy, r'auto-core-proof-', "automatic deploy does not leave an auditable approval reference")
-    require(deploy, r'CURRENT_MAIN_SHA=.*refs/remotes/origin/main', "deploy workflow does not read current main for exact-head authority")
-    require(deploy, r'test \"\$CURRENT_MAIN_SHA\" = \"\$TARGET_SHA\"', "deploy workflow does not fail closed on main drift")
+    require(deploy, r'CURRENT_MAIN_SHA=.*refs/remotes/origin/main', "deploy workflow does not read current main for candidate freshness")
+    require(deploy, r'python scripts/deploy_candidate_guard\.py "\$TARGET_SHA" "\$CURRENT_MAIN_SHA"', "deploy workflow does not apply the fail-closed candidate lease")
+    forbid(deploy, r'test \"\$CURRENT_MAIN_SHA\" = \"\$TARGET_SHA\"', "deploy workflow regressed to brittle current-main equality")
     require(deploy, r'cancel-in-progress:\s*false', "production concurrency can cancel an in-flight mutation")
     require(deploy, r'CLOUDFLARE_API_TOKEN', "deploy workflow is missing Cloudflare API-token authority")
     require(deploy, r'CLOUDFLARE_ACCOUNT_ID', "deploy workflow is missing Cloudflare account authority")
@@ -115,6 +182,7 @@ def verify_deploy_workflow(deploy: str) -> None:
     require(deploy, r'npm run test:e2e', "production deployment does not run the full Playwright suite")
     require(deploy, r'production-proof\.txt', "production workflow does not leave a durable proof receipt")
     require(deploy, r'SOURCE_PROOF_RUN_ID', "production receipt is not linked back to the source core-proof run")
+    require(deploy, r'Candidate lease:', "production receipt does not record candidate-lease authority")
     require(deploy, r'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02', "production proof artifacts are not pinned to the approved upload action")
 
 
@@ -132,12 +200,16 @@ def main() -> None:
     game = read("src/game.js")
     e2e = read("e2e/multiplayer.spec.js")
     deploy = read(".github/workflows/deploy.yml")
+    guard = read("scripts/deploy_candidate_guard.py")
+    policy = read(".deployment-authority.json")
     verify_worker(worker)
     verify_game(game)
     verify_e2e(e2e)
+    verify_candidate_guard_source(guard, policy)
+    verify_candidate_guard_behavior()
     verify_deploy_workflow(deploy)
     run_node_tests()
-    print("BUGFINDER PASS: game authority/privacy/continuity, mobile+timeout multiplayer proof, autonomous exact-green production deploy authority, and Node tests are green")
+    print("BUGFINDER PASS: game authority/privacy/continuity, mobile+timeout multiplayer proof, deployment candidate lease, production deploy authority, and Node tests are green")
 
 
 if __name__ == "__main__":
