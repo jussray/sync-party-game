@@ -4,8 +4,8 @@
 Python does not implement the game. It inspects the authoritative JavaScript,
 checks authority/privacy invariants, verifies that the real browser proof covers
 the complete replayable loop, mobile layout, pre-reveal privacy, and the
-server-side timeout path, red-teams production deployment authority and the
-candidate-lease drift classifier, then runs the Node game tests independently.
+server-side timeout path, red-teams the exact-green production promotion and
+Cloudflare-owned deployment proof chain, then runs the Node game tests independently.
 """
 from __future__ import annotations
 
@@ -54,6 +54,9 @@ def verify_worker(worker: str) -> None:
     require(worker, r'previousStateHash', "continuity receipt is missing previous state hash")
     require(worker, r'stateHash', "continuity receipt is missing state hash")
     require(worker, r'async alarm\(\)', "Durable Object timeout alarm handler is missing")
+    require(worker, r'url\.pathname === "/api/version"', "runtime does not expose an exact deployed-version endpoint")
+    require(worker, r'env\.DEPLOY_SHA', "runtime version endpoint is not bound to the deployed git SHA")
+    require(worker, r'env\.DEPLOY_BUILD', "runtime version endpoint is not bound to the Cloudflare build receipt")
 
 
 def verify_game(game: str) -> None:
@@ -156,34 +159,32 @@ def verify_candidate_guard_behavior() -> None:
 
 
 def verify_deploy_workflow(deploy: str) -> None:
-    require(deploy, r'(?m)^\s*workflow_run\s*:', "production deploy is not chained to the verified core-proof workflow")
-    require(deploy, r'workflows:\s*\["core-proof"\]', "automatic production deploy is not bound to core-proof")
-    require(deploy, r'types:\s*\[completed\]', "automatic production deploy is not gated on proof completion")
-    require(deploy, r'branches:\s*\[main\]', "automatic production deploy is not restricted to main")
-    require(deploy, r'(?m)^\s*workflow_dispatch\s*:', "production deploy lost the manual recovery path")
-    forbid(deploy, r'(?m)^\s+push\s*:', "production deploy must not mutate directly from an unverified push trigger")
-    require(deploy, r"github\.event\.workflow_run\.conclusion == 'success'", "automatic deploy does not require successful core-proof")
-    require(deploy, r"github\.event\.workflow_run\.head_branch == 'main'", "automatic deploy does not re-check the proof branch")
-    require(deploy, r"github\.event\.workflow_run\.event == 'push'", "automatic deploy can be triggered by an unexpected source event")
-    require(deploy, r'TARGET_SHA:.*github\.event\.workflow_run\.head_sha', "automatic deploy is not bound to the exact green proof SHA")
-    require(deploy, r'expected_head_sha', "manual recovery deploy is missing exact candidate input")
-    require(deploy, r'deployment_approval_id', "manual recovery deploy is missing founder approval reference")
-    require(deploy, r'auto-core-proof-', "automatic deploy does not leave an auditable approval reference")
-    require(deploy, r'CURRENT_MAIN_SHA=.*refs/remotes/origin/main', "deploy workflow does not read current main for candidate freshness")
-    require(deploy, r'python scripts/deploy_candidate_guard\.py "\$TARGET_SHA" "\$CURRENT_MAIN_SHA"', "deploy workflow does not apply the fail-closed candidate lease")
-    forbid(deploy, r'test \"\$CURRENT_MAIN_SHA\" = \"\$TARGET_SHA\"', "deploy workflow regressed to brittle current-main equality")
-    require(deploy, r'cancel-in-progress:\s*false', "production concurrency can cancel an in-flight mutation")
-    require(deploy, r'CLOUDFLARE_API_TOKEN', "deploy workflow is missing Cloudflare API-token authority")
-    require(deploy, r'CLOUDFLARE_ACCOUNT_ID', "deploy workflow is missing Cloudflare account authority")
-    require(deploy, r'cloudflare/wrangler-action@25853364521e0d392ece9b0c1e97a4b37b638087', "Wrangler action is not pinned to the approved immutable v4 commit")
-    require(deploy, r'wranglerVersion:\s*\"4\.135\.0\"', "deploy workflow does not pin the repo's Wrangler version")
-    require(deploy, r'deployment_url:\s*\$\{\{\s*steps\.deploy\.outputs\.deployment-url\s*\}\}', "deploy workflow does not bind proof to Wrangler's emitted deployment URL")
-    require(deploy, r'PLAYWRIGHT_BASE_URL:\s*\$\{\{\s*needs\.deploy\.outputs\.deployment_url\s*\}\}', "production Playwright is not targeted at the deployed URL")
-    require(deploy, r'npm run test:e2e', "production deployment does not run the full Playwright suite")
-    require(deploy, r'production-proof\.txt', "production workflow does not leave a durable proof receipt")
-    require(deploy, r'SOURCE_PROOF_RUN_ID', "production receipt is not linked back to the source core-proof run")
-    require(deploy, r'Candidate lease:', "production receipt does not record candidate-lease authority")
+    require(deploy, r'(?m)^\s*workflow_run\s*:', "production promotion is not chained to core-proof")
+    require(deploy, r'workflows:\s*\["core-proof"\]', "production promotion is not bound to core-proof")
+    require(deploy, r'types:\s*\[completed\]', "production promotion is not gated on proof completion")
+    require(deploy, r'branches:\s*\[main\]', "production promotion is not restricted to main proof runs")
+    require(deploy, r'(?ms)^\s*push:\s*\n\s+branches:\s*\[production\]', "public proof is not triggered by production-branch promotion")
+    require(deploy, r"github\.event\.workflow_run\.conclusion == 'success'", "promotion does not require successful core-proof")
+    require(deploy, r"github\.event\.workflow_run\.head_branch == 'main'", "promotion does not re-check the proof branch")
+    require(deploy, r"github\.event\.workflow_run\.event == 'push'", "promotion can be triggered by an unexpected source event")
+    require(deploy, r'TARGET_SHA:\s*\$\{\{\s*github\.event\.workflow_run\.head_sha\s*\}\}', "promotion is not bound to the exact green proof SHA")
+    require(deploy, r'CURRENT_MAIN_SHA=.*refs/remotes/origin/main', "promotion does not re-read current main")
+    require(deploy, r'test \"\$CURRENT_MAIN_SHA\" = \"\$TARGET_SHA\"', "promotion can advance a stale proof SHA")
+    require(deploy, r'git merge-base --is-ancestor refs/remotes/origin/production \"\$TARGET_SHA\"', "production promotion is not fast-forward guarded")
+    require(deploy, r'git push origin \"\$TARGET_SHA:refs/heads/production\"', "exact green SHA is not promoted to the production branch")
+    require(deploy, r'contents:\s*write', "promotion job lacks the narrow repository write authority it needs")
+    require(deploy, r'cancel-in-progress:\s*false', "production concurrency can cancel an in-flight promotion or proof")
+    forbid(deploy, r'CLOUDFLARE_API_TOKEN', "GitHub workflow regained Cloudflare secret custody")
+    forbid(deploy, r'CLOUDFLARE_ACCOUNT_ID', "GitHub workflow regained Cloudflare account-secret coupling")
+    forbid(deploy, r'cloudflare/wrangler-action', "GitHub workflow can mutate Cloudflare directly instead of provider-held Workers Builds")
+    require(deploy, r'https://sync-party-game\.mcgill-raylene\.workers\.dev', "production proof is not pinned to the canonical public Worker URL")
+    require(deploy, r'/api/version', "public proof does not interrogate exact deployed runtime identity")
+    require(deploy, r'EXPECTED_SHA:\s*\$\{\{\s*github\.sha\s*\}\}', "public proof is not bound to the production branch SHA")
+    require(deploy, r'Exact deployed SHA verified', "public proof does not fail closed on runtime SHA mismatch")
+    require(deploy, r'npm run test:e2e', "public production does not run the full Playwright suite")
+    require(deploy, r'production-proof\.txt', "public production proof does not leave a durable receipt")
     require(deploy, r'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02', "production proof artifacts are not pinned to the approved upload action")
+    require(deploy, r'Human button press: not required', "production promotion contract regressed to founder-operated clicking")
 
 
 def run_node_tests() -> None:
@@ -209,7 +210,7 @@ def main() -> None:
     verify_candidate_guard_behavior()
     verify_deploy_workflow(deploy)
     run_node_tests()
-    print("BUGFINDER PASS: game authority/privacy/continuity, mobile+timeout multiplayer proof, deployment candidate lease, production deploy authority, and Node tests are green")
+    print("BUGFINDER PASS: game authority/privacy/continuity, mobile+timeout multiplayer proof, exact-green production promotion, Cloudflare-owned deploy proof, and Node tests are green")
 
 
 if __name__ == "__main__":
