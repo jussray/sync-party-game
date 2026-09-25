@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """Independent red-team verifier for Sync Party.
 
-Python does not implement the game. It inspects the authoritative JavaScript,
-checks authority/privacy invariants, verifies that the real browser proof covers
-the complete replayable loop, mobile layout, pre-reveal privacy, and the
-server-side timeout path, red-teams the exact-green production promotion and
-Cloudflare-owned deployment proof chain, then runs the Node game tests independently.
+Python does not implement the game. It inspects authoritative JavaScript,
+multiplayer/browser proof, deployment-candidate continuity, and the provider-owned
+production promotion chain, then runs the Node game tests independently.
 """
 from __future__ import annotations
 
@@ -71,8 +69,7 @@ def verify_game(game: str) -> None:
 
 
 def verify_e2e(e2e: str) -> None:
-    contexts = len(re.findall(r'browser\.newContext\s*\(', e2e))
-    if contexts < 2:
+    if len(re.findall(r'browser\.newContext\s*\(', e2e)) < 2:
         fail("Playwright proof does not use at least two independent browser contexts")
     require(e2e, r'width:\s*1280', "Playwright proof does not exercise a laptop-sized host viewport")
     require(e2e, r'width:\s*390', "Playwright proof does not exercise a phone-sized guest viewport")
@@ -96,7 +93,10 @@ def verify_e2e(e2e: str) -> None:
 
 def verify_candidate_guard_source(guard: str, policy_text: str) -> None:
     require(guard, r'merge-base",\s*"--is-ancestor"', "candidate guard does not require candidate ancestry")
-    require(guard, r'diff",\s*"--name-only"', "candidate guard does not inspect drift paths")
+    require(guard, r'rev-list",\s*"--reverse"', "candidate guard does not enumerate every intervening commit")
+    require(guard, r'diff-tree".*?"-z"', "candidate guard does not inspect NUL-delimited historical paths")
+    require(guard, r'surrogateescape', "candidate guard rewrites undecodable path bytes")
+    forbid(guard, r'line\.strip\(\).*?diff', "candidate guard still trims path identity")
     require(guard, r'fnmatch\.fnmatchcase', "candidate guard does not apply explicit drift globs")
     require(guard, r'unknown-paths-invalidate-candidate', "candidate guard lost fail-closed unknown-path policy")
     require(guard, r'approve a new candidate', "candidate guard does not revoke authority on unsafe drift")
@@ -110,11 +110,11 @@ def verify_candidate_guard_source(guard: str, policy_text: str) -> None:
     if policy.get("policy") != "unknown-paths-invalidate-candidate":
         fail("deployment authority policy is no longer fail-closed")
     globs = policy.get("safe_drift_globs")
-    if not isinstance(globs, list) or "docs/**" not in globs:
-        fail("deployment authority policy does not explicitly allow documentation-only drift")
-    forbidden_safe = ("src/**", "public/**", ".github/**", "scripts/**", "package*.json", "wrangler.toml")
+    if not isinstance(globs, list) or "receipts/**" not in globs:
+        fail("deployment authority policy does not explicitly identify evidence-only safe drift")
+    forbidden_safe = ("docs/**", "README.md", "SECURITY.md", "COPYRIGHT.md", "src/**", "public/**", "scripts/**", "package*.json", "wrangler.toml")
     if any(item in globs for item in forbidden_safe):
-        fail("deployment authority policy accidentally allowlists runtime/config paths")
+        fail("deployment authority policy allowlists runtime/config/governance paths")
 
 
 def verify_candidate_guard_behavior() -> None:
@@ -129,33 +129,53 @@ def verify_candidate_guard_behavior() -> None:
                 fail(f"candidate-lease self-test command failed: {' '.join(args)}\n{result.stdout}{result.stderr}")
             return result
 
-        run("git", "init", "-q")
+        run("git", "init", "-q", "-b", "main")
         run("git", "config", "user.email", "bugfinder@example.invalid")
         run("git", "config", "user.name", "SYNC Bugfinder")
         (repo / "src").mkdir()
+        (repo / "receipts").mkdir()
         (repo / "docs").mkdir()
         (repo / "src" / "runtime.js").write_text("export const v = 1;\n", encoding="utf-8")
-        (repo / "docs" / "receipt.md").write_text("baseline\n", encoding="utf-8")
+        (repo / "receipts" / "proof.md").write_text("baseline\n", encoding="utf-8")
+        (repo / "docs" / "CONTINUITY_MODEL.md").write_text("authority v1\n", encoding="utf-8")
         (repo / ".deployment-authority.json").write_text(policy_source.read_text(encoding="utf-8"), encoding="utf-8")
         run("git", "add", ".")
         run("git", "commit", "-qm", "candidate")
         candidate = run("git", "rev-parse", "HEAD").stdout.strip()
 
-        (repo / "docs" / "receipt.md").write_text("baseline\nreceipt update\n", encoding="utf-8")
-        run("git", "add", "docs/receipt.md")
-        run("git", "commit", "-qm", "docs only")
-        docs_head = run("git", "rev-parse", "HEAD").stdout.strip()
-        safe = run(sys.executable, str(guard), candidate, docs_head, check=False)
-        if safe.returncode != 0:
-            fail("candidate lease rejects documentation-only drift:\n" + safe.stdout + safe.stderr)
+        (repo / "receipts" / "café.md").write_text("safe\n", encoding="utf-8")
+        run("git", "add", "receipts/café.md")
+        run("git", "commit", "-qm", "safe unicode evidence")
+        safe_head = run("git", "rev-parse", "HEAD").stdout.strip()
+        if run(sys.executable, str(guard), candidate, safe_head, check=False).returncode != 0:
+            fail("candidate lease rejects exact evidence-only Unicode drift")
 
+        (repo / "docs" / "CONTINUITY_MODEL.md").write_text("authority v2\n", encoding="utf-8")
+        run("git", "add", "docs/CONTINUITY_MODEL.md")
+        run("git", "commit", "-qm", "governance change")
+        if run(sys.executable, str(guard), candidate, run("git", "rev-parse", "HEAD").stdout.strip(), check=False).returncode == 0:
+            fail("candidate lease accepted governance drift")
+
+        run("git", "reset", "--hard", safe_head)
         (repo / "src" / "runtime.js").write_text("export const v = 2;\n", encoding="utf-8")
         run("git", "add", "src/runtime.js")
         run("git", "commit", "-qm", "runtime change")
-        runtime_head = run("git", "rev-parse", "HEAD").stdout.strip()
-        unsafe = run(sys.executable, str(guard), candidate, runtime_head, check=False)
-        if unsafe.returncode == 0:
-            fail("candidate lease accepted runtime drift")
+        runtime_commit = run("git", "rev-parse", "HEAD").stdout.strip()
+        run("git", "revert", "--no-edit", runtime_commit)
+        run("git", "commit", "--allow-empty", "-qm", "post-revert evidence boundary")
+        reverted_head = run("git", "rev-parse", "HEAD").stdout.strip()
+        if run(sys.executable, str(guard), candidate, reverted_head, check=False).returncode == 0:
+            fail("candidate lease regained authority after sensitive runtime change was reverted")
+
+        run("git", "reset", "--hard", safe_head)
+        forged = repo / " receipts"
+        forged.mkdir()
+        (forged / "forged.md").write_text("unsafe\n", encoding="utf-8")
+        run("git", "add", " receipts/forged.md")
+        run("git", "commit", "-qm", "leading whitespace path")
+        forged_head = run("git", "rev-parse", "HEAD").stdout.strip()
+        if run(sys.executable, str(guard), candidate, forged_head, check=False).returncode == 0:
+            fail("candidate lease normalized a whitespace-bearing unknown path into the allowlist")
 
 
 def verify_deploy_workflow(deploy: str) -> None:
@@ -169,7 +189,8 @@ def verify_deploy_workflow(deploy: str) -> None:
     require(deploy, r"github\.event\.workflow_run\.event == 'push'", "promotion can be triggered by an unexpected source event")
     require(deploy, r'TARGET_SHA:\s*\$\{\{\s*github\.event\.workflow_run\.head_sha\s*\}\}', "promotion is not bound to the exact green proof SHA")
     require(deploy, r'CURRENT_MAIN_SHA=.*refs/remotes/origin/main', "promotion does not re-read current main")
-    require(deploy, r'test \"\$CURRENT_MAIN_SHA\" = \"\$TARGET_SHA\"', "promotion can advance a stale proof SHA")
+    require(deploy, r'python3 scripts/deploy_candidate_guard\.py \"\$TARGET_SHA\" \"\$CURRENT_MAIN_SHA\"', "promotion does not revalidate the deployment candidate lease")
+    forbid(deploy, r'test \"\$CURRENT_MAIN_SHA\" = \"\$TARGET_SHA\"', "promotion regressed to brittle candidate-equals-moving-main authority")
     require(deploy, r'git merge-base --is-ancestor refs/remotes/origin/production \"\$TARGET_SHA\"', "production promotion is not fast-forward guarded")
     require(deploy, r'git push origin \"\$TARGET_SHA:refs/heads/production\"', "exact green SHA is not promoted to the production branch")
     require(deploy, r'contents:\s*write', "promotion job lacks the narrow repository write authority it needs")
@@ -212,7 +233,7 @@ def main() -> None:
     verify_candidate_guard_behavior()
     verify_deploy_workflow(deploy)
     run_node_tests()
-    print("BUGFINDER PASS: game authority/privacy/continuity, mobile+timeout multiplayer proof, exact-green production promotion, Cloudflare-owned deploy proof, and Node tests are green")
+    print("BUGFINDER PASS: multiplayer authority/privacy, exact historical candidate leases, leased production promotion, Cloudflare-owned deploy proof, and Node tests are green")
 
 
 if __name__ == "__main__":

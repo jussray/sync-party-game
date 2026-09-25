@@ -2,9 +2,8 @@
   "version": 1,
   "policy": "unknown-paths-invalidate-candidate",
   "safe_drift_globs": [
-    "docs/**",
-    "README.md",
-    "SECURITY.md",
-    "COPYRIGHT.md"
+    "receipts/**",
+    "artifacts/**",
+    ".github/ISSUE_TEMPLATE/**"
   ]
 }
