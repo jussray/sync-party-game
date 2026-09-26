@@ -96,3 +96,17 @@ For each meaningful proof, record:
 - artifact/log/screenshot/trace reference
 - VERIFIED / INFERRED / UNKNOWN / BLOCKED
 - rollback or retry path
+
+
+## Audio port candidate — 26 September 2026
+
+Evidence subject: SHA-256 `27838a25f5d830fbcbad9eef1d6f5a4b5cb5fb9a426932bf39a49a3e33a0f5a3` of [source manifest](receipts/2026-09-26-audio-source-manifest.json). See [scoped receipt](receipts/2026-09-26-audio-port.md).
+
+| Gate | State | Evidence / boundary |
+|---|---|---|
+| Audio lifecycle and game regression | VERIFIED | 20 local Node tests plus Python bugfinder; device seam is mocked |
+| Candidate secret/continuity checks | VERIFIED | Staged implementation scan and continuity guard |
+| Worker packaging | VERIFIED | Wrangler dry-run only; no deployment |
+| Local browser execution | BLOCKED | Chromium download invalid/truncated |
+| Candidate CI browser results | UNKNOWN | Read exact PR head CI; tests added, no assumed result |
+| Audible hardware / public candidate runtime | UNKNOWN | New frontend requires fresh runtime/audio proof |
