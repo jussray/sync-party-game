@@ -11,13 +11,12 @@ A `VERIFIED` row must contain evidence tied to an exact commit SHA or immutable 
 - Initial commit timestamp: 2026-09-24
 - Default branch: `main`
 - Founder authority: `@jussray`
-- Current continuity head: `fbc46bc2677eef5e92bbf2121fc5db178af13b8d`
-- Current verified production source SHA: `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c`
+- Verified game/runtime source SHA: `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c`
 - Public production proof: core-proof run `36194582903`, deploy/proof run `36194666290`
 - Public runtime: `https://sync-party-game.mcgill-raylene.workers.dev`
 - Production proof receipt: `docs/receipts/2026-09-25-handshake-public-production-proof.md`
 
-`fbc46bc2677eef5e92bbf2121fc5db178af13b8d` is a documentation-only descendant of the verified production source SHA. The only drift from `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` is the production-proof receipt above; no game/runtime/config/dependency code changed in that continuity step.
+Documentation-only continuity commits after `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` are safe drift under the repository continuity model and do not redefine the game/runtime source subject. The moving `main` / `production` branch head must be read from GitHub and the deployed runtime identity from Cloudflare; this ledger intentionally does not freeze a self-referential “current head” value.
 
 ## Core gates
 
@@ -55,7 +54,7 @@ A `VERIFIED` row must contain evidence tied to an exact commit SHA or immutable 
 | Phone + laptop usable | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Public production proof passed separate phone + laptop contexts | Physical-device founder playtest remains useful polish |
 | Replayable multiplayer loop | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Public production proof passed five rounds + results + same-room rematch | Re-prove after phase/scoring changes |
 | Separate-context Playwright proof | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Core-proof run `36194582903` + public production proof run `36194666290` | Keep independent contexts |
-| Production-targeted Playwright | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Deploy/proof run `36194666290`: exact-SHA runtime identity PASS; 4 public production tests PASS in 30.6s; artifact preserved | Any new production mutation must earn a successor exact-SHA receipt |
+| Production-targeted Playwright | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Deploy/proof run `36194666290`: exact-SHA runtime identity PASS; 4 public production tests PASS in 30.6s; artifact preserved | Any new runtime/config/dependency mutation must earn a successor exact-SHA receipt |
 
 ## Amazon adapter gates — SECONDARY
 
@@ -73,7 +72,7 @@ A `VERIFIED` row must contain evidence tied to an exact commit SHA or immutable 
 - Full-loop Playwright commit: `dfe36245cf3ef7d1659438830500aeb498ffd303`
 - Earlier full-loop run: `36050346725` / run #15 — SUCCESS
 - Strong mobile/privacy/timeout + deploy-aware successor: `a07dc550ea7d5882781a1e5ffce736d8ab87eace`
-- Verified redesign/production source SHA: `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c`
+- Verified game/runtime source SHA: `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c`
 - Exact source core-proof run: `36194582903` — SUCCESS
 - Public production deploy/proof run: `36194666290` — SUCCESS
 - Cloudflare production build: `fa870ed1-ffe4-4039-b7d8-50cc995c1354`
@@ -81,7 +80,7 @@ A `VERIFIED` row must contain evidence tied to an exact commit SHA or immutable 
 - Public production Playwright: 4 tests passed in 30.6 seconds
 - Production proof artifact: `sync-party-production-proof-36194666290-1`
 - Production proof receipt: `docs/receipts/2026-09-25-handshake-public-production-proof.md`
-- Current continuity head: `fbc46bc2677eef5e92bbf2121fc5db178af13b8d` (documentation-only descendant of the verified production source SHA)
+- Documentation-only continuity commits are not enumerated as a moving “current head” in this ledger; GitHub branch state and Cloudflare runtime identity remain authoritative for that live value.
 - Earlier failed proof artifacts remain part of the evidence genealogy and were not suppressed.
 
 ## Evidence receipt format
