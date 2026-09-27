@@ -1,5 +1,5 @@
 name = "sync-party-game"
-main = "src/multisurface-worker.js"
+main = "security/sync-edge-entry.js"
 compatibility_date = "2026-09-24"
 
 [assets]
