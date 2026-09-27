@@ -13,7 +13,12 @@ const PROFILES = Object.freeze({
   cloudflare: Object.freeze({
     id: "cloudflare",
     label: "Cloudflare game",
-    presentation: Object.freeze({ id: "cloudflare-party", mutable: true }),
+    presentation: Object.freeze({
+      id: "cloudflare-party",
+      mutable: true,
+      entrypoint: "/",
+      mirror_target: null
+    }),
     shared_game: SHARED_GAME,
     surface_capabilities: Object.freeze([
       "custom-theme",
@@ -26,7 +31,12 @@ const PROFILES = Object.freeze({
   chat: Object.freeze({
     id: "chat",
     label: "Chat-site game",
-    presentation: Object.freeze({ id: "chat-party", mutable: true }),
+    presentation: Object.freeze({
+      id: "chat-party",
+      mutable: true,
+      entrypoint: "/chat/index.html",
+      mirror_target: CHAT_SITE_ORIGIN
+    }),
     shared_game: SHARED_GAME,
     surface_capabilities: Object.freeze([
       "custom-theme",
