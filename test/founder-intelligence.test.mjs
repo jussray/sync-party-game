@@ -1,49 +1,54 @@
-import test from "node:test";
-import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 
-const agents = readFileSync(new URL("../AGENTS.md", import.meta.url), "utf8");
-const carrier = readFileSync(new URL("../AGENTS_FOUNDER_INTELLIGENCE.md", import.meta.url), "utf8");
-const constitution = readFileSync(new URL("../docs/FOUNDER_INTELLIGENCE_CONSTITUTION.md", import.meta.url), "utf8");
+const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 
-const orderedChallengeStack = [
-  "ULTRATHINK",
-  "Red Team 1 — premise",
-  "Lindy mode",
-  "L99",
-  "Red Team 2 — implementation",
-  "OODA",
-  "Proof",
-  "Rollback / Next Gate",
+const challengeStack = [
+  'ULTRATHINK',
+  'Red Team 1 — premise',
+  'Lindy mode',
+  'L99',
+  'Red Team 2 — implementation',
+  'OODA',
+  'Proof',
+  'Rollback / Next Gate',
 ];
 
-test("primary agent contract explicitly loads Founder Intelligence", () => {
+test('Founder Intelligence inheritance is locally complete and ordered', async () => {
+  const [agents, entrypoint, constitution] = await Promise.all([
+    read('AGENTS.md'),
+    read('AGENTS_FOUNDER_INTELLIGENCE.md'),
+    read('docs/FOUNDER_INTELLIGENCE_CONSTITUTION.md'),
+  ]);
+
   assert.match(agents, /AGENTS_FOUNDER_INTELLIGENCE\.md/);
   assert.match(agents, /docs\/FOUNDER_INTELLIGENCE_CONSTITUTION\.md/);
-  assert.match(agents, /Playwright evidence/);
-});
+  assert.match(entrypoint, /challenge-stack: v1\.0\.0/);
 
-test("Founder Intelligence challenge stack remains ordered", () => {
-  let cursor = -1;
-  for (const step of orderedChallengeStack) {
-    const next = carrier.indexOf(step, cursor + 1);
-    assert.ok(next > cursor, `${step} must appear after the previous challenge-stack step`);
-    cursor = next;
+  let previous = -1;
+  for (const step of challengeStack) {
+    const index = entrypoint.indexOf(step);
+    assert.ok(index > previous, `challenge stack drifted or is missing: ${step}`);
+    previous = index;
   }
-});
 
-test("local constitution preserves Sync authority and privacy boundaries", () => {
   for (const required of [
-    "Founder authority",
-    "Multiplayer authority",
-    "Control-room boundary",
-    "Privacy",
-    "Reversibility and continuity",
-    "Verification",
-    "Non-deletion",
+    'Durable Object remains gameplay authority',
+    'privacy-safe SYNC evidence',
+    'Playwright evidence',
+    'independently operable',
   ]) {
-    assert.ok(constitution.includes(required), `missing constitution section: ${required}`);
+    assert.ok(entrypoint.includes(required), `entrypoint missing boundary: ${required}`);
   }
-  assert.match(constitution, /room codes, player names, resume tokens, answer choices/i);
-  assert.match(constitution, /exact-SHA public readback/i);
+
+  for (const required of [
+    'Evidence outranks confidence',
+    'observational',
+    'room codes',
+    'exact-green-SHA',
+    'standalone operation',
+  ]) {
+    assert.ok(constitution.includes(required), `constitution missing boundary: ${required}`);
+  }
 });

@@ -1,29 +1,21 @@
-# SYNC Founder Intelligence
+# Founder Intelligence Entry Point — SYNC
 
-This repository inherits the founder operating contract while preserving SYNC-specific authority, privacy, release, and multiplayer boundaries.
+challenge-stack: v1.0.0
 
-## Required human loop
+SYNC inherits Founder Intelligence from `jussray/founder-control-room` while preserving this repository as the authority for SYNC product, gameplay, runtime, release, and verification truth.
 
-Use the founder loop in order when the work is consequential:
+Before material planning, implementation, review, merge, deployment, or cross-project coordination, read:
 
-1. `/human`
-2. `/futureyou`
-3. `/truthmode`
-4. `/confess`
-5. `/billgates`
-6. `/elonmusk`
-7. Build
-8. Verify
-9. Explain
-10. Leave evidence
-11. Teach the next builder
-12. Repeat
+1. `AGENTS.md`
+2. `docs/FOUNDER_INTELLIGENCE_CONSTITUTION.md`
 
-These names are review lenses and workflow labels. They do not grant provider, merge, deployment, publication, payment, or destructive authority.
+## Required founder loop
 
-## Required challenge stack
+`/human → /futureyou → /truthmode → /confess → /billgates → /elonmusk → Build → Verify → Explain → Leave evidence → Teach the next builder → Repeat`
 
-For meaningful product, runtime, control-room, security, release, or cross-system changes, apply this sequence in order:
+## Canonical founder challenge stack
+
+Apply this order to nontrivial work:
 
 1. ULTRATHINK
 2. Red Team 1 — premise
@@ -34,36 +26,16 @@ For meaningful product, runtime, control-room, security, release, or cross-syste
 7. Proof
 8. Rollback / Next Gate
 
-### What that means in SYNC
+## SYNC specialization
 
-- **ULTRATHINK:** identify the founder outcome, product truth, authoritative repo/runtime, and smallest durable change.
-- **Red Team 1 — premise:** challenge whether the requested change should exist and whether it accidentally collapses independent surfaces or expands authority.
-- **Lindy mode:** prefer stable contracts, explicit boundaries, simple protocols, and reversible changes over novelty for novelty's sake.
-- **L99:** bind authority, state, evidence, rollback, privacy, continuity, and compounding product value.
-- **Red Team 2 — implementation:** attack the chosen patch for race conditions, stale sessions, cross-surface drift, privacy leaks, deployment drift, and false-green proof.
-- **OODA:** observe exact state, orient to current authority, decide one focused patch, act, verify, then loop only when evidence requires it.
-- **Proof:** run the cheapest valid test first, then real Wrangler/Playwright runtime proof, then exact-SHA public-production proof when deployment claims are involved.
-- **Rollback / Next Gate:** leave a bounded reversal path and one precise next decision instead of silently expanding scope.
+- The multiplayer Durable Object remains gameplay authority.
+- The SYNC Control Room is observational and may never become required for gameplay correctness.
+- Founder Control Room may consume privacy-safe SYNC evidence through a bounded relay. Observation grants no gameplay mutation authority.
+- Never expose room codes, player names, resume/reconnect tokens, answers, or other private gameplay identifiers in control-room evidence.
+- Exact-head evidence outranks predecessor proof. When source or runtime identity moves, preserve old proof as history and re-prove the current subject.
+- Browser/runtime changes require Playwright evidence. Production claims require exact deployed runtime identity plus the applicable public-path proof.
+- Fingerprints and continuity cookies are evidence markers only. They never grant merge, deploy, provider, spending, publication, or gameplay authority.
 
-## Non-negotiable SYNC boundaries
+## Relationship boundary
 
-1. **One game authority, independent surfaces.** Presentation can differ by surface. Game rules/state authority must not silently fork.
-2. **Control room is observational.** `ControlRoomLedger` may record privacy-safe lifecycle evidence, but control telemetry must never block gameplay.
-3. **Privacy membrane.** Public or FCR relay evidence must not contain room codes, player names, resume tokens, answer choices, websocket connection IDs, or equivalent identity-bearing gameplay secrets.
-4. **Exact-state truth.** Fingerprints, continuity cookies, state hashes, branch/SHA identity, proof receipts, and supersession must distinguish current truth from old truth.
-5. **Bad-state gate.** Never continue implementation on a known broken, failing, stale, or drifted commit. Repair or revert first and re-prove the real path.
-6. **Playwright required.** UI, browser, reconnect, cross-surface, and runtime-path changes are not done without Playwright evidence.
-7. **No fake green.** Do not suppress failures, replace real authority with mocks in production, hide errors, or call source implementation deployed/runtime verified without evidence.
-8. **Founder authority remains bounded.** Advice, Council review, PromptOS routing, or FCR observation do not by themselves grant mutation or deployment authority.
-
-## Status vocabulary
-
-Use these separately:
-
-- SOURCE IMPLEMENTED
-- MERGED
-- DEPLOYED
-- RUNTIME VERIFIED
-- OUTCOME VERIFIED
-
-Never collapse them into a single "done" claim.
+SYNC must remain independently operable. Founder Control Room is the portfolio control plane that may observe SYNC’s bounded truth and surface its proof state. PromptOS/Chief/Council may reason over bounded evidence according to their own authority contracts, but none may silently replace SYNC’s gameplay authority or manufacture runtime truth.

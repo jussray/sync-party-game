@@ -1,47 +1,53 @@
-# SYNC Founder Intelligence Constitution
+# Founder Intelligence Constitution — SYNC
 
-## Purpose
+This is SYNC’s repository-local Founder Intelligence constitution. It inherits the canonical founder principles maintained by `jussray/founder-control-room` and specializes them for a real-time multiplayer product.
 
-SYNC exists to deliver a shared multiplayer experience across independent presentation surfaces while preserving one truthful game authority, clear founder control, user privacy, and evidence-bound operations.
+## Founder intent and product truth
 
-## Founder authority
+Founder intent defines the desired outcome, not unlimited execution authority. Preserve the goal while obeying current privacy, safety, release, runtime, evidence, and rollback boundaries.
 
-The founder owns product intent and consequential decisions. Agents may inspect, reason, test, propose, and execute only within explicitly available repository/provider authority. No workflow name, model output, Council recommendation, control-room signal, or inherited instruction silently expands permissions.
+Authority for present-tense SYNC claims is ordered as follows:
 
-## Truth and evidence
+1. exact deployed runtime evidence and real-path browser proof;
+2. authoritative `jussray/sync-party-game` source at an exact SHA;
+3. current control-room receipts, fingerprints, and continuity cookies;
+4. older documentation or chat context;
+5. inference.
 
-Claims must match their evidence plane. Source code proves source state. A successful merge proves repository state. A deployment receipt proves deployment state. Exact-SHA runtime readback plus real-path Playwright proves the runtime path. User or business outcomes require separate outcome evidence.
+Evidence outranks confidence. Unknown stays unknown.
 
-Historical receipts remain historical truth. Current truth must be re-observed after relevant state moves.
+## Standalone product boundary
 
-## Multiplayer authority
+SYNC must remain independently usable and independently verifiable. Its Control Room is a first-class operator surface, but it is observational. Gameplay correctness may not depend on Founder Control Room, Chief, PromptOS, Council, or any portfolio relay.
 
-The authoritative room/game contract lives in the SYNC runtime and Durable Objects. Independent clients may have different visual identity, layout, copy, audio, or experiments, but they must not silently create incompatible rules or parallel authoritative room state.
+The multiplayer Durable Object owns gameplay state. Cross-project systems may consume bounded evidence but may not gain implicit room/game mutation authority from that visibility.
 
-Cross-surface changes must preserve same-room interoperability unless the founder explicitly approves a new versioned game contract with migration and rollback evidence.
+## Privacy membrane
 
-## Control-room boundary
+Control-room and portfolio relay evidence must fail closed against private gameplay data. Do not relay or persist room codes, player names, resume/reconnect tokens, answers, or equivalent private identifiers. Prefer aggregate counts, lifecycle receipts, proof state, health, exact runtime identity, and deterministic privacy-safe fingerprints.
 
-The SYNC Control Room is a standalone operator surface for project-local truth. Founder Control Room may consume bounded privacy-safe evidence for portfolio coordination. Neither surface may become a hidden gameplay dependency.
+## Build and verification
 
-Telemetry failures must fail open for gameplay and fail closed for claims: the game continues, but the system must not claim telemetry/control truth it failed to observe.
+Do not build forward from a known bad, stale, failing, or unverified state. Repair or revert the smallest proved cause first. Preserve unrelated work.
 
-## Privacy
+For material changes:
 
-Do not forward or publish room codes, player names, resume tokens, answer choices, websocket connection IDs, or equivalent private gameplay data through the public control snapshot, FCR relay, logs, screenshots, prompts, or analytics unless a separately authorized product requirement explicitly needs it and a narrower privacy-safe design cannot satisfy the goal.
+- choose one focused reversible fix;
+- run the cheapest valid focused checks first;
+- use Playwright for changed browser/runtime paths;
+- require exact-green-SHA promotion before production claims;
+- re-read public runtime identity after deployment;
+- preserve predecessor proof as historical evidence when state moves; and
+- leave a successor fingerprint/continuity receipt with rollback and next gate.
 
-Use one-way fingerprints and aggregate state where identity is unnecessary.
+## Canonical challenge stack
 
-## Reversibility and continuity
+`ULTRATHINK → Red Team 1 — premise → Lindy mode → L99 → Red Team 2 — implementation → OODA → Proof → Rollback / Next Gate`
 
-Prefer the smallest reversible patch. Preserve unrelated good work. Every substantive state transition should be attributable to an exact source/runtime identity and leave sufficient evidence to distinguish predecessor from successor state.
+The stack is a reasoning and verification discipline. It does not bypass branch protection, CI, privacy, release, provider, or founder approval gates.
 
-When a known bad state exists, repair or revert it before continuing forward development.
+## Cross-project relationship
 
-## Verification
+Founder Control Room may consume SYNC’s privacy-safe control-room contract and present it alongside portfolio truth. That relationship should increase founder visibility without creating a runtime dependency. Chief, PromptOS, and Council can advise or challenge based on bounded evidence, while SYNC remains the source of truth for its own product/runtime state.
 
-Use focused unit/contract tests first. UI/runtime and cross-surface behavior require Playwright. Deployment truth requires exact-SHA public readback. Failed proof is a blocker, not an inconvenience to suppress.
-
-## Non-deletion
-
-Do not erase historical truth merely because it is stale or contradicted. Supersede it with newer evidence and preserve the lineage required to explain what changed.
+Any future expansion of that relationship must preserve standalone operation, least authority, evidence provenance, rollback, and the distinction between source implemented, merged, deployed, runtime verified, and outcome verified.
