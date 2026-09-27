@@ -25,6 +25,23 @@ function bump(record, key) {
   return { ...record, [key]: (record[key] || 0) + 1 };
 }
 
+function continuityCookie(campaignFingerprint, seq) {
+  return `growth-v1.${campaignFingerprint.slice(0, 16)}.${seq}`;
+}
+
+function inferDuplicateSeq(summary, eventFingerprint) {
+  const currentSeq = Number.isInteger(summary?.seq) ? summary.seq : 0;
+  const recentEvents = Array.isArray(summary?.recent_events) ? summary.recent_events : [];
+  for (let index = recentEvents.length - 1; index >= 0; index -= 1) {
+    const event = recentEvents[index];
+    if (event?.event_fingerprint !== eventFingerprint) continue;
+    if (Number.isInteger(event.seq) && event.seq > 0) return event.seq;
+    const inferred = currentSeq - (recentEvents.length - 1 - index);
+    if (inferred > 0) return inferred;
+  }
+  return Math.max(currentSeq, 1);
+}
+
 export class GrowthLedger extends DurableObject {
   async fetch(request) {
     const url = new URL(request.url);
@@ -68,15 +85,6 @@ export class GrowthLedger extends DurableObject {
     const campaignFingerprint = await digest({ campaign_key: key });
 
     const recentIds = (await this.ctx.storage.get("recent_event_ids")) || [];
-    if (recentIds.includes(normalized.event_id)) {
-      return {
-        accepted: true,
-        duplicate: true,
-        event_fingerprint: eventFingerprint,
-        campaign_fingerprint: campaignFingerprint
-      };
-    }
-
     const current = (await this.ctx.storage.get("summary")) || {
       campaign_key: key,
       campaign_fingerprint: campaignFingerprint,
@@ -90,6 +98,24 @@ export class GrowthLedger extends DurableObject {
       last_at: null,
       recent_events: []
     };
+
+    if (recentIds.includes(normalized.event_id)) {
+      const storedReceipt = await this.ctx.storage.get(`receipt:${normalized.event_id}`);
+      if (storedReceipt) return { ...storedReceipt, accepted: true, duplicate: true };
+
+      const receiptCampaignFingerprint = current.campaign_fingerprint || campaignFingerprint;
+      const duplicateSeq = inferDuplicateSeq(current, eventFingerprint);
+      const legacyReceipt = {
+        accepted: true,
+        duplicate: true,
+        seq: duplicateSeq,
+        event_fingerprint: eventFingerprint,
+        campaign_fingerprint: receiptCampaignFingerprint,
+        continuity_cookie: continuityCookie(receiptCampaignFingerprint, duplicateSeq)
+      };
+      await this.ctx.storage.put(`receipt:${normalized.event_id}`, legacyReceipt);
+      return legacyReceipt;
+    }
 
     let uniqueVisitors = current.unique_visitors || 0;
     if (normalized.visitor_id) {
@@ -107,6 +133,8 @@ export class GrowthLedger extends DurableObject {
       ...(current.recent_events || []),
       {
         event: normalized.event,
+        event_id: normalized.event_id,
+        seq,
         at,
         game_seq: normalized.game_seq,
         event_fingerprint: eventFingerprint
@@ -128,18 +156,27 @@ export class GrowthLedger extends DurableObject {
       recent_events: recentEvents
     };
 
-    await this.ctx.storage.put({
-      summary,
-      recent_event_ids: [...recentIds, normalized.event_id].slice(-256)
-    });
-
-    return {
+    const continuity_cookie = continuityCookie(campaignFingerprint, seq);
+    const receipt = {
       accepted: true,
       duplicate: false,
       seq,
       event_fingerprint: eventFingerprint,
       campaign_fingerprint: campaignFingerprint,
-      continuity_cookie: `growth-v1.${campaignFingerprint.slice(0, 16)}.${seq}`
+      continuity_cookie
     };
+    const nextRecentIds = [...recentIds, normalized.event_id].slice(-256);
+    const evictedIds = recentIds.filter((eventId) => !nextRecentIds.includes(eventId));
+
+    await this.ctx.storage.put({
+      summary,
+      recent_event_ids: nextRecentIds,
+      [`receipt:${normalized.event_id}`]: receipt
+    });
+    if (evictedIds.length) {
+      await this.ctx.storage.delete(evictedIds.map((eventId) => `receipt:${eventId}`));
+    }
+
+    return receipt;
   }
 }

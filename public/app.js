@@ -12,7 +12,7 @@ let revealSoundSeq = null;
 let winSoundSeq = null;
 
 const prefs = {
-  theme: localStorage.getItem("sync.theme") || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"),
+  theme: localStorage.getItem("sync.theme") || "dark",
   sound: localStorage.getItem("sync.sound") === "on"
 };
 
@@ -77,9 +77,8 @@ function trackGrowth(event) {
   fetch("/api/growth/event", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    keepalive: true,
     body: JSON.stringify({ event, event_id: growthId("ge"), growth: growthEnvelope() })
-  }).catch(() => {});
+  }).then((response) => response.text()).catch(() => {});
 }
 
 class SoundDirector {
@@ -160,11 +159,34 @@ function closeSocket() {
   clearInterval(timerHandle);
   timerHandle = null;
 }
+function choiceParts(choice) {
+  const value = String(choice || "").trim();
+  const firstSpace = value.indexOf(" ");
+  if (firstSpace < 0) return { icon: "✦", label: value };
+  return { icon: value.slice(0, firstSpace), label: value.slice(firstSpace + 1) };
+}
+function avatar(index, extra = "") {
+  return `<span class="face face-${index % 4} ${extra}" aria-hidden="true"></span>`;
+}
+function gameFrame(body, label = "LIVE MULTIPLAYER") {
+  app.innerHTML = `<section class="game-wrap"><div class="game-top"><span>✦ ${label}</span><button class="text-btn" id="exitGame" type="button">← HOME</button></div><div class="game-card" id="gameCard">${body}</div></section>`;
+  document.querySelector("#exitGame")?.addEventListener("click", () => {
+    closeSocket();
+    history.pushState({}, "", "/");
+    home();
+  });
+}
 function home() {
   closeSocket(); roomState = null; sound.stopParty();
-  app.innerHTML = `<section class="hero"><div class="hero-card"><p class="logo">SYNC<span class="spark">✦</span></p><p class="tagline">Think alike. Beat the clock.</p><p class="sub">A real-time pressure party game. Join with a room code, read the room, lock your answer, and see how synchronized everybody really is.</p><div class="grid two"><form id="createForm" class="card mini-card"><h2>Create a game</h2><div class="field"><label for="createName">Your nickname</label><input class="input" id="createName" maxlength="18" autocomplete="nickname" required /></div><button class="btn btn-primary" type="submit">Create a game →</button></form><form id="joinForm" class="card mini-card"><h2>Join a game</h2><div class="field"><label for="joinCode">Room code</label><input class="input code-input" id="joinCode" maxlength="5" autocomplete="off" required /></div><div class="field"><label for="joinName">Nickname</label><input class="input" id="joinName" maxlength="18" autocomplete="nickname" required /></div><button class="btn btn-secondary" type="submit">Join a game →</button></form></div><p class="setting-note">No account. No install. Party audio is optional and never carries required game information.</p></div></section>`;
-  document.querySelector("#createForm").addEventListener("submit", createRoom);
-  document.querySelector("#joinForm").addEventListener("submit", joinRoom);
+  app.innerHTML = `<section class="party-home"><div class="party-art" aria-hidden="true"></div><div class="hero-content"><p class="eyebrow">THE WHOLE GROUP. ONE WAVELENGTH.</p><div class="game-logo" aria-label="SYNC">SYNC<span>✦</span></div><h1>THINK ALIKE.<br class="mobile-break"> BEAT THE CLOCK.</h1><p class="hero-description">Everybody picks in private.<br>Reveal together. Find out who's in sync.</p><div class="hero-actions"><button id="create" class="btn btn-primary" type="button">♟ &nbsp; CREATE A GAME <span>→</span></button><button id="join" class="btn btn-secondary" type="button">JOIN A GAME <span>→</span></button></div><p class="preview-note">Real-time multiplayer · No account · No install</p><div class="hero-badges"><span>2–8 players</span><span>15-second picks</span><span>5 rounds</span></div></div></section><section class="quick-how" aria-label="How to play"><div><span class="step-icon purple">👥</span><p><b>JOIN</b><small>Get your people in.</small></p></div><div><span class="step-icon pink">☝️</span><p><b>PICK</b><small>Trust your gut.</small></p></div><div><span class="step-icon orange">🔒</span><p><b>REVEAL</b><small>All at once.</small></p></div><div><span class="step-icon blue">✦</span><p><b>SYNC</b><small>Score. Run it back.</small></p></div></section><section class="modes-section"><div class="section-heading"><h2>Same friends. Different twists.</h2><span>A NEW MODE EVERY ROUND</span></div><div class="mode-tiles"><div class="mode-tile mode-0"><span aria-hidden="true">👥</span><h3>Classic Sync</h3><p>Match the room majority.</p></div><div class="mode-tile mode-1"><span aria-hidden="true">💗</span><h3>Twin</h3><p>Find exactly one matching mind.</p></div><div class="mode-tile mode-2"><span aria-hidden="true">👽</span><h3>Odd One Out</h3><p>Be the only one to choose it.</p></div><div class="mode-tile mode-3"><span aria-hidden="true">⇄</span><h3>Reverse</h3><p>Smallest non-zero group wins.</p></div><div class="mode-tile mode-4"><span aria-hidden="true">∞</span><h3>Perfect Sync</h3><p>Everybody must match.</p></div></div></section>`;
+  document.querySelector("#create").addEventListener("click", () => setup(false));
+  document.querySelector("#join").addEventListener("click", () => setup(true));
+}
+function setup(joining) {
+  closeSocket(); roomState = null; sound.stopParty();
+  gameFrame(`<div class="center"><div class="setup-icon">${joining ? "🎮" : "✦"}</div><h1 class="screen-title">${joining ? "Join the party." : "Start something fun."}</h1><p class="little">${joining ? "Drop the room code your friend sent you." : "Create the room, send the code, then read the room."}</p></div>${joining ? `<form id="joinForm" class="setup-form"><div class="field"><label for="joinCode">ROOM CODE</label><input class="input code-input" id="joinCode" placeholder="ABCDE" maxlength="5" autocomplete="off" required /></div><div class="field"><label for="joinName">NICKNAME</label><div class="name-input">${avatar(1)}<input class="input" id="joinName" placeholder="Your friends know you as…" maxlength="18" autocomplete="nickname" required /></div></div><button class="btn btn-primary wide" type="submit">JOIN A GAME →</button><p class="little center">Room codes are five characters.</p></form>` : `<form id="createForm" class="setup-form"><div class="field"><label for="createName">YOUR NICKNAME</label><div class="name-input">${avatar(0)}<input class="input" id="createName" placeholder="Your friends know you as…" maxlength="18" autocomplete="nickname" required /></div></div><button class="btn btn-primary wide" type="submit">CREATE A GAME →</button><p class="little center">You’ll be the host. Share the code after the room opens.</p></form>`}`, joining ? "JOIN SYNC" : "HOST SYNC");
+  document.querySelector("#createForm")?.addEventListener("submit", createRoom);
+  document.querySelector("#joinForm")?.addEventListener("submit", joinRoom);
 }
 async function createRoom(event) {
   event.preventDefault();
@@ -195,7 +217,7 @@ function connect(code) {
   closeSocket();
   const me = identity(code);
   if (!me) { notify("Enter through Create or Join first"); history.replaceState({}, "", "/"); return home(); }
-  app.innerHTML = `<section class="hero"><div class="card"><h2>Connecting to ${escapeHtml(code)}…</h2></div></section>`;
+  gameFrame(`<div class="center"><div class="setup-icon">✦</div><h1 class="screen-title">Connecting to ${escapeHtml(code)}…</h1><p class="little">Finding your people.</p></div>`, "CONNECTING");
   const protocol = location.protocol === "https:" ? "wss:" : "ws:";
   socket = new WebSocket(`${protocol}//${location.host}/api/rooms/${code}/ws?playerId=${encodeURIComponent(me.playerId)}&token=${encodeURIComponent(me.resumeToken)}`);
   socket.onmessage = (event) => {
@@ -213,31 +235,35 @@ function renderRoom(code, me) {
   const state = roomState; if (!state) return;
   if (prefs.sound && state.phase !== "lobby") sound.startParty();
   if (state.phase === "lobby") sound.stopParty();
-  const players = state.players.map((player) => `<div class="player"><span class="dot ${player.connected ? "on" : ""}"></span><b>${escapeHtml(player.name)}</b>${player.id === state.hostId ? " 👑" : ""}</div>`).join("");
   const connectedCount = state.players.filter((player) => player.connected).length;
   if (state.phase === "lobby") {
-    app.innerHTML = `<section class="hero"><div class="card"><p class="meta">ROOM</p><div class="room-code">${state.code}</div><p class="sub">Share this code. Everyone can join from any phone or laptop.</p><div class="players">${players}</div><p class="meta">${connectedCount} connected · ${state.players.length}/8 joined</p>${me.playerId === state.hostId ? `<button id="startBtn" class="btn btn-primary" ${connectedCount < 2 ? "disabled" : ""}>Start game →</button>` : `<p><b>Waiting for the host…</b></p>`}<p class="setting-note">Party sound: ${prefs.sound ? "ON" : "OFF"}. Final-five-second cues add pressure, with matching visual countdowns for muted players.</p></div></section>`;
+    const players = state.players.map((player, index) => `<div class="lobby-player">${avatar(index)}<b>${escapeHtml(player.name)}</b><small>${player.id === state.hostId ? "Host 👑" : player.connected ? "Connected" : "Reconnecting"}</small></div>`).join("");
+    const empty = Math.max(0, Math.min(2, 8 - state.players.length));
+    gameFrame(`<div class="center"><p class="meta">ROOM</p><h1 class="room-code">${state.code}</h1><h2 class="lobby-title">SEND THIS CODE TO YOUR PEOPLE</h2><p class="little">Everyone can join from any phone or laptop.</p><div class="lobby-players">${players}${Array.from({ length: empty }, () => `<div class="lobby-player vacant"><span class="empty-avatar">Ｌ</span><small>Open spot</small></div>`).join("")}</div><p class="meta">${connectedCount} connected · ${state.players.length}/8 joined</p><div class="room-settings"><div><span>👥</span><p><small>FIRST MODE</small><b>Classic Sync</b></p></div><div><span>🏦</span><p><small>ROUNDS</small><b>${state.rounds}</b></p></div><div><span>⏑️</span><p><small>EACH PICK</small><b>15 seconds</b></p></div></div>${me.playerId === state.hostId ? `<button id="startBtn" class="btn btn-primary wide" ${connectedCount < 2 ? "disabled" : ""}>START GAME →</button>` : `<p class="little"><b>Waiting for the host…</b></p>`}<p class="little">Party sound: ${prefs.sound ? "ON" : "OFF"}. Visual countdowns always carry the required timing.</p></div>`, "LIVE ROOM");
     document.querySelector("#startBtn")?.addEventListener("click", () => { sound.confirm(); send("START_GAME"); }); return;
   }
   if (state.phase === "choosing") return renderChoosing(state, me);
   if (state.phase === "reveal") return renderReveal(state, me);
   if (state.phase === "results") return renderResults(state, me);
 }
-function progress(state) { return Array.from({ length: state.rounds }, (_, index) => `<span class="${index <= state.roundIndex ? "on" : ""}"></span>`).join(""); }
+function progress(state) { return `<div class="round-progress" aria-label="Round ${state.roundIndex + 1} of ${state.rounds}">${Array.from({ length: state.rounds }, (_, index) => `<span class="${index <= state.roundIndex ? "on" : ""}"></span>`).join("")}</div>`; }
 function modeCard(state) { return `<div class="mode-card"><span class="mode-label">${escapeHtml(state.mode?.label || "SYNC")}</span><span>${escapeHtml(state.mode?.instruction || "Read the room.")}</span></div>`; }
 function renderChoosing(state, me) {
-  const selected = state.answers[me.playerId] === true;
-  app.innerHTML = `<section class="hero"><div id="gameCard" class="card"><div class="progress">${progress(state)}</div><div class="timer-row"><span class="meta">Round ${state.roundIndex + 1} of ${state.rounds}</span><span id="timer" class="timer">15s</span></div>${modeCard(state)}<h1 class="prompt">${escapeHtml(state.prompt.text)}</h1><div class="choices">${state.prompt.choices.map((choice, index) => `<button class="choice" data-choice="${index}" ${selected ? "disabled" : ""}>${escapeHtml(choice)}</button>`).join("")}</div>${selected ? `<p class="setting-note">✓ Choice locked. Waiting for everyone else.</p>` : `<p class="setting-note">Pick before time runs out.</p>`}</div></section>`;
+  const selected = Object.prototype.hasOwnProperty.call(state.answers, me.playerId);
+  gameFrame(`<div class="timer-row"><span class="meta">Round ${state.roundIndex + 1} of ${state.rounds}</span><span id="timer" class="timer">15s</span></div>${progress(state)}<div class="time-track"><div id="timeFill" style="width:100%"></div></div>${modeCard(state)}<h1 class="prompt">${escapeHtml(state.prompt.text)}</h1><div class="choices">${state.prompt.choices.map((choice, index) => { const part = choiceParts(choice); return `<button class="choice" data-choice="${index}" ${selected ? "disabled" : ""}><span class="choice-icon">${escapeHtml(part.icon)}</span><span>${escapeHtml(part.label)}</span><span class="choice-check" aria-hidden="true">${state.answers[me.playerId] === index ? "✓" : ""}</span></button>`; }).join("")}</div><p class="lock-message" id="lock" role="status">${selected ? "✓ Choice locked. Waiting for everybody else." : "One pick. Keep it to yourself."}</p>`, "LIVE MULTIPLAYER");
   document.querySelectorAll(".choice").forEach((button) => button.addEventListener("click", () => {
     if (selected) return;
-    sound.pick(); document.querySelectorAll(".choice").forEach((item) => { item.disabled = true; }); button.classList.add("selected"); send("SUBMIT_CHOICE", { choiceIndex: Number(button.dataset.choice) });
+    sound.pick(); document.querySelectorAll(".choice").forEach((item) => { item.disabled = true; }); button.classList.add("selected"); button.querySelector(".choice-check").textContent = "✓"; document.querySelector("#lock").textContent = "✓ Choice locked. Waiting for everybody else."; send("SUBMIT_CHOICE", { choiceIndex: Number(button.dataset.choice) });
   }));
   updateTimer(state.deadline); timerHandle = setInterval(() => updateTimer(state.deadline), 150);
 }
 function updateTimer(deadline) {
   const timer = document.querySelector("#timer"); if (!timer) return;
-  const left = Math.max(0, Math.ceil((deadline - (Date.now() + serverOffset)) / 1000));
+  const ms = Math.max(0, deadline - (Date.now() + serverOffset));
+  const left = Math.max(0, Math.ceil(ms / 1000));
   timer.textContent = `${left}s`;
+  const fill = document.querySelector("#timeFill");
+  if (fill) fill.style.width = `${Math.min(100, (ms / 15000) * 100)}%`;
   const card = document.querySelector("#gameCard");
   if (left <= 5) { timer.classList.add("danger"); card?.classList.add("pressure"); if (prefs.sound && lastTickSecond !== left) { sound.pressureTick(left); lastTickSecond = left; } }
   else { timer.classList.remove("danger"); card?.classList.remove("pressure"); lastTickSecond = null; }
@@ -252,21 +278,22 @@ function syncLabel(percent) {
 function renderReveal(state, me) {
   if (revealSoundSeq !== state.seq) { sound.reveal(); revealSoundSeq = state.seq; }
   const total = Math.max(1, state.lastResults?.totalAnswers || Object.keys(state.answers).length);
-  const rows = state.prompt.choices.map((choice, index) => { const count = state.lastResults?.counts?.[index] || 0; return `<div class="result-row"><b>${escapeHtml(choice)}</b><div class="bar"><span style="width:${(count / total) * 100}%"></span></div><b>${count}</b></div>`; }).join("");
-  const mine = state.lastResults?.winners?.includes(me.playerId);
+  const rows = state.prompt.choices.map((choice, index) => { const count = state.lastResults?.counts?.[index] || 0; const part = choiceParts(choice); return `<div class="answer-result"><span class="choice-icon">${escapeHtml(part.icon)}</span><span>${escapeHtml(part.label)}</span><div class="answer-bar"><i style="--fill:${(count / total) * 100}%"></i></div><b>${count}</b></div>`; }).join("");
+  const won = state.lastResults?.winners?.includes(me.playerId);
+  const mine = state.answers[me.playerId];
   const syncPercent = state.lastResults?.syncPercent || 0;
-  app.innerHTML = `<section class="hero"><div class="card"><div class="progress">${progress(state)}</div>${modeCard(state)}<h1 class="prompt">Here’s what everyone chose!</h1><div class="sync-meter"><div><span>ROOM SYNC</span><strong>${syncPercent}%</strong></div><div class="sync-track"><span style="width:${syncPercent}%"></span></div><b>${syncLabel(syncPercent)}</b></div><div class="results">${rows}</div><p class="tagline">${mine ? "You won this mutation. +3 ✦" : "No points this round. Read the room again."}</p>${me.playerId === state.hostId ? `<button id="nextBtn" class="btn btn-primary">${state.roundIndex + 1 >= state.rounds ? "See final scores" : "Next round"} →</button>` : `<p class="meta">Waiting for the host…</p>`}</div></section>`;
+  gameFrame(`${progress(state)}<p class="meta center">ROUND ${state.roundIndex + 1} · ${escapeHtml(state.mode?.label || "SYNC")}</p><h1 class="screen-title center">Here’s what everyone chose!</h1><div class="sync-readout"><span>ROOM SYNC</span><strong>${syncPercent}%</strong><b>${syncLabel(syncPercent)}</b></div><div class="answer-results">${rows}</div><div class="your-result ${won ? "won" : ""}"><div><small>YOUR CHOICE</small><b>${mine === undefined ? "No pick this round" : escapeHtml(state.prompt.choices[mine])}</b><span>${won ? "You nailed this round." : "Read the room again."}</span></div><strong>${won ? "+3" : "0"} pts</strong></div>${me.playerId === state.hostId ? `<button id="nextBtn" class="btn btn-primary wide">${state.roundIndex + 1 >= state.rounds ? "SEE FINAL SCORES" : "NEXT ROUND"} →</button>` : `<p class="little center">Waiting for the host…</p>`}`, "LIVE REVEAL");
   document.querySelector("#nextBtn")?.addEventListener("click", () => { sound.confirm(); send("NEXT_ROUND"); });
 }
 function renderResults(state, me) {
   if (winSoundSeq !== state.seq) { sound.win(); winSoundSeq = state.seq; }
   const ranking = [...state.players].sort((a, b) => (state.scores[b.id] || 0) - (state.scores[a.id] || 0));
   const roomSync = state.syncHistory?.length ? Math.round(state.syncHistory.reduce((sum, value) => sum + value, 0) / state.syncHistory.length) : 0;
-  app.innerHTML = `<section class="hero"><div class="card"><p class="logo" style="font-size:3rem">GAME OVER<span class="spark">✦</span></p><p class="tagline">${escapeHtml(ranking[0]?.name || "Nobody")} wins!</p><div class="final-sync"><span>FINAL ROOM SYNC</span><strong>${roomSync}%</strong><b>${syncLabel(roomSync)}</b></div><div class="scoreboard">${ranking.map((player, index) => `<div class="score"><span>${index + 1}. ${escapeHtml(player.name)}${player.id === me.playerId ? " (you)" : ""}</span><span>${state.scores[player.id] || 0} pts</span></div>`).join("")}</div><div class="actions" style="margin-top:22px">${me.playerId === state.hostId ? `<button id="rematchBtn" class="btn btn-primary">Play again ↻</button>` : ""}<button id="homeBtn" class="btn btn-secondary">New room</button></div></div></section>`;
+  const high = Math.max(...ranking.map((player) => state.scores[player.id] || 0));
+  gameFrame(`<div class="celebration" aria-hidden="true">${Array.from({ length: 16 }, (_, index) => `<i style="--x:${index * 6.3}%;--r:${index * 37}deg;--d:${(index % 5) * .13}s;--color:${["#ffcc4d", "#ef3cbe", "#7296ff"][index % 3]}"></i>`).join("")}</div><div class="center"><div class="trophy" aria-hidden="true">🏆</div><p class="meta">GAME OVER · ROOM ${escapeHtml(state.code)}</p><h1 class="screen-title">${escapeHtml(ranking[0]?.name || "Nobody")} wins!</h1><div class="final-sync"><span>FINAL ROOM SYNC</span><strong>${roomSync}%</strong><b>${syncLabel(roomSync)}</b></div></div><div class="scoreboard">${ranking.map((player, index) => `<div class="rank-row ${(state.scores[player.id] || 0) === high ? "leader" : ""}"><span class="rank-number">${index + 1}</span>${avatar(index)}<span class="rank-name">${escapeHtml(player.name)}${player.id === me.playerId ? " <small>(you)</small>" : ""}${(state.scores[player.id] || 0) === high ? " ♛" : ""}</span><strong>${state.scores[player.id] || 0}</strong></div>`).join("")}</div><div class="actions" style="margin-top:22px">${me.playerId === state.hostId ? `<button id="rematchBtn" class="btn btn-primary">PLAY AGAIN ↻</button>` : ""}<button id="homeBtn" class="btn btn-secondary">NEW ROOM</button></div>`, "FINAL SCORES");
   document.querySelector("#rematchBtn")?.addEventListener("click", () => send("REMATCH"));
-  document.querySelector("#homeBtn").addEventListener("click", () => { history.pushState({}, "", "/"); home(); });
+  document.querySelector("#homeBtn").addEventListener("click", () => { closeSocket(); history.pushState({}, "", "/"); home(); });
 }
-
 addEventListener("popstate", route);
 function route() { const code = new URLSearchParams(location.search).get("room")?.toUpperCase(); code ? connect(code) : home(); }
 trackGrowth("landing_view");

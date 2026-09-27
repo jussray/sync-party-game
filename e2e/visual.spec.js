@@ -1,54 +1,47 @@
 import { test, expect } from "@playwright/test";
 
-test("live landing renders the founder-approved Sync showcase canon", async ({ page }) => {
+test("live landing renders the chat-site Sync canon", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("sync.theme", "dark"));
   await page.goto("/");
-  await expect(page.locator(".hero-card")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Create a game/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Join a game/ })).toBeVisible();
+  await expect(page.locator(".party-home")).toBeVisible();
+  await expect(page.locator(".game-logo")).toHaveText(/SYNC/);
+  await expect(page.getByRole("button", { name: /create a game/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /join a game/i })).toBeVisible();
 
   const witness = await page.evaluate(() => {
     const root = getComputedStyle(document.documentElement);
-    const brandAfter = getComputedStyle(document.querySelector(".brand"), "::after");
-    const heroElement = document.querySelector(".hero-card");
-    const hero = getComputedStyle(heroElement);
-    const heroBefore = getComputedStyle(heroElement, "::before");
-    const heroRect = heroElement.getBoundingClientRect();
-    const logo = getComputedStyle(document.querySelector(".logo"));
-    const createButton = getComputedStyle(document.querySelector("#createForm .btn"));
-    const createCard = getComputedStyle(document.querySelector("#createForm"));
+    const partyHome = document.querySelector(".party-home");
+    const partyArt = document.querySelector(".party-art");
+    const quickHow = document.querySelector(".quick-how");
+    const modeTiles = document.querySelector(".mode-tiles");
+    const logo = document.querySelector(".game-logo");
 
     return {
       theme: document.documentElement.dataset.theme,
       bg: root.getPropertyValue("--bg").trim().toLowerCase(),
-      accent: root.getPropertyValue("--accent").trim().toLowerCase(),
-      accent2: root.getPropertyValue("--accent-2").trim().toLowerCase(),
+      pink: root.getPropertyValue("--pink").trim().toLowerCase(),
       cyan: root.getPropertyValue("--cyan").trim().toLowerCase(),
-      brandAfterContent: brandAfter.content,
-      heroWidth: Math.round(heroRect.width),
-      heroBorderRadius: hero.borderRadius,
-      heroArtwork: heroBefore.backgroundImage,
-      logoColor: logo.color,
-      createButtonBackground: createButton.backgroundImage,
-      createCardBorderRadius: createCard.borderRadius
+      partyHomeDisplay: getComputedStyle(partyHome).display,
+      partyHomeRadius: getComputedStyle(partyHome).borderRadius,
+      partyArtBackground: getComputedStyle(partyArt).backgroundImage,
+      quickHowDisplay: getComputedStyle(quickHow).display,
+      modeTilesDisplay: getComputedStyle(modeTiles).display,
+      logoFontStyle: getComputedStyle(logo).fontStyle
     };
   });
 
   expect(witness).toMatchObject({
     theme: "dark",
-    bg: "#050b20",
-    accent: "#ff36aa",
-    accent2: "#8f4dff",
-    cyan: "#29d9ff",
-    brandAfterContent: "none",
-    heroBorderRadius: "34px",
-    logoColor: "rgb(255, 255, 255)",
-    createCardBorderRadius: "22px"
+    bg: "#060d20",
+    pink: "#ff389a",
+    cyan: "#64ddff",
+    partyHomeDisplay: "grid",
+    quickHowDisplay: "grid",
+    modeTilesDisplay: "grid",
+    logoFontStyle: "italic"
   });
-  expect(witness.heroWidth).toBeLessThanOrEqual(1120);
-  expect(witness.heroWidth).toBeGreaterThan(900);
-  expect(witness.heroArtwork).toContain("/assets/sync-friends.svg");
-  expect(witness.createButtonBackground).toContain("linear-gradient");
+  expect(witness.partyHomeRadius).toContain("26px");
+  expect(witness.partyArtBackground).toContain("party-art.png");
 
   await page.screenshot({
     path: "test-results/visual-sync-home.png",

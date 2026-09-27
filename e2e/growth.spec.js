@@ -40,32 +40,43 @@ test("campaign landing records bounded anonymous growth evidence and still creat
       ...JSON.parse(sessionStorage.getItem("sync.growth.context"))
     };
     const eventId = `event_probe_${crypto.randomUUID().replaceAll("-", "")}`;
-    const probe = await fetch("/api/growth/event", {
+    const request = () => fetch("/api/growth/event", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        event: "landing_view",
-        event_id: eventId,
-        growth
-      })
+      body: JSON.stringify({ event: "landing_view", event_id: eventId, growth })
     });
-    return { status: probe.status, body: await probe.json(), eventId };
+    const first = await request();
+    const firstBody = await first.json();
+    const duplicate = await request();
+    return {
+      eventId,
+      first: { status: first.status, body: firstBody },
+      duplicate: { status: duplicate.status, body: await duplicate.json() }
+    };
   });
-  expect(receiptProbe.status).toBe(200);
   expect(receiptProbe.eventId).toMatch(/^event_probe_[0-9a-f]{32}$/);
-  expect(receiptProbe.body.accepted).toBe(true);
-  expect(receiptProbe.body.duplicate).toBe(false);
-  expect(receiptProbe.body.event_fingerprint).toMatch(/^[0-9a-f]{64}$/);
-  expect(receiptProbe.body.campaign_fingerprint).toMatch(/^[0-9a-f]{64}$/);
-  expect(receiptProbe.body.continuity_cookie).toMatch(/^growth-v1\./);
+  expect(receiptProbe.first.status).toBe(200);
+  expect(receiptProbe.first.body.accepted).toBe(true);
+  expect(receiptProbe.first.body.duplicate).toBe(false);
+  expect(receiptProbe.first.body.event_fingerprint).toMatch(/^[0-9a-f]{64}$/);
+  expect(receiptProbe.first.body.campaign_fingerprint).toMatch(/^[0-9a-f]{64}$/);
+  expect(receiptProbe.first.body.continuity_cookie).toMatch(/^growth-v1\./);
+
+  expect(receiptProbe.duplicate.status).toBe(200);
+  expect(receiptProbe.duplicate.body.accepted).toBe(true);
+  expect(receiptProbe.duplicate.body.duplicate).toBe(true);
+  expect(receiptProbe.duplicate.body.event_fingerprint).toBe(receiptProbe.first.body.event_fingerprint);
+  expect(receiptProbe.duplicate.body.campaign_fingerprint).toBe(receiptProbe.first.body.campaign_fingerprint);
+  expect(receiptProbe.duplicate.body.continuity_cookie).toBe(receiptProbe.first.body.continuity_cookie);
 
   let createPayload = null;
   page.on("request", (request) => {
     if (request.url().includes("/api/rooms/create")) createPayload = request.postDataJSON();
   });
 
-  await page.getByLabel("Your nickname", { exact: true }).fill("GrowthHost");
-  await page.getByRole("button", { name: /Create a game/ }).click();
+  await page.getByRole("button", { name: /create a game/i }).click();
+  await page.getByLabel(/^your nickname$/i).fill("GrowthHost");
+  await page.getByRole("button", { name: /create a game/i }).click();
   await expect(page.locator(".room-code")).toBeVisible();
 
   expect(createPayload?.growth).toMatchObject({
