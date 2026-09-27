@@ -1,11 +1,11 @@
 name = "sync-party-game"
-main = "src/worker.js"
+main = "src/multisurface-worker.js"
 compatibility_date = "2026-09-24"
 
 [assets]
 directory = "./public"
 binding = "ASSETS"
-run_worker_first = ["/api/*"]
+run_worker_first = ["/api/*", "/sync-client.js"]
 not_found_handling = "single-page-application"
 
 [[durable_objects.bindings]]
