@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#060d20" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>SYNC Control Room</title>
+  <link rel="stylesheet" href="/control-room.css" />
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Back to Sync">✦ SYNC</a>
+    <div class="top-actions">
+      <span id="runtimeBadge" class="status-badge status-warn" data-testid="runtime-status">CHECKING</span>
+      <a class="ghost-link" href="/">Open game ↗</a>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="hero panel">
+      <div>
+        <p class="eyebrow">STANDALONE OPERATOR SURFACE</p>
+        <h1>SYNC <span>CONTROL ROOM</span></h1>
+        <p class="lede">Live game truth, proof, continuity, and portfolio relay without depending on the player interface.</p>
+      </div>
+      <div class="hero-proof">
+        <div><span>Authority</span><strong id="authorityBranch">main → production</strong></div>
+        <div><span>Proof gate</span><strong id="proofGate">Playwright</strong></div>
+        <div><span>Continuity</span><strong id="continuityState">No signals yet</strong></div>
+      </div>
+    </section>
+
+    <section class="metric-grid" aria-label="Live Sync metrics">
+      <article class="metric panel"><span>Active rooms</span><strong id="activeRooms">0</strong><small>rooms with connected players</small></article>
+      <article class="metric panel"><span>Connected players</span><strong id="connectedPlayers">0</strong><small>privacy-safe aggregate</small></article>
+      <article class="metric panel"><span>Rooms observed</span><strong id="roomsObserved">0</strong><small>ROOM_CREATED receipts</small></article>
+      <article class="metric panel"><span>Events recorded</span><strong id="eventsRecorded">0</strong><small>control-ledger sequence</small></article>
+    </section>
+
+    <section class="two-col">
+      <article class="panel stack-card">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">PROOF SPINE</p>
+            <h2>Release authority</h2>
+          </div>
+          <button id="refreshButton" class="action-button" type="button">Refresh now</button>
+        </div>
+        <ol class="proof-list">
+          <li><span class="proof-dot"></span><div><strong>Source authority</strong><small id="repoIdentity">jussray/sync-party-game</small></div></li>
+          <li><span class="proof-dot"></span><div><strong>Exact green promotion</strong><small id="releaseGate">core-proof → production</small></div></li>
+          <li><span class="proof-dot"></span><div><strong>Public runtime identity</strong><small id="runtimeIdentity">Waiting for /api/version</small></div></li>
+          <li><span class="proof-dot"></span><div><strong>Real-path Playwright</strong><small>Control room ships inside the same public production suite.</small></div></li>
+        </ol>
+      </article>
+
+      <article class="panel stack-card">
+        <p class="eyebrow">CONTINUITY</p>
+        <h2>Fingerprint + cookie</h2>
+        <div class="mono-block">
+          <span>CONTROL FINGERPRINT</span>
+          <code id="controlFingerprint">not-issued</code>
+        </div>
+        <div class="mono-block">
+          <span>CONTINUITY COOKIE</span>
+          <code id="continuityCookie">not-issued</code>
+        </div>
+        <p class="hint">Room codes, player names, resume tokens, and private choices never appear in this public-safe feed.</p>
+      </article>
+    </section>
+
+    <section class="two-col wide-left">
+      <article class="panel stack-card">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">RECENT SIGNALS</p>
+            <h2>Operational receipts</h2>
+          </div>
+          <span id="lastSignal" class="micro-status">No signals yet</span>
+        </div>
+        <div id="eventFeed" class="event-feed" aria-live="polite">
+          <div class="empty-state">Create or join a game and Sync will write privacy-safe lifecycle receipts here.</div>
+        </div>
+      </article>
+
+      <article class="panel stack-card">
+        <p class="eyebrow">PORTFOLIO RELAY</p>
+        <h2>Founder Control Room feed</h2>
+        <p class="hint">FCR can pull the public-safe snapshot directly. A protected export is available when a read key is configured in the runtime.</p>
+        <dl class="relay-grid">
+          <div><dt>Target</dt><dd id="relayTarget">Founder Control Room</dd></div>
+          <div><dt>Mode</dt><dd id="relayMode">privacy-safe-pull</dd></div>
+          <div><dt>Endpoint</dt><dd><code id="relayEndpoint">/api/control-room/snapshot</code></dd></div>
+          <div><dt>Protected export</dt><dd id="protectedExport">Not configured</dd></div>
+        </dl>
+        <details class="operator-export">
+          <summary>Operator export</summary>
+          <p class="hint">Enter the runtime read key only when you are on a trusted device. It stays in memory for this page and is never stored in the URL.</p>
+          <label for="operatorKey">Control room read key</label>
+          <div class="key-row">
+            <input id="operatorKey" type="password" autocomplete="off" spellcheck="false" />
+            <button id="loadExportButton" class="action-button" type="button">Load export</button>
+          </div>
+          <pre id="exportPreview" class="export-preview">Protected export not loaded.</pre>
+        </details>
+      </article>
+    </section>
+  </main>
+
+  <footer>
+    <span>SYNC Control Room</span>
+    <span id="updatedAt">Not refreshed yet</span>
+  </footer>
+
+  <script type="module" src="/control-room.js"></script>
+</body>
+</html>

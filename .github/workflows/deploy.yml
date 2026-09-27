@@ -177,6 +177,7 @@ jobs:
             echo "- Public URL: $PLAYWRIGHT_BASE_URL"
             echo "- Exact-SHA runtime identity: PASS"
             echo "- Playwright: PASS"
+            echo "- Sync Control Room runtime + privacy boundary: PASS"
             echo "- Phone + laptop path: PASS"
             echo "- Hidden-choice privacy: PASS"
             echo "- Reconnect: PASS"

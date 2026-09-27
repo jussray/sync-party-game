@@ -1,6 +1,8 @@
 import { DurableObject } from "cloudflare:workers";
 import { advance, createRoomState, joinPlayer, publicFingerprint, publicState, revealRound, startGame, submitChoice } from "./game.js";
 import { campaignKey, normalizeGrowthEnvelope, normalizeGrowthEvent } from "./growth-contract.js";
+import { buildControlRoomEnvelope, fetchControlRoomSnapshot, recordControlRoomCommit } from "./control-room.js";
+export { ControlRoomLedger } from "./control-room.js";
 export { GrowthLedger } from "./growth-ledger.js";
 
 const enc = new TextEncoder();
@@ -56,6 +58,14 @@ async function recordGrowth(env, input, options = {}) {
   return response.json();
 }
 
+function controlReadKey(request) {
+  const direct = request.headers.get("x-sync-control-room-key");
+  if (direct) return direct;
+  const authorization = request.headers.get("authorization") || "";
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1] : null;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -66,6 +76,30 @@ export default {
         sha: env.DEPLOY_SHA || null,
         build: env.DEPLOY_BUILD || null
       }, { headers: { "cache-control": "no-store" } });
+    }
+
+    if (url.pathname === "/api/control-room/snapshot" && request.method === "GET") {
+      try {
+        const snapshot = await fetchControlRoomSnapshot(env, false);
+        return json(buildControlRoomEnvelope(env, snapshot), { headers: { "cache-control": "no-store" } });
+      } catch (error) {
+        return json({ error: error.message || "Control room unavailable" }, { status: 503, headers: { "cache-control": "no-store" } });
+      }
+    }
+
+    if (url.pathname === "/api/control-room/export" && request.method === "GET") {
+      if (!env.CONTROL_ROOM_READ_KEY) {
+        return json({ error: "Protected control-room export is not configured" }, { status: 503, headers: { "cache-control": "no-store" } });
+      }
+      if (controlReadKey(request) !== env.CONTROL_ROOM_READ_KEY) {
+        return json({ error: "Unauthorized" }, { status: 401, headers: { "cache-control": "no-store" } });
+      }
+      try {
+        const snapshot = await fetchControlRoomSnapshot(env, true);
+        return json(buildControlRoomEnvelope(env, snapshot, { exportMode: true }), { headers: { "cache-control": "no-store" } });
+      } catch (error) {
+        return json({ error: error.message || "Control room export unavailable" }, { status: 503, headers: { "cache-control": "no-store" } });
+      }
     }
 
     if (url.pathname === "/api/growth/event" && request.method === "POST") {
@@ -107,6 +141,12 @@ export default {
       const target = new URL(request.url);
       target.pathname = `/internal/${action}`;
       return stub.fetch(new Request(target, request));
+    }
+
+    if ((url.pathname === "/control-room" || url.pathname === "/control-room/") && request.method === "GET") {
+      const target = new URL(request.url);
+      target.pathname = "/control-room.html";
+      return env.ASSETS.fetch(new Request(target, request));
     }
 
     return env.ASSETS.fetch(request);
@@ -332,6 +372,11 @@ export class GameRoom extends DurableObject {
     });
     await this.ctx.storage.put({ state: committed, receipts: receipts.slice(-128) });
     await this.recordGrowthForCommit(event, actor, committed);
+    try {
+      await recordControlRoomCommit(this.env, committed, event, actor);
+    } catch {
+      // Control telemetry is observational and must never become gameplay authority.
+    }
     return committed;
   }
 
