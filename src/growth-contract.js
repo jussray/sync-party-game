@@ -28,6 +28,7 @@ function token(value, max = 160) {
   if (!raw) return null;
   const normalized = raw
     .toLowerCase()
+    .replace(/\s*\/\s*/g, "/")
     .replace(/\s+/g, "-")
     .replace(/[^a-z0-9._:/-]/g, "")
     .replace(/-{2,}/g, "-")
