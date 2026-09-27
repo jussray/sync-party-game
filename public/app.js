@@ -16,6 +16,72 @@ const prefs = {
   sound: localStorage.getItem("sync.sound") === "on"
 };
 
+const GROWTH_VISITOR_COOKIE = "sync_growth_vid";
+const GROWTH_VISITOR_MAX_AGE = 60 * 60 * 24 * 90;
+
+function growthId(prefix) {
+  return `${prefix}_${crypto.randomUUID().replaceAll("-", "").slice(0, 20)}`;
+}
+function readCookie(name) {
+  const prefix = `${name}=`;
+  const part = document.cookie.split(";").map((item) => item.trim()).find((item) => item.startsWith(prefix));
+  return part ? decodeURIComponent(part.slice(prefix.length)) : null;
+}
+function anonymousVisitorId() {
+  let value = readCookie(GROWTH_VISITOR_COOKIE) || localStorage.getItem("sync.growth.visitor");
+  if (!value) value = growthId("visitor");
+  localStorage.setItem("sync.growth.visitor", value);
+  const secure = location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `${GROWTH_VISITOR_COOKIE}=${encodeURIComponent(value)}; Max-Age=${GROWTH_VISITOR_MAX_AGE}; Path=/; SameSite=Lax${secure}`;
+  return value;
+}
+function anonymousSessionId() {
+  let value = sessionStorage.getItem("sync.growth.session");
+  if (!value) {
+    value = growthId("session");
+    sessionStorage.setItem("sync.growth.session", value);
+  }
+  return value;
+}
+function referrerHost() {
+  if (!document.referrer) return null;
+  try { return new URL(document.referrer).hostname || null; } catch { return null; }
+}
+function campaignContext() {
+  const params = new URLSearchParams(location.search);
+  const fresh = {
+    campaign_id: params.get("utm_campaign") || params.get("campaign"),
+    source: params.get("utm_source") || params.get("source"),
+    medium: params.get("utm_medium") || params.get("medium"),
+    content: params.get("utm_content") || params.get("content"),
+    referrer_host: referrerHost()
+  };
+  const hasFresh = Object.values(fresh).some(Boolean);
+  if (hasFresh) {
+    sessionStorage.setItem("sync.growth.context", JSON.stringify(fresh));
+    return fresh;
+  }
+  try {
+    return JSON.parse(sessionStorage.getItem("sync.growth.context")) || fresh;
+  } catch {
+    return fresh;
+  }
+}
+const growthSession = {
+  visitor_id: anonymousVisitorId(),
+  session_id: anonymousSessionId(),
+  ...campaignContext()
+};
+function growthEnvelope() { return { ...growthSession }; }
+function trackGrowth(event) {
+  fetch("/api/growth/event", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    keepalive: true,
+    body: JSON.stringify({ event, event_id: growthId("ge"), growth: growthEnvelope() })
+  }).catch(() => {});
+}
+
 class SoundDirector {
   ctx = null;
   beatTimer = null;
@@ -102,9 +168,10 @@ function home() {
 }
 async function createRoom(event) {
   event.preventDefault();
+  trackGrowth("play_intent");
   if (prefs.sound) { await sound.unlock(); sound.confirm(); }
   const name = document.querySelector("#createName").value.trim();
-  const response = await fetch("/api/rooms/create", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name }) });
+  const response = await fetch("/api/rooms/create", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name, growth: growthEnvelope() }) });
   const data = await response.json();
   if (!response.ok) return notify(data.error || "Could not create room");
   saveIdentity(data.code, { playerId: data.playerId, resumeToken: data.resumeToken, name });
@@ -113,10 +180,11 @@ async function createRoom(event) {
 }
 async function joinRoom(event) {
   event.preventDefault();
+  trackGrowth("play_intent");
   if (prefs.sound) { await sound.unlock(); sound.confirm(); }
   const code = document.querySelector("#joinCode").value.trim().toUpperCase();
   const name = document.querySelector("#joinName").value.trim();
-  const response = await fetch(`/api/rooms/${encodeURIComponent(code)}/join`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name }) });
+  const response = await fetch(`/api/rooms/${encodeURIComponent(code)}/join`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name, growth: growthEnvelope() }) });
   const data = await response.json();
   if (!response.ok) return notify(data.error || "Could not join room");
   saveIdentity(code, { playerId: data.playerId, resumeToken: data.resumeToken, name });
@@ -201,4 +269,5 @@ function renderResults(state, me) {
 
 addEventListener("popstate", route);
 function route() { const code = new URLSearchParams(location.search).get("room")?.toUpperCase(); code ? connect(code) : home(); }
+trackGrowth("landing_view");
 route();
