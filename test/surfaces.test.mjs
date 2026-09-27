@@ -7,6 +7,9 @@ test("Cloudflare and chat surfaces share game authority but keep independent pre
   const chat = getSurfaceProfile("chat");
   assert.deepEqual(cloudflare.shared_game, chat.shared_game);
   assert.notEqual(cloudflare.presentation.id, chat.presentation.id);
+  assert.equal(cloudflare.presentation.entrypoint, "/");
+  assert.equal(chat.presentation.entrypoint, "/chat/index.html");
+  assert.equal(chat.presentation.mirror_target, CHAT_SITE_ORIGIN);
   assert.equal(cloudflare.shared_game.same_room_cross_surface, true);
   assert.equal(cloudflare.shared_game.authoritative_rule_changes_require_room_contract, true);
 });
@@ -30,6 +33,8 @@ test("manifest binds a surface to the shared API without making presentation aut
   const manifest = await buildSurfaceManifest("chat", "https://sync-party-game.mcgill-raylene.workers.dev");
   assert.equal(manifest.id, "chat");
   assert.equal(manifest.shared_game.authority, "cloudflare-durable-object");
+  assert.equal(manifest.presentation.entrypoint, "/chat/index.html");
+  assert.equal(manifest.presentation.mirror_target, CHAT_SITE_ORIGIN);
   assert.equal(manifest.endpoints.api_origin, "https://sync-party-game.mcgill-raylene.workers.dev");
   assert.equal(manifest.endpoints.ws_origin, "wss://sync-party-game.mcgill-raylene.workers.dev");
   assert.match(manifest.fingerprint, /^[a-f0-9]{24}$/);
