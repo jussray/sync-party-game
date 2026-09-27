@@ -7,7 +7,7 @@ test("Chat Edition and Cloudflare Edition play inside one authoritative room", a
   const cloud = await cloudContext.newPage();
 
   await chat.goto("/chat/index.html");
-  await expect(chat.locator('[data-surface="chat"]')).toBeVisible();
+  await expect(chat.locator('.chat-frame[data-surface="chat"]')).toBeVisible();
   await expect(chat.getByText("Same game.")).toBeVisible();
   await chat.getByRole("button", { name: /create a room/i }).click();
   await chat.locator("#hostName").fill("Chat Host");
