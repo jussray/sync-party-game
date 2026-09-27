@@ -20,7 +20,7 @@ test("normalizes campaign attribution without retaining raw referrer paths", () 
   assert.deepEqual(context, {
     campaign_id: "sync-launch-2026",
     source: "facebook",
-    medium: "social/-paid",
+    medium: "social/paid",
     content: "hero-1",
     referrer_host: "www.facebook.com"
   });
