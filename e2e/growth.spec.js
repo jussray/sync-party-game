@@ -9,11 +9,15 @@ test("campaign landing records bounded anonymous growth evidence and still creat
 
   const response = await growthResponse;
   expect(response.status()).toBe(200);
-  const receipt = await response.json();
-  expect(receipt.accepted).toBe(true);
-  expect(receipt.event_fingerprint).toMatch(/^[0-9a-f]{64}$/);
-  expect(receipt.campaign_fingerprint).toMatch(/^[0-9a-f]{64}$/);
-  expect(receipt.continuity_cookie).toMatch(/^growth-v1\./);
+  expect(response.request().postDataJSON()).toMatchObject({
+    event: "landing_view",
+    growth: {
+      campaign_id: "sync-launch-2026",
+      source: "facebook",
+      medium: "social",
+      content: "hero-1"
+    }
+  });
 
   const cookies = await context.cookies();
   const visitorCookie = cookies.find((cookie) => cookie.name === "sync_growth_vid");
@@ -28,6 +32,29 @@ test("campaign landing records bounded anonymous growth evidence and still creat
     content: "hero-1",
     referrer_host: null
   });
+
+  const receiptProbe = await page.evaluate(async () => {
+    const growth = {
+      visitor_id: localStorage.getItem("sync.growth.visitor"),
+      session_id: sessionStorage.getItem("sync.growth.session"),
+      ...JSON.parse(sessionStorage.getItem("sync.growth.context"))
+    };
+    const probe = await fetch("/api/growth/event", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        event: "landing_view",
+        event_id: "event_probe_12345678",
+        growth
+      })
+    });
+    return { status: probe.status, body: await probe.json() };
+  });
+  expect(receiptProbe.status).toBe(200);
+  expect(receiptProbe.body.accepted).toBe(true);
+  expect(receiptProbe.body.event_fingerprint).toMatch(/^[0-9a-f]{64}$/);
+  expect(receiptProbe.body.campaign_fingerprint).toMatch(/^[0-9a-f]{64}$/);
+  expect(receiptProbe.body.continuity_cookie).toMatch(/^growth-v1\./);
 
   let createPayload = null;
   page.on("request", (request) => {
