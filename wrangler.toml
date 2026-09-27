@@ -12,6 +12,14 @@ not_found_handling = "single-page-application"
 name = "ROOMS"
 class_name = "GameRoom"
 
+[[durable_objects.bindings]]
+name = "GROWTH"
+class_name = "GrowthLedger"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["GameRoom"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["GrowthLedger"]
