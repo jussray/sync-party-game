@@ -10,6 +10,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: core-proof-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_name == 'proof' }}
+
 env:
   EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
