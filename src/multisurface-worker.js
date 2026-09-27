@@ -1,4 +1,5 @@
 import baseWorker, { ControlRoomLedger, GameRoom, GrowthLedger } from "./worker.js";
+import { invokeProvider, providerStates } from "./provider-runtime.js";
 import { buildSurfaceManifest, isAllowedClientOrigin, listSurfaceProfiles } from "./surfaces.js";
 
 export { ControlRoomLedger, GameRoom, GrowthLedger };
@@ -42,6 +43,13 @@ async function sdkResponse(request, env) {
   return new Response(asset.body, { status: asset.status, statusText: asset.statusText, headers });
 }
 
+function aiOperatorAuthorized(request, env) {
+  if (!env.SYNC_AI_OPERATOR_KEY) return false;
+  const direct = request.headers.get("x-sync-ai-key");
+  const bearer = (request.headers.get("authorization") || "").match(/^Bearer\s+(.+)$/i)?.[1];
+  return (direct || bearer || "") === env.SYNC_AI_OPERATOR_KEY;
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -71,6 +79,24 @@ export default {
     if (surfaceMatch && request.method === "GET") {
       const manifest = await buildSurfaceManifest(surfaceMatch[1], url.origin);
       return withCors(json(manifest, { headers: { "cache-control": "no-store" } }), origin);
+    }
+
+    if (url.pathname === "/api/control-room/providers" && request.method === "GET") {
+      if (!env.SYNC_AI_OPERATOR_KEY) return json({ error: "AI operator lane is not configured" }, { status: 503, headers: { "cache-control": "no-store" } });
+      if (!aiOperatorAuthorized(request, env)) return json({ error: "Unauthorized" }, { status: 401, headers: { "cache-control": "no-store" } });
+      return json({ service: "sync-party-game", providers: providerStates(env), authority: "none" }, { headers: { "cache-control": "no-store" } });
+    }
+
+    if (url.pathname === "/api/control-room/providers/invoke" && request.method === "POST") {
+      if (!env.SYNC_AI_OPERATOR_KEY) return json({ error: "AI operator lane is not configured" }, { status: 503, headers: { "cache-control": "no-store" } });
+      if (!aiOperatorAuthorized(request, env)) return json({ error: "Unauthorized" }, { status: 401, headers: { "cache-control": "no-store" } });
+      const body = await request.json().catch(() => ({}));
+      try {
+        const result = await invokeProvider(env, body);
+        return json({ service: "sync-party-game", sha: env.DEPLOY_SHA || null, result }, { headers: { "cache-control": "no-store" } });
+      } catch (error) {
+        return json({ error: error instanceof Error ? error.message : "Provider invocation failed" }, { status: 503, headers: { "cache-control": "no-store" } });
+      }
     }
 
     const response = await baseWorker.fetch(request, env, ctx);
