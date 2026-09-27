@@ -39,19 +39,22 @@ test("campaign landing records bounded anonymous growth evidence and still creat
       session_id: sessionStorage.getItem("sync.growth.session"),
       ...JSON.parse(sessionStorage.getItem("sync.growth.context"))
     };
+    const eventId = `event_probe_${crypto.randomUUID().replaceAll("-", "")}`;
     const probe = await fetch("/api/growth/event", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         event: "landing_view",
-        event_id: "event_probe_12345678",
+        event_id: eventId,
         growth
       })
     });
-    return { status: probe.status, body: await probe.json() };
+    return { status: probe.status, body: await probe.json(), eventId };
   });
   expect(receiptProbe.status).toBe(200);
+  expect(receiptProbe.eventId).toMatch(/^event_probe_[0-9a-f]{32}$/);
   expect(receiptProbe.body.accepted).toBe(true);
+  expect(receiptProbe.body.duplicate).toBe(false);
   expect(receiptProbe.body.event_fingerprint).toMatch(/^[0-9a-f]{64}$/);
   expect(receiptProbe.body.campaign_fingerprint).toMatch(/^[0-9a-f]{64}$/);
   expect(receiptProbe.body.continuity_cookie).toMatch(/^growth-v1\./);
