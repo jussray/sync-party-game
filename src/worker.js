@@ -143,12 +143,6 @@ export default {
       return stub.fetch(new Request(target, request));
     }
 
-    if ((url.pathname === "/control-room" || url.pathname === "/control-room/") && request.method === "GET") {
-      const target = new URL(request.url);
-      target.pathname = "/control-room.html";
-      return env.ASSETS.fetch(new Request(target, request));
-    }
-
     return env.ASSETS.fetch(request);
   }
 };
