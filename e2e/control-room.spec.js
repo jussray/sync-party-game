@@ -40,12 +40,20 @@ test("Sync control room records privacy-safe lifecycle truth and renders standal
   expect(JSON.stringify(snapshot)).not.toContain(created.code);
   expect(JSON.stringify(snapshot)).not.toContain("ControlHost");
 
+  const renderedSnapshotPromise = page.waitForResponse((response) =>
+    response.request().method() === "GET" &&
+    new URL(response.url()).pathname === "/api/control-room/snapshot"
+  );
   await page.goto("/control-room");
+  const renderedSnapshotResponse = await renderedSnapshotPromise;
+  expect(renderedSnapshotResponse.ok()).toBe(true);
+  const renderedSnapshot = await renderedSnapshotResponse.json();
+
   await expect(page.getByRole("heading", { name: /SYNC CONTROL ROOM/i })).toBeVisible();
   await expect(page.getByTestId("runtime-status")).toContainText(/RUNTIME VERIFIED|LOCAL \/ UNVERIFIED/);
   await expect(page.locator("#eventsRecorded")).not.toHaveText("0");
-  await expect(page.locator("#controlFingerprint")).toContainText(snapshot.control.control_fingerprint);
-  await expect(page.locator("#continuityCookie")).toContainText("sync-control-v1.");
+  await expect(page.locator("#controlFingerprint")).toHaveText(renderedSnapshot.control.control_fingerprint);
+  await expect(page.locator("#continuityCookie")).toHaveText(renderedSnapshot.control.continuity_cookie);
   await expect(page.getByText(created.code, { exact: true })).toHaveCount(0);
   await expect(page.getByText("ControlHost", { exact: true })).toHaveCount(0);
 
