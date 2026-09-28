@@ -1,5 +1,9 @@
 import { DurableObject } from "cloudflare:workers";
 import { advance, createRoomState, joinPlayer, publicFingerprint, publicState, revealRound, startGame, submitChoice } from "./game.js";
+import { campaignKey, normalizeGrowthEnvelope, normalizeGrowthEvent } from "./growth-contract.js";
+import { buildControlRoomEnvelope, fetchControlRoomSnapshot, recordControlRoomCommit } from "./control-room.js";
+export { ControlRoomLedger } from "./control-room.js";
+export { GrowthLedger } from "./growth-ledger.js";
 
 const enc = new TextEncoder();
 const MAX_MESSAGE_BYTES = 2048;
@@ -9,6 +13,7 @@ const json = (data, init = {}) => new Response(JSON.stringify(data), {
 });
 const makeId = (prefix) => `${prefix}_${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}`;
 const sessionKey = (playerId) => `session:${playerId}`;
+const growthKey = (playerId) => `growth:${playerId}`;
 
 function roomCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -36,6 +41,31 @@ function messageBytes(message) {
   return MAX_MESSAGE_BYTES + 1;
 }
 
+async function recordGrowth(env, input, options = {}) {
+  if (!env.GROWTH) return null;
+  const event = normalizeGrowthEvent({
+    ...input,
+    event_id: input?.event_id || makeId("ge")
+  }, options);
+  const key = campaignKey(event);
+  const stub = env.GROWTH.get(env.GROWTH.idFromName(key));
+  const response = await stub.fetch(new Request("https://growth.internal/internal/event", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(event)
+  }));
+  if (!response.ok) throw new Error(`Growth ledger rejected event (${response.status})`);
+  return response.json();
+}
+
+function controlReadKey(request) {
+  const direct = request.headers.get("x-sync-control-room-key");
+  if (direct) return direct;
+  const authorization = request.headers.get("authorization") || "";
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1] : null;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -48,6 +78,49 @@ export default {
       }, { headers: { "cache-control": "no-store" } });
     }
 
+    if (url.pathname === "/api/control-room/snapshot" && request.method === "GET") {
+      try {
+        const snapshot = await fetchControlRoomSnapshot(env, false);
+        return json(buildControlRoomEnvelope(env, snapshot), { headers: { "cache-control": "no-store" } });
+      } catch (error) {
+        return json({ error: error.message || "Control room unavailable" }, { status: 503, headers: { "cache-control": "no-store" } });
+      }
+    }
+
+    if (url.pathname === "/api/control-room/export" && request.method === "GET") {
+      if (!env.CONTROL_ROOM_READ_KEY) {
+        return json({ error: "Protected control-room export is not configured" }, { status: 503, headers: { "cache-control": "no-store" } });
+      }
+      if (controlReadKey(request) !== env.CONTROL_ROOM_READ_KEY) {
+        return json({ error: "Unauthorized" }, { status: 401, headers: { "cache-control": "no-store" } });
+      }
+      try {
+        const snapshot = await fetchControlRoomSnapshot(env, true);
+        return json(buildControlRoomEnvelope(env, snapshot, { exportMode: true }), { headers: { "cache-control": "no-store" } });
+      } catch (error) {
+        return json({ error: error.message || "Control room export unavailable" }, { status: 503, headers: { "cache-control": "no-store" } });
+      }
+    }
+
+    if (url.pathname === "/api/growth/event" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      try {
+        const receipt = await recordGrowth(env, body, { publicOnly: true });
+        if (!receipt) return json({ error: "Growth ledger unavailable" }, { status: 503 });
+        return json(receipt, { headers: { "cache-control": "no-store" } });
+      } catch (error) {
+        return json({ error: error.message || "Invalid growth event" }, { status: 400 });
+      }
+    }
+
+    if (url.pathname === "/api/growth/summary" && request.method === "GET") {
+      if (!env.GROWTH_READ_KEY) return json({ error: "Growth summary is not configured" }, { status: 503 });
+      if (request.headers.get("x-growth-read-key") !== env.GROWTH_READ_KEY) return json({ error: "Unauthorized" }, { status: 401 });
+      const campaign = normalizeGrowthEnvelope({ campaign_id: url.searchParams.get("campaign") }).campaign_id || "unattributed";
+      const stub = env.GROWTH.get(env.GROWTH.idFromName(campaign));
+      return stub.fetch(new Request("https://growth.internal/internal/summary"));
+    }
+
     if (url.pathname === "/api/rooms/create" && request.method === "POST") {
       const body = await request.json().catch(() => ({}));
       const name = cleanName(body.name);
@@ -57,7 +130,7 @@ export default {
       return stub.fetch(new Request(`${url.origin}/internal/create`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ code, name })
+        body: JSON.stringify({ code, name, growth: normalizeGrowthEnvelope(body.growth) })
       }));
     }
 
@@ -79,14 +152,20 @@ function cleanName(value) {
 }
 
 export class GameRoom extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    this.env = env;
+  }
+
   async fetch(request) {
     const url = new URL(request.url);
 
     if (url.pathname === "/internal/create" && request.method === "POST") {
       const existing = await this.ctx.storage.get("state");
       if (existing) return json({ error: "Room collision" }, { status: 409 });
-      const { code, name } = await request.json();
+      const { code, name, growth } = await request.json();
       const player = { id: makeId("p"), name: cleanName(name), resumeToken: makeId("r"), connected: false };
+      await this.ctx.storage.put(growthKey(player.id), normalizeGrowthEnvelope(growth));
       let state = createRoomState(code, player);
       state = await this.commit(state, "ROOM_CREATED", player.id);
       return json({ code, playerId: player.id, resumeToken: player.resumeToken, host: true });
@@ -104,6 +183,7 @@ export class GameRoom extends DurableObject {
       } catch (error) {
         return json({ error: error.message }, { status: 409 });
       }
+      await this.ctx.storage.put(growthKey(player.id), normalizeGrowthEnvelope(body.growth));
       state = await this.commit(state, "PLAYER_JOINED", player.id);
       this.broadcast(state);
       return json({ code: state.code, playerId: player.id, resumeToken: player.resumeToken, host: false });
@@ -239,6 +319,35 @@ export class GameRoom extends DurableObject {
     this.broadcast(state);
   }
 
+  async recordGrowthForCommit(event, actor, state) {
+    const growthEvent = {
+      ROOM_CREATED: "room_created",
+      PLAYER_JOINED: "room_joined",
+      GAME_STARTED: "game_started",
+      GAME_FINISHED: "game_finished",
+      REMATCH_STARTED: "rematch_started"
+    }[event];
+    if (!growthEvent) return;
+
+    const playerIds = ["GAME_STARTED", "GAME_FINISHED", "REMATCH_STARTED"].includes(event)
+      ? Object.keys(state.players)
+      : [actor];
+
+    for (const playerId of playerIds) {
+      const growth = (await this.ctx.storage.get(growthKey(playerId))) || {};
+      try {
+        await recordGrowth(this.env, {
+          event: growthEvent,
+          growth,
+          game_seq: state.seq,
+          event_id: makeId("ge")
+        });
+      } catch {
+        // Growth evidence must never block or mutate gameplay authority.
+      }
+    }
+  }
+
   async commit(state, event, actor) {
     const previousStateHash = state.stateHash || null;
     const next = { ...state, seq: state.seq + 1 };
@@ -256,6 +365,12 @@ export class GameRoom extends DurableObject {
       at: Date.now()
     });
     await this.ctx.storage.put({ state: committed, receipts: receipts.slice(-128) });
+    await this.recordGrowthForCommit(event, actor, committed);
+    try {
+      await recordControlRoomCommit(this.env, committed, event, actor);
+    } catch {
+      // Control telemetry is observational and must never become gameplay authority.
+    }
     return committed;
   }
 

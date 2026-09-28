@@ -33,5 +33,5 @@ test('audio asset failure leaves the game usable and can be retried',async({page
   await page.getByRole('button',{name:'TURN SOUND ON',exact:true}).click();
   await expect(page.locator('#audioState')).toHaveText('Sound is on. Adjust your mix below.');
   await page.getByRole('button',{name:'Close sound controls'}).click();
-  await expect(page.getByRole('button',{name:'Create a game →'})).toBeEnabled();
+  await expect(page.getByRole('button',{name:/create a game/i})).toBeEnabled();
 });
