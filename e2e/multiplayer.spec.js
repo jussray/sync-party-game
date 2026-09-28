@@ -65,18 +65,22 @@ test("laptop host and phone guest complete, reconnect, and rematch an authoritat
   await expect(host.getByText(/2 connected/)).toBeVisible();
   await expectFitsViewport(guest);
 
+  await host.getByRole("button", { name: "Toggle party sound" }).click();
+  await expect(host.locator("#audioState")).toHaveText("Sound is on. Adjust your mix below.");
   await host.getByRole("button", { name: /start game/i }).click();
   await expect(guest.getByText(/Round 1 of/)).toBeVisible();
   await expect(host.getByText(/Classic Sync/)).toBeVisible();
   await expectFitsViewport(guest);
 
   await host.locator(".choice").first().click();
+  await expect(host.locator("#lastSound")).toHaveText("Last cue: lock");
   await expect(guest.locator(".choice.selected")).toHaveCount(0);
   await expect(guest.getByText(/Choice locked/)).toHaveCount(0);
   await expect(guest.locator(".choice").first()).toBeEnabled();
 
   await guest.locator(".choice").first().click();
   await expect(host.getByText(/ROOM SYNC/)).toBeVisible();
+  await expect(host.locator("#lastSound")).toHaveText("Last cue: reveal");
   await expect(host.getByText("100%", { exact: true })).toBeVisible();
   await expect(guest.getByText("100%", { exact: true })).toBeVisible();
   await expectFitsViewport(guest);
@@ -108,18 +112,21 @@ test("laptop host and phone guest complete, reconnect, and rematch an authoritat
     await expectFitsViewport(guest);
 
     await host.locator(".choice").first().click();
-    await expect(guest.locator(".choice.selected")).toHaveCount(0);
+    await expect(host.locator("#lastSound")).toHaveText("Last cue: lock");
+  await expect(guest.locator(".choice.selected")).toHaveCount(0);
     await expect(guest.locator(".choice").first()).toBeEnabled();
     await guest.locator(".choice").first().click();
     await expect(host.getByText(/ROOM SYNC/)).toBeVisible();
     await expect(guest.getByText(/ROOM SYNC/)).toBeVisible();
-    await expect(host.getByText("100%", { exact: true })).toBeVisible();
+    await expect(host.locator("#lastSound")).toHaveText("Last cue: reveal");
+  await expect(host.getByText("100%", { exact: true })).toBeVisible();
     await expect(guest.getByText("100%", { exact: true })).toBeVisible();
     await expectFitsViewport(guest);
   }
 
   await host.getByRole("button", { name: new RegExp("See final scores", "i") }).click();
   await expect(host.getByText(/GAME OVER/)).toBeVisible();
+  await expect(host.locator("#lastSound")).toHaveText("Last cue: win");
   await expect(guest.getByText(/GAME OVER/)).toBeVisible();
   await expect(host.getByText(/FINAL ROOM SYNC/)).toBeVisible();
   await expect(guest.getByText(/FINAL ROOM SYNC/)).toBeVisible();
@@ -145,10 +152,14 @@ test("Durable Object alarm reveals a round when players do not answer", async ({
   const guest = await guestContext.newPage();
 
   await createTwoPlayerRoom(host, guest, "TimerHost", "TimerGuest");
+  await host.getByRole("button", { name: "Toggle party sound" }).click();
+  await expect(host.locator("#audioState")).toHaveText("Sound is on. Adjust your mix below.");
   await host.getByRole("button", { name: /start game/i }).click();
   await expect(host.getByText(/Round 1 of/)).toBeVisible();
   await expect(guest.getByText(/Round 1 of/)).toBeVisible();
 
+  await expect(host.locator("#lastSound")).toHaveText(/Last cue: tick-[1-5]/, { timeout: 15000 });
+  await expect(host.locator("#gameCard")).toHaveClass(/pressure/);
   await expect(host.getByText(/ROOM SYNC/)).toBeVisible({ timeout: 20000 });
   await expect(guest.getByText(/ROOM SYNC/)).toBeVisible({ timeout: 20000 });
   await expect(host.getByText("0%", { exact: true })).toBeVisible();
