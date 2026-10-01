@@ -79,6 +79,15 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Two-browser Wrangler runtime proof
         run: npm run test:e2e
+      - name: Preserve visual proof
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: visual-proof
+          path: |
+            test-results/visual-sync-home.png
+            test-results/visual-sync-home-mobile.png
+          if-no-files-found: warn
       - name: Preserve Playwright failure evidence
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
