@@ -92,11 +92,12 @@ jobs:
       github.event.workflow_run.head_branch == 'main' &&
       github.event.workflow_run.event == 'push'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 60
     env:
       EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
       SOURCE_PROOF_RUN_ID: ${{ github.event.workflow_run.id }}
       PLAYWRIGHT_BASE_URL: https://sync-party-game.mcgill-raylene.workers.dev
+      CLOUDFLARE_DEPLOY_WAIT_SECONDS: "2700"
     steps:
       - name: Checkout exact production candidate
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -110,18 +111,15 @@ jobs:
           node-version: "22.23.2"
           cache: npm
 
-      - name: Install locked dependencies
-        run: npm ci --no-audit --no-fund
-
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-
       - name: Wait for Cloudflare Workers Build to expose this exact SHA
         shell: bash
         run: |
           set -euo pipefail
           matched=0
-          for attempt in $(seq 1 48); do
+          attempt=0
+          deadline=$((SECONDS + CLOUDFLARE_DEPLOY_WAIT_SECONDS))
+          while (( SECONDS < deadline )); do
+            attempt=$((attempt + 1))
             body="$(curl --fail --silent --show-error --max-time 10 "$PLAYWRIGHT_BASE_URL/api/version" || true)"
             if DEPLOY_BODY="$body" EXPECTED_SHA="$EXPECTED_SHA" node --input-type=module <<'NODE'
           const body = process.env.DEPLOY_BODY || "";
@@ -139,13 +137,23 @@ jobs:
               matched=1
               break
             fi
-            echo "Waiting for exact Cloudflare deployment ($attempt/48)..."
-            sleep 5
+            remaining=$((deadline - SECONDS))
+            if (( remaining < 0 )); then
+              remaining=0
+            fi
+            echo "Waiting for exact Cloudflare deployment (attempt $attempt, ${remaining}s remaining)..."
+            sleep 10
           done
           if [[ "$matched" != "1" ]]; then
-            echo "::error title=Exact deployed SHA not observed::Cloudflare did not expose the production branch SHA within the proof window."
+            echo "::error title=Exact deployed SHA not observed::Cloudflare did not expose the production branch SHA within the 45-minute proof window."
             exit 1
           fi
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
 
       - name: Run full multiplayer suite against public production
         run: npm run test:e2e
