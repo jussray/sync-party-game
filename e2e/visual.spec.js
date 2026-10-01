@@ -36,7 +36,7 @@ test("live landing renders the arena Sync canon", async ({ page }) => {
       modeTilesDisplay: getComputedStyle(modeTiles).display,
       logoFontStyle: getComputedStyle(logo).fontStyle,
       boardPosition: getComputedStyle(board).position,
-      bodyOverflow: document.documentElement.scrollWidth <= document.documentElement.clientWidth
+      noHorizontalOverflow: document.documentElement.scrollWidth <= document.documentElement.clientWidth
     };
   });
 
@@ -53,7 +53,7 @@ test("live landing renders the arena Sync canon", async ({ page }) => {
     modeTilesDisplay: "grid",
     logoFontStyle: "italic",
     boardPosition: "absolute",
-    bodyOverflow: true
+    noHorizontalOverflow: true
   });
   expect(witness.partyHomeRadius).toContain("26px");
   expect(witness.partyArtBackground).toContain("party-art.png");
@@ -64,12 +64,21 @@ test("live landing renders the arena Sync canon", async ({ page }) => {
   });
 });
 
-test("arena rebuild preserves identity in reduced motion", async ({ page }) => {
+test("arena rebuild preserves identity on mobile and reduced motion", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator(".party-home")).toBeVisible();
   await expect(page.locator(".arena-demo-board-v2")).toBeVisible();
   await expect(page.locator(".arena-clock-v2")).toBeVisible();
   await expect(page.locator(".arena-player-rail-v2 .face")).toHaveCount(4);
   await expect(page.getByRole("button", { name: /create a game/i })).toBeVisible();
+
+  const noHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
+  expect(noHorizontalOverflow).toBe(true);
+
+  await page.screenshot({
+    path: "test-results/visual-sync-home-mobile.png",
+    fullPage: true
+  });
 });
