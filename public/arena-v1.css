@@ -47,7 +47,7 @@ body::after{
 .controls{gap:8px}.icon-btn,.sound-btn{background:#07142bd6;border-color:#56e9ff3b;box-shadow:inset 0 1px 0 #ffffff13,0 0 18px #1edfff13}.icon-btn:hover,.sound-btn:hover{border-color:#66efff;box-shadow:0 0 24px #27e6ff2a}
 .shell{max-width:1320px;padding:0 24px 42px}
 .party-home{
-  min-height:700px;border-radius:30px;overflow:hidden;border:1px solid #64eaff54;
+  min-height:700px;border-radius:26px;overflow:hidden;border:1px solid #64eaff54;
   box-shadow:0 35px 110px #0009,0 0 90px #22dfff1d,inset 0 1px 0 #ffffff17;
   background:#020817;
 }
