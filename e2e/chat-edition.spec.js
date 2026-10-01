@@ -58,7 +58,7 @@ test("Chat Edition prediction lens and Cloudflare Edition share one authoritativ
     surface: document.documentElement.dataset.surface || "cloudflare",
     visualCookie: document.documentElement.dataset.visualCookie,
     chatFrame: Boolean(document.querySelector(".chat-frame")),
-    partyHome: Boolean(document.querySelector(".party-home"))
+    gameCard: Boolean(document.querySelector(".game-card"))
   }));
 
   expect(chatFingerprint).toEqual({
@@ -70,7 +70,7 @@ test("Chat Edition prediction lens and Cloudflare Edition share one authoritativ
   expect(cloudFingerprint).toMatchObject({
     visualCookie: "LIVE_SITE_SYNC_VISUAL_V1",
     chatFrame: false,
-    partyHome: true
+    gameCard: true
   });
 
   await chatContext.close();
