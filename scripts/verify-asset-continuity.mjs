@@ -3,6 +3,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const manifestPath = path.join(root, 'visual/project.asset-manifest.json');
+const chatManifestPath = path.join(root, 'visual/chatgpt-sync.asset-manifest.json');
 const fail = (message) => {
   console.error(`SYNC ASSET CONTINUITY FAIL: ${message}`);
   process.exitCode = 1;
@@ -98,6 +99,28 @@ if (!fs.existsSync(manifestPath)) {
     const fingerprints = fs.readFileSync(fingerprintPath, 'utf8');
     for (const phrase of ['CHATGPT_SYNC_VISUAL_V1', 'LIVE_SITE_SYNC_VISUAL_V1', 'LOVABLE_SYNC_VISUAL_V1']) {
       if (!fingerprints.includes(phrase)) fail(`fingerprint contract missing ${phrase}`);
+    }
+  }
+
+  if (!fs.existsSync(chatManifestPath)) {
+    fail('visual/chatgpt-sync.asset-manifest.json is missing');
+  } else {
+    const chatManifest = JSON.parse(fs.readFileSync(chatManifestPath, 'utf8'));
+    if (chatManifest.schemaVersion !== 1) fail('ChatGPT asset manifest schemaVersion must equal 1');
+    if (chatManifest.surface !== 'chatgpt-sync') fail('ChatGPT asset manifest surface mismatch');
+    if (chatManifest.visualFingerprint !== 'CHATGPT_SYNC_VISUAL_V1') fail('ChatGPT visual fingerprint mismatch');
+    if (chatManifest.assetContinuity !== 'CHATGPT_SYNC_ASSET_V2') fail('ChatGPT asset continuity id mismatch');
+    if (chatManifest.status !== 'PARTIAL_REBUILD_CANDIDATE') fail('ChatGPT rebuild must remain truthfully partial until direct canonical source comparison');
+    requireArray(chatManifest.runtimeAssets, 'ChatGPT runtimeAssets');
+    const scene = chatManifest.runtimeAssets.find((asset) => asset.id === 'chat-social-scene-v2');
+    if (!scene) fail('ChatGPT social scene asset record missing');
+    else {
+      requireString(scene.path, 'chat-social-scene-v2.path');
+      if (!fs.existsSync(path.join(root, scene.path))) fail(`ChatGPT social scene local file missing: ${scene.path}`);
+      requireArray(scene.requiredSubjects, 'chat-social-scene-v2.requiredSubjects');
+      requireArray(scene.requiredComposition, 'chat-social-scene-v2.requiredComposition');
+      requireArray(scene.prohibitedSubstitutions, 'chat-social-scene-v2.prohibitedSubstitutions');
+      requireArray(scene.runtimeRefs, 'chat-social-scene-v2.runtimeRefs');
     }
   }
 
