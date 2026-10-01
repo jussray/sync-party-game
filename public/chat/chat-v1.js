@@ -37,14 +37,29 @@ function decorateHome() {
   const copy = hero.querySelector(".copy");
   const eyebrow = hero.querySelector(".eyebrow");
 
-  if (heading) heading.innerHTML = `Predict the prompt.<br><strong>Read the room.</strong>`;
-  if (copy) copy.textContent = "ChatGPT SYNC adds a local prediction lens before your real SYNC answer: guess what the room will choose, then make your own pick. Shared room authority stays unchanged.";
-  if (eyebrow) eyebrow.textContent = "AI-HOSTED PREDICTION LENS";
+  if (heading && heading.dataset.chatVisual !== "1") {
+    heading.innerHTML = `Predict the prompt.<br><strong>Read the room.</strong>`;
+    heading.dataset.chatVisual = "1";
+  }
+  if (copy && copy.dataset.chatVisual !== "1") {
+    copy.textContent = "ChatGPT SYNC adds a local prediction lens before your real SYNC answer: guess what the room will choose, then make your own pick. Shared room authority stays unchanged.";
+    copy.dataset.chatVisual = "1";
+  }
+  if (eyebrow && eyebrow.dataset.chatVisual !== "1") {
+    eyebrow.textContent = "AI-HOSTED PREDICTION LENS";
+    eyebrow.dataset.chatVisual = "1";
+  }
 
   const actionHeading = action.querySelector("h2");
-  if (actionHeading) actionHeading.textContent = "Can you predict your people?";
+  if (actionHeading && actionHeading.dataset.chatVisual !== "1") {
+    actionHeading.textContent = "Can you predict your people?";
+    actionHeading.dataset.chatVisual = "1";
+  }
   const local = action.querySelector(".local-only");
-  if (local) local.textContent = "Prediction is private to this Chat Edition surface. The shared Durable Object still owns room state, timing, answers and scoring.";
+  if (local && local.dataset.chatVisual !== "1") {
+    local.textContent = "Prediction is private to this Chat Edition surface. The shared Durable Object still owns room state, timing, answers and scoring.";
+    local.dataset.chatVisual = "1";
+  }
 
   if (!action.querySelector(".ai-host-card")) {
     const host = document.createElement("div");
@@ -91,13 +106,15 @@ function decorateChoosing() {
 
   if (visualState.stage === "prediction") {
     intro.className = "prediction-intro";
-    intro.innerHTML = `<strong>FIRST:</strong> tap the answer you think the room will choose most. This guess stays on your device.`;
+    const next = `<strong>FIRST:</strong> tap the answer you think the room will choose most. This guess stays on your device.`;
+    if (intro.innerHTML !== next) intro.innerHTML = next;
     choices.dataset.predictionStage = "prediction";
   } else {
     intro.className = "prediction-intro prediction-locked";
     const predictedButton = choices.querySelectorAll(".choice")[saved?.predictionIndex];
     const label = predictedButton?.textContent?.trim() || "your prediction";
-    intro.innerHTML = `<strong>Prediction locked:</strong> ${escapeLocal(label)}. Now make your own real SYNC pick.`;
+    const next = `<strong>Prediction locked:</strong> ${escapeLocal(label)}. Now make your own real SYNC pick.`;
+    if (intro.innerHTML !== next) intro.innerHTML = next;
     choices.dataset.predictionStage = "answer";
   }
 }
@@ -208,6 +225,7 @@ function decorate() {
 }
 
 document.addEventListener("click", capturePrediction, true);
-const observer = new MutationObserver(() => queueMicrotask(decorate));
-observer.observe(document.querySelector("#chatApp"), { childList: true, subtree: true });
+const appRoot = document.querySelector("#chatApp");
+const observer = new MutationObserver(() => requestAnimationFrame(decorate));
+observer.observe(appRoot, { childList: true });
 decorate();
