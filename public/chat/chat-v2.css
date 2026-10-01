@@ -46,6 +46,7 @@ html[data-asset-continuity="CHATGPT_SYNC_ASSET_V2"] body{
 @keyframes chat-scene-breathe{to{transform:scale(1.018);filter:saturate(1.07) brightness(1.03)}}
 @keyframes chat-v2-scan{0%,64%{transform:translateX(-120%)}88%,100%{transform:translateX(120%)}}
 @media(max-width:780px){
+  .chat-frame{overflow:hidden}
   .chat-home-v1>.bubble.you{padding-top:330px}.chat-social-scene-v2{height:305px}.chat-home-v1>.bubble.you::after{top:298px}
   .chat-home-v1>.bubble:first-child h1{font-size:clamp(52px,15vw,78px)}
 }
