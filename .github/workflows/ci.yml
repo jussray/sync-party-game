@@ -52,6 +52,8 @@ jobs:
         run: |
           node --check src/game.js
           node --check src/control-room.js
+          node --check src/growth-contract.js
+          node --check src/growth-ledger.js
           node --check src/worker.js
           node --check src/surfaces.js
           node --check src/multisurface-worker.js
@@ -61,6 +63,8 @@ jobs:
           node --check public/chat/chat-v2.js
           node --check public/control-room.js
           node --check public/sync-client.js
+          node --check public/usage.js
+          node --check scripts/analytics-truth-attack.mjs
           node --check scripts/verify-asset-continuity.mjs
           node --check playwright.config.js
           python -m py_compile scripts/bugfinder.py scripts/secret_scan.py scripts/continuity_model_guard.py scripts/deploy_candidate_guard.py
@@ -68,6 +72,8 @@ jobs:
         run: python scripts/secret_scan.py
       - name: Pure game tests
         run: node --test test/*.test.mjs
+      - name: Analytics Truth attack
+        run: npm run attack:analytics-truth
       - name: Python continuity model attack
         run: python scripts/continuity_model_guard.py
       - name: Python bug finder

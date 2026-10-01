@@ -9,9 +9,10 @@
     "test": "node --test test/*.test.mjs",
     "test:e2e": "playwright test",
     "bugfinder": "python3 scripts/bugfinder.py",
+    "attack:analytics-truth": "node scripts/analytics-truth-attack.mjs",
     "verify:asset-continuity": "node scripts/verify-asset-continuity.mjs",
     "verify:asset-continuity:release": "node scripts/verify-asset-continuity.mjs --release",
-    "verify": "npm test && npm run bugfinder && npm run verify:asset-continuity"
+    "verify": "npm test && npm run attack:analytics-truth && npm run bugfinder && npm run verify:asset-continuity"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

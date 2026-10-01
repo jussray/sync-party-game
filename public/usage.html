@@ -5,107 +5,111 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#060d20" />
   <meta name="robots" content="noindex,nofollow" />
-  <title>SYNC Founder Usage</title>
+  <title>SYNC Analytics Truth</title>
   <style>
-    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#060d20; color:#f6f7fb; }
+    :root { color-scheme:dark; font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:#060d20; color:#f6f7fb; }
     * { box-sizing:border-box; }
-    body { margin:0; min-height:100vh; background:radial-gradient(circle at 15% 0%, #17265f 0, transparent 32rem), #060d20; }
+    body { margin:0; min-height:100vh; background:radial-gradient(circle at 15% 0%,#17265f 0,transparent 32rem),#060d20; }
     a { color:inherit; }
     .topbar { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1rem 1.2rem; border-bottom:1px solid rgba(255,255,255,.09); position:sticky; top:0; backdrop-filter:blur(18px); background:rgba(6,13,32,.82); z-index:5; }
     .brand { font-weight:900; letter-spacing:.08em; text-decoration:none; }
     .ghost { text-decoration:none; color:#cdd4ff; font-size:.92rem; }
-    main { width:min(1040px, calc(100% - 2rem)); margin:2rem auto 4rem; }
+    main { width:min(1120px,calc(100% - 2rem)); margin:2rem auto 4rem; }
     .panel { border:1px solid rgba(255,255,255,.1); border-radius:22px; background:rgba(10,18,45,.82); box-shadow:0 24px 80px rgba(0,0,0,.25); }
-    .hero { padding:clamp(1.3rem, 4vw, 2.3rem); }
+    .hero { padding:clamp(1.3rem,4vw,2.3rem); }
     .eyebrow { margin:0 0 .55rem; color:#aab5ff; font-size:.78rem; font-weight:900; letter-spacing:.16em; }
-    h1 { margin:0; font-size:clamp(2rem, 7vw, 4.8rem); line-height:.94; letter-spacing:-.055em; }
+    h1 { margin:0; font-size:clamp(2rem,7vw,4.8rem); line-height:.94; letter-spacing:-.055em; }
     h1 span { color:#9ba8ff; }
-    .lede { max-width:720px; margin:1rem 0 0; color:#c4cae2; line-height:1.55; }
+    .lede { max-width:780px; margin:1rem 0 0; color:#c4cae2; line-height:1.55; }
+    .truth-note { margin:1rem 0 0; padding:.8rem 1rem; border:1px solid rgba(143,240,189,.2); border-radius:14px; color:#a9ecc8; background:rgba(36,111,80,.12); font-size:.88rem; line-height:1.5; }
     .unlock { padding:1.2rem; margin-top:1rem; }
     .form-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,.7fr) auto; gap:.75rem; align-items:end; }
     label { display:grid; gap:.45rem; color:#cbd1e6; font-size:.82rem; font-weight:750; }
     input { width:100%; border:1px solid rgba(255,255,255,.16); border-radius:12px; padding:.85rem .95rem; background:#071027; color:#fff; outline:none; }
-    input:focus { border-color:#8797ff; box-shadow:0 0 0 3px rgba(135,151,255,.14); }
     button { border:0; border-radius:12px; padding:.88rem 1.05rem; background:#eef0ff; color:#101632; font-weight:900; cursor:pointer; }
     button:disabled { opacity:.6; cursor:wait; }
     .hint,.status { color:#9fa8c6; font-size:.82rem; line-height:1.5; }
     .status { margin:.8rem 0 0; min-height:1.25rem; }
-    .status.good { color:#8ff0bd; }
-    .status.bad { color:#ffadbb; }
-    .metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.8rem; margin-top:1rem; }
-    .metric { padding:1rem; min-height:132px; display:flex; flex-direction:column; justify-content:space-between; }
-    .metric span { color:#adb6d2; font-size:.8rem; font-weight:800; }
-    .metric strong { font-size:clamp(2rem, 5vw, 3.5rem); letter-spacing:-.05em; }
-    .metric small { color:#77819f; }
-    .funnel { margin-top:1rem; padding:1.15rem; }
-    .funnel h2 { margin:.15rem 0 1rem; font-size:1.05rem; }
-    .step { display:grid; grid-template-columns:140px 1fr auto; gap:.8rem; align-items:center; padding:.72rem 0; border-top:1px solid rgba(255,255,255,.07); }
-    .step:first-of-type { border-top:0; }
-    .bar { height:10px; background:#111a38; border-radius:999px; overflow:hidden; }
-    .fill { height:100%; min-width:2px; width:0%; border-radius:inherit; background:linear-gradient(90deg,#8d9cff,#e4a6ff); transition:width .35s ease; }
-    .step strong { min-width:56px; text-align:right; }
+    .status.good { color:#8ff0bd; } .status.bad { color:#ffadbb; }
+    .section { margin-top:1rem; padding:1.15rem; }
+    .section h2 { margin:.1rem 0 .25rem; font-size:1.1rem; }
+    .section-copy { margin:.25rem 0 1rem; color:#8f99b9; font-size:.84rem; line-height:1.5; }
+    .metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.8rem; }
+    .metric { padding:1rem; min-height:125px; border:1px solid rgba(255,255,255,.08); border-radius:16px; background:#071027; display:flex; flex-direction:column; justify-content:space-between; }
+    .metric span { color:#adb6d2; font-size:.78rem; font-weight:800; }
+    .metric strong { font-size:clamp(1.8rem,5vw,3.2rem); letter-spacing:-.05em; }
+    .metric small { color:#77819f; line-height:1.35; }
+    .breakdowns { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.8rem; }
+    .breakdown { padding:1rem; border:1px solid rgba(255,255,255,.08); border-radius:16px; background:#071027; }
+    .breakdown h3 { margin:0 0 .7rem; font-size:.86rem; color:#adb6d2; }
+    ul { list-style:none; margin:0; padding:0; display:grid; gap:.5rem; }
+    li { display:flex; justify-content:space-between; gap:1rem; color:#cbd1e6; font-size:.82rem; }
+    li.empty { color:#77819f; display:block; }
     .meta { margin-top:1rem; display:flex; flex-wrap:wrap; gap:.55rem 1rem; color:#858fad; font-size:.78rem; }
     [hidden] { display:none !important; }
-    @media (max-width:760px) { .form-grid { grid-template-columns:1fr; } .metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .step { grid-template-columns:92px 1fr auto; } }
+    @media (max-width:860px) { .form-grid { grid-template-columns:1fr; } .metrics,.breakdowns { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media (max-width:520px) { .metrics,.breakdowns { grid-template-columns:1fr; } }
   </style>
 </head>
 <body>
-  <header class="topbar">
-    <a class="brand" href="/">✦ SYNC</a>
-    <a class="ghost" href="/control-room">Control Room ↗</a>
-  </header>
-
+  <header class="topbar"><a class="brand" href="/">✦ SYNC</a><a class="ghost" href="/control-room">Control Room ↗</a></header>
   <main>
     <section class="hero panel">
-      <p class="eyebrow">FOUNDER-ONLY ANALYTICS</p>
-      <h1>WHO’S <span>USING SYNC?</span></h1>
-      <p class="lede">Read the existing privacy-safe growth ledger: unique visitors, play attempts, rooms, joins, starts, finishes, and rematches. Your read key stays in this page’s memory only and is never written to the URL or browser storage.</p>
+      <p class="eyebrow">FOUNDER-ONLY · ANALYTICS TRUTH V2</p>
+      <h1>SIGNAL ≠ <span>PROOF.</span></h1>
+      <p class="lede">Traffic evidence, automation-likely activity, and server-authoritative gameplay are separated instead of blended into one flattering funnel.</p>
+      <p class="truth-note">No metric on this page claims a unique human. Anonymous growth identities are continuity signals. Server-authoritative product counters prove product events, and automation-likely activity is excluded from those product counters.</p>
     </section>
-
     <section class="unlock panel" aria-label="Unlock usage analytics">
       <div class="form-grid">
-        <label>Growth read key
-          <input id="growthKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste GROWTH_READ_KEY" />
-        </label>
-        <label>Campaign (optional)
-          <input id="campaign" type="text" autocomplete="off" spellcheck="false" placeholder="unattributed" />
-        </label>
-        <button id="loadButton" type="button">Load usage</button>
+        <label>Growth read key<input id="growthKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste GROWTH_READ_KEY" /></label>
+        <label>Campaign (optional)<input id="campaign" type="text" autocomplete="off" spellcheck="false" placeholder="Blank = all V2 traffic" /></label>
+        <button id="loadButton" type="button">Load truth</button>
       </div>
-      <p class="hint">Leave Campaign blank to read normal/unattributed traffic. Add a campaign ID only when you intentionally used one in a shared link.</p>
+      <p class="hint">Blank reads the V2 global rollup. Enter a campaign ID for its V2 lane. Legacy V1 remains frozen and is never silently merged into V2.</p>
       <p id="status" class="status" role="status" aria-live="polite">Locked.</p>
     </section>
-
     <section id="results" hidden>
-      <div class="metrics" aria-label="Usage metrics">
-        <article class="metric panel"><span>Unique visitors</span><strong id="uniqueVisitors">0</strong><small>privacy-safe visitor IDs</small></article>
-        <article class="metric panel"><span>Landing views</span><strong id="landingViews">0</strong><small>page opens recorded</small></article>
-        <article class="metric panel"><span>Play attempts</span><strong id="playIntent">0</strong><small>people pressing into play</small></article>
-        <article class="metric panel"><span>Rooms created</span><strong id="roomsCreated">0</strong><small>real room creation events</small></article>
-        <article class="metric panel"><span>Players joined</span><strong id="roomsJoined">0</strong><small>join events</small></article>
-        <article class="metric panel"><span>Games started</span><strong id="gamesStarted">0</strong><small>actual game starts</small></article>
-        <article class="metric panel"><span>Games finished</span><strong id="gamesFinished">0</strong><small>completed games</small></article>
-        <article class="metric panel"><span>Rematches</span><strong id="rematches">0</strong><small>same-room replay events</small></article>
-      </div>
-
-      <article class="funnel panel">
-        <p class="eyebrow">FUNNEL</p>
-        <h2>Open → try → create → start → finish</h2>
-        <div class="step"><span>Opened</span><div class="bar"><div id="barLanding" class="fill"></div></div><strong id="funnelLanding">0</strong></div>
-        <div class="step"><span>Tried play</span><div class="bar"><div id="barPlay" class="fill"></div></div><strong id="funnelPlay">0</strong></div>
-        <div class="step"><span>Created room</span><div class="bar"><div id="barCreate" class="fill"></div></div><strong id="funnelCreate">0</strong></div>
-        <div class="step"><span>Started</span><div class="bar"><div id="barStart" class="fill"></div></div><strong id="funnelStart">0</strong></div>
-        <div class="step"><span>Finished</span><div class="bar"><div id="barFinish" class="fill"></div></div><strong id="funnelFinish">0</strong></div>
+      <article class="section panel">
+        <p class="eyebrow">TRAFFIC SIGNALS</p><h2>What reached the product</h2>
+        <p class="section-copy">These are classified signals, not verified people. Automation classification is conservative and based on request characteristics without storing raw User-Agent strings.</p>
+        <div class="metrics">
+          <div class="metric"><span>Anonymous growth identities</span><strong id="identities">0</strong><small>continuity IDs, not humans</small></div>
+          <div class="metric"><span>Landing signals</span><strong id="landingSignals">0</strong><small>all V2 landing events</small></div>
+          <div class="metric"><span>Browser signals</span><strong id="browserSignals">0</strong><small>browser-like, not human-verified</small></div>
+          <div class="metric"><span>Automation-likely</span><strong id="automationSignals">0</strong><small>crawler, headless, proof or automation-like</small></div>
+          <div class="metric"><span>Unverified client</span><strong id="unverifiedSignals">0</strong><small>client evidence without browser proof</small></div>
+        </div>
+      </article>
+      <article class="section panel">
+        <p class="eyebrow">SERVER-AUTHORITATIVE PRODUCT USE</p><h2>What the game authority actually committed</h2>
+        <p class="section-copy">These counters are emitted by the room authority exactly at product transitions. Automation-likely sessions are excluded from this lane.</p>
+        <div class="metrics">
+          <div class="metric"><span>Rooms created</span><strong id="roomsCreated">0</strong><small>one event per room creation</small></div>
+          <div class="metric"><span>Players joined</span><strong id="playersJoined">0</strong><small>one event per join</small></div>
+          <div class="metric"><span>Games started</span><strong id="gamesStarted">0</strong><small>one event per game start</small></div>
+          <div class="metric"><span>Games finished</span><strong id="gamesFinished">0</strong><small>one event per game finish</small></div>
+          <div class="metric"><span>Rematches</span><strong id="rematches">0</strong><small>one event per rematch start</small></div>
+          <div class="metric"><span>Participant starts</span><strong id="participantStarts">0</strong><small>player-level conversion evidence</small></div>
+          <div class="metric"><span>Participant finishes</span><strong id="participantFinishes">0</strong><small>player-level conversion evidence</small></div>
+          <div class="metric"><span>Participant rematches</span><strong id="participantRematches">0</strong><small>player-level conversion evidence</small></div>
+        </div>
+      </article>
+      <article class="section panel">
+        <p class="eyebrow">ACQUISITION</p><h2>First non-automation landing identity only</h2>
+        <p class="section-copy">Source, medium, and referrer are counted once per non-automation anonymous growth identity at landing, rather than once per downstream event. Automation-likely identities stay visible in the traffic lane but do not enter these acquisition breakdowns.</p>
+        <div class="breakdowns">
+          <div class="breakdown"><h3>Sources</h3><ul id="sourceBreakdown"></ul></div>
+          <div class="breakdown"><h3>Media</h3><ul id="mediumBreakdown"></ul></div>
+          <div class="breakdown"><h3>Referrers</h3><ul id="referrerBreakdown"></ul></div>
+          <div class="breakdown"><h3>Landing evidence</h3><ul id="acquisitionEvidence"></ul></div>
+        </div>
         <div class="meta">
-          <span id="campaignMeta">campaign: unattributed</span>
-          <span id="firstSeen">first signal: —</span>
-          <span id="lastSeen">last signal: —</span>
-          <span id="sequenceMeta">events: 0</span>
+          <span id="measurementMeta">measurement: —</span><span id="scopeMeta">scope: —</span><span id="firstSeen">first signal: —</span><span id="lastSeen">last signal: —</span><span id="sequenceMeta">events: 0</span>
         </div>
       </article>
     </section>
   </main>
-
   <script type="module" src="/usage.js"></script>
 </body>
 </html>

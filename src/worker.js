@@ -1,12 +1,14 @@
 import { DurableObject } from "cloudflare:workers";
 import { advance, createRoomState, joinPlayer, publicFingerprint, publicState, revealRound, startGame, submitChoice } from "./game.js";
-import { campaignKey, normalizeGrowthEnvelope, normalizeGrowthEvent } from "./growth-contract.js";
+import { ANALYTICS_TRUTH_VERSION, campaignKey, classifyClientTraffic, normalizeGrowthEnvelope, normalizeGrowthEvent } from "./growth-contract.js";
 import { buildControlRoomEnvelope, fetchControlRoomSnapshot, recordControlRoomCommit } from "./control-room.js";
 export { ControlRoomLedger } from "./control-room.js";
 export { GrowthLedger } from "./growth-ledger.js";
 
 const enc = new TextEncoder();
 const MAX_MESSAGE_BYTES = 2048;
+const GROWTH_V2_PREFIX = `${ANALYTICS_TRUTH_VERSION}:`;
+const GROWTH_V2_ALL = `${GROWTH_V2_PREFIX}all`;
 const json = (data, init = {}) => new Response(JSON.stringify(data), {
   ...init,
   headers: { "content-type": "application/json; charset=utf-8", ...(init.headers || {}) }
@@ -14,6 +16,7 @@ const json = (data, init = {}) => new Response(JSON.stringify(data), {
 const makeId = (prefix) => `${prefix}_${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}`;
 const sessionKey = (playerId) => `session:${playerId}`;
 const growthKey = (playerId) => `growth:${playerId}`;
+const participationKey = "growth:active-game-participants";
 
 function roomCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -41,6 +44,29 @@ function messageBytes(message) {
   return MAX_MESSAGE_BYTES + 1;
 }
 
+function requestTrafficClass(request) {
+  return classifyClientTraffic({
+    user_agent: request.headers.get("user-agent"),
+    sec_fetch_site: request.headers.get("sec-fetch-site"),
+    sec_ch_ua: request.headers.get("sec-ch-ua")
+  });
+}
+
+function v2CampaignObjectName(key) {
+  return `${GROWTH_V2_PREFIX}campaign:${key}`;
+}
+
+async function writeGrowthLedger(env, objectName, event, scope) {
+  const stub = env.GROWTH.get(env.GROWTH.idFromName(objectName));
+  const response = await stub.fetch(new Request("https://growth.internal/internal/event", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ event, scope })
+  }));
+  if (!response.ok) throw new Error(`Growth ledger rejected event (${response.status})`);
+  return response.json();
+}
+
 async function recordGrowth(env, input, options = {}) {
   if (!env.GROWTH) return null;
   const event = normalizeGrowthEvent({
@@ -48,13 +74,38 @@ async function recordGrowth(env, input, options = {}) {
     event_id: input?.event_id || makeId("ge")
   }, options);
   const key = campaignKey(event);
-  const stub = env.GROWTH.get(env.GROWTH.idFromName(key));
-  const response = await stub.fetch(new Request("https://growth.internal/internal/event", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(event)
-  }));
-  if (!response.ok) throw new Error(`Growth ledger rejected event (${response.status})`);
+
+  const allReceipt = await writeGrowthLedger(env, GROWTH_V2_ALL, event, { type: "all", key: "all" });
+  let campaignRollup = true;
+  try {
+    await writeGrowthLedger(env, v2CampaignObjectName(key), event, { type: "campaign", key });
+  } catch {
+    campaignRollup = false;
+  }
+
+  return { ...allReceipt, campaign_key: key, campaign_rollup: campaignRollup };
+}
+
+async function readGrowthSummary(env, { campaign = null, legacy = false } = {}) {
+  if (legacy) {
+    const legacyKey = campaign || "unattributed";
+    const stub = env.GROWTH.get(env.GROWTH.idFromName(legacyKey));
+    const response = await stub.fetch(new Request("https://growth.internal/internal/summary"));
+    const body = await response.json().catch(() => ({}));
+    return {
+      ...body,
+      measurement_version: "legacy-v1",
+      legacy: true,
+      legacy_merged: false,
+      scope: { type: "campaign", key: legacyKey }
+    };
+  }
+
+  const scope = campaign ? { type: "campaign", key: campaign } : { type: "all", key: "all" };
+  const objectName = campaign ? v2CampaignObjectName(campaign) : GROWTH_V2_ALL;
+  const stub = env.GROWTH.get(env.GROWTH.idFromName(objectName));
+  const query = new URLSearchParams({ scope: scope.type, key: scope.key });
+  const response = await stub.fetch(new Request(`https://growth.internal/internal/summary?${query}`));
   return response.json();
 }
 
@@ -105,7 +156,8 @@ export default {
     if (url.pathname === "/api/growth/event" && request.method === "POST") {
       const body = await request.json().catch(() => ({}));
       try {
-        const receipt = await recordGrowth(env, body, { publicOnly: true });
+        const evidenceClass = requestTrafficClass(request);
+        const receipt = await recordGrowth(env, body, { publicOnly: true, evidenceClass });
         if (!receipt) return json({ error: "Growth ledger unavailable" }, { status: 503 });
         return json(receipt, { headers: { "cache-control": "no-store" } });
       } catch (error) {
@@ -116,9 +168,9 @@ export default {
     if (url.pathname === "/api/growth/summary" && request.method === "GET") {
       if (!env.GROWTH_READ_KEY) return json({ error: "Growth summary is not configured" }, { status: 503 });
       if (request.headers.get("x-growth-read-key") !== env.GROWTH_READ_KEY) return json({ error: "Unauthorized" }, { status: 401 });
-      const campaign = normalizeGrowthEnvelope({ campaign_id: url.searchParams.get("campaign") }).campaign_id || "unattributed";
-      const stub = env.GROWTH.get(env.GROWTH.idFromName(campaign));
-      return stub.fetch(new Request("https://growth.internal/internal/summary"));
+      const campaign = normalizeGrowthEnvelope({ campaign_id: url.searchParams.get("campaign") }).campaign_id;
+      const legacy = url.searchParams.get("version") === "legacy";
+      return json(await readGrowthSummary(env, { campaign, legacy }), { headers: { "cache-control": "no-store" } });
     }
 
     if (url.pathname === "/api/rooms/create" && request.method === "POST") {
@@ -127,10 +179,11 @@ export default {
       if (!name) return json({ error: "Nickname required" }, { status: 400 });
       const code = roomCode();
       const stub = env.ROOMS.get(env.ROOMS.idFromName(code));
+      const growth = normalizeGrowthEnvelope({ ...body.growth, traffic_class: requestTrafficClass(request) });
       return stub.fetch(new Request(`${url.origin}/internal/create`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ code, name, growth: normalizeGrowthEnvelope(body.growth) })
+        body: JSON.stringify({ code, name, growth })
       }));
     }
 
@@ -140,6 +193,17 @@ export default {
       const stub = env.ROOMS.get(env.ROOMS.idFromName(code));
       const target = new URL(request.url);
       target.pathname = `/internal/${action}`;
+
+      if (action === "join" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const growth = normalizeGrowthEnvelope({ ...body.growth, traffic_class: requestTrafficClass(request) });
+        return stub.fetch(new Request(target, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ ...body, growth })
+        }));
+      }
+
       return stub.fetch(new Request(target, request));
     }
 
@@ -320,32 +384,57 @@ export class GameRoom extends DurableObject {
   }
 
   async recordGrowthForCommit(event, actor, state) {
-    const growthEvent = {
+    const gameEvent = {
       ROOM_CREATED: "room_created",
       PLAYER_JOINED: "room_joined",
       GAME_STARTED: "game_started",
       GAME_FINISHED: "game_finished",
       REMATCH_STARTED: "rematch_started"
     }[event];
-    if (!growthEvent) return;
+    if (!gameEvent) return;
 
-    const playerIds = ["GAME_STARTED", "GAME_FINISHED", "REMATCH_STARTED"].includes(event)
-      ? Object.keys(state.players)
-      : [actor];
+    const actorGrowth = (await this.ctx.storage.get(growthKey(actor))) || {};
+    try {
+      await recordGrowth(this.env, {
+        event: gameEvent,
+        growth: actorGrowth,
+        game_seq: state.seq,
+        event_id: makeId("ge")
+      });
+    } catch {
+      // Growth evidence must never block or mutate gameplay authority.
+    }
 
-    for (const playerId of playerIds) {
+    const participantEvent = {
+      GAME_STARTED: "player_game_started",
+      GAME_FINISHED: "player_game_finished",
+      REMATCH_STARTED: "player_rematch_started"
+    }[event];
+    if (!participantEvent) return;
+
+    let participantIds;
+    if (event === "GAME_STARTED" || event === "REMATCH_STARTED") {
+      participantIds = Object.values(state.players).filter((player) => player.connected).map((player) => player.id);
+      await this.ctx.storage.put(participationKey, participantIds);
+    } else {
+      participantIds = (await this.ctx.storage.get(participationKey)) || Object.keys(state.players);
+    }
+
+    for (const playerId of participantIds) {
       const growth = (await this.ctx.storage.get(growthKey(playerId))) || {};
       try {
         await recordGrowth(this.env, {
-          event: growthEvent,
+          event: participantEvent,
           growth,
           game_seq: state.seq,
           event_id: makeId("ge")
         });
       } catch {
-        // Growth evidence must never block or mutate gameplay authority.
+        // Per-player conversion evidence is observational only.
       }
     }
+
+    if (event === "GAME_FINISHED") await this.ctx.storage.delete(participationKey);
   }
 
   async commit(state, event, actor) {
