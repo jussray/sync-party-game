@@ -1,0 +1,247 @@
+/* LIVE_SITE_SYNC_ASSET_V3
+   Graphic continuity layer: approved Live Site canon is people + crowd + pressure spectacle,
+   not a dark UI board with tiny avatars. This promotes party-art.png into large hero graphics. */
+
+html[data-arena-graphics="v3-asset-candidate"] .party-home[data-arena-v2="true"]{
+  min-height:820px;
+}
+
+html[data-arena-graphics="v3-asset-candidate"] .party-home[data-arena-v2="true"] .party-art{
+  inset:-1% -1% -1% 28%;
+  opacity:1;
+  filter:saturate(1.32) contrast(1.08) brightness(.88);
+  background-position:66% 36%;
+  transform:scale(1.035);
+}
+
+html[data-arena-graphics="v3-asset-candidate"] .party-home[data-arena-v2="true"]::after{
+  background:
+    linear-gradient(90deg,#020817f7 0%,#020817e7 29%,#02081780 50%,#0208173d 72%,#02081792 100%),
+    linear-gradient(0deg,#020817f5 0%,#0208176e 18%,transparent 52%,#04112e3b 100%);
+}
+
+.arena-human-group-v3{
+  position:absolute;
+  right:1.4%;
+  top:5.5%;
+  width:min(52%,690px);
+  height:330px;
+  z-index:2;
+  display:flex;
+  justify-content:flex-end;
+  align-items:flex-start;
+  overflow:visible;
+  pointer-events:none;
+  filter:drop-shadow(0 28px 26px #0009);
+}
+
+.arena-person-v3{
+  position:relative;
+  display:block;
+  width:26%;
+  min-width:125px;
+  height:100%;
+  margin-left:-4.5%;
+  border-radius:48% 48% 22% 22%;
+  background-image:url('/party-art.png');
+  background-repeat:no-repeat;
+  background-size:580% auto;
+  filter:saturate(1.22) contrast(1.07) brightness(1.13);
+  opacity:.96;
+  -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 70%,transparent 100%);
+  mask-image:linear-gradient(to bottom,#000 0%,#000 70%,transparent 100%);
+  transform-origin:50% 100%;
+  animation:arena-v3-human-float 5.5s ease-in-out infinite alternate;
+}
+
+.arena-person-v3::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  box-shadow:inset 0 0 0 1px #7eeeff16,inset 0 -50px 65px #04102755;
+}
+
+.arena-person-v3.person-0{
+  background-position:0% 15%;
+  transform:translateY(18px) rotate(-2deg) scale(.95);
+  animation-delay:-1.2s;
+}
+.arena-person-v3.person-1{
+  z-index:2;
+  background-position:100% 18%;
+  transform:translateY(-4px) rotate(1.5deg) scale(1.04);
+  animation-delay:-2.7s;
+}
+.arena-person-v3.person-2{
+  z-index:3;
+  background-position:0% 64%;
+  transform:translateY(2px) rotate(-1deg) scale(1.02);
+  animation-delay:-.6s;
+}
+.arena-person-v3.person-3{
+  background-position:100% 67%;
+  transform:translateY(22px) rotate(2deg) scale(.94);
+  animation-delay:-3.4s;
+}
+
+.arena-people-glow-v3{
+  position:absolute;
+  inset:6% 2% 4% 4%;
+  z-index:-1;
+  border-radius:50%;
+  background:
+    radial-gradient(circle at 18% 38%,#28dfff3f,transparent 24%),
+    radial-gradient(circle at 47% 30%,#7d55ff44,transparent 27%),
+    radial-gradient(circle at 79% 39%,#ff43be42,transparent 25%);
+  filter:blur(24px);
+}
+
+html[data-arena-graphics="v3-asset-candidate"] .arena-demo-board-v2{
+  top:45%;
+  right:4.7%;
+  width:min(40%,500px);
+  background:linear-gradient(145deg,#081a36f2,#071026f2 58%,#16113bf2);
+  box-shadow:0 34px 90px #000b,0 0 40px #22e3ff2e,inset 0 1px 0 #ffffff22;
+}
+
+html[data-arena-graphics="v3-asset-candidate"] .arena-clock-v2{
+  top:38.5%;
+  right:3.2%;
+  z-index:7;
+}
+
+html[data-arena-graphics="v3-asset-candidate"] .arena-player-rail-v2{
+  right:7%;
+  bottom:10.5%;
+  z-index:7;
+  transform:scale(1.12);
+}
+
+html[data-arena-graphics="v3-asset-candidate"] .arena-handnote-v2{
+  bottom:2.6%;
+  right:3.8%;
+  z-index:7;
+}
+
+html[data-arena-graphics="v3-asset-candidate"] .arena-crowd-v2{
+  height:116px;
+  left:42%;
+  opacity:.92;
+}
+
+html[data-arena-graphics="v3-asset-candidate"] .arena-crowd-v2 i{
+  height:54px;
+  box-shadow:0 -22px 0 -8px #14274c,0 0 16px #23dcff2e;
+}
+
+html[data-arena-graphics="v3-asset-candidate"] .arena-stage-v2::after{
+  content:"";
+  position:absolute;
+  right:-5%;
+  top:0;
+  width:58%;
+  height:52%;
+  z-index:1;
+  pointer-events:none;
+  background:
+    linear-gradient(90deg,transparent 0%,#25dfff0f 28%,transparent 45%),
+    linear-gradient(100deg,transparent 60%,#ff3fbd12 82%,transparent 100%);
+  mix-blend-mode:screen;
+}
+
+@keyframes arena-v3-human-float{
+  from{translate:0 0}
+  to{translate:0 -6px}
+}
+
+@media(max-width:900px){
+  .arena-human-group-v3{
+    right:-6%;
+    top:7%;
+    width:62%;
+    height:285px;
+    opacity:.78;
+  }
+  .arena-person-v3{min-width:104px}
+  html[data-arena-graphics="v3-asset-candidate"] .arena-demo-board-v2{top:47%;right:3%;width:min(45%,430px)}
+}
+
+@media(max-width:760px){
+  html[data-arena-graphics="v3-asset-candidate"] .party-home[data-arena-v2="true"]{
+    min-height:1110px;
+  }
+
+  html[data-arena-graphics="v3-asset-candidate"] .party-home[data-arena-v2="true"] .party-art{
+    inset:0;
+    opacity:.55;
+    background-position:58% 20%;
+    filter:saturate(1.28) contrast(1.04) brightness(.78);
+  }
+
+  html[data-arena-graphics="v3-asset-candidate"] .party-home[data-arena-v2="true"]::after{
+    background:
+      linear-gradient(180deg,#02081773 0%,#020817db 29%,#020817f3 49%,#020817 100%),
+      linear-gradient(90deg,#020817c8,transparent 48%,#0208179e);
+  }
+
+  .arena-human-group-v3{
+    left:0;
+    right:0;
+    top:125px;
+    width:100%;
+    height:230px;
+    justify-content:center;
+    opacity:.72;
+    filter:drop-shadow(0 20px 20px #0008);
+  }
+
+  .arena-person-v3{
+    width:27%;
+    min-width:92px;
+    height:230px;
+    margin-left:-5%;
+    background-size:560% auto;
+  }
+
+  .arena-person-v3.person-0{margin-left:0}
+
+  html[data-arena-graphics="v3-asset-candidate"] .party-home[data-arena-v2="true"] .hero-content{
+    padding-top:82px;
+    position:relative;
+    z-index:8;
+  }
+
+  html[data-arena-graphics="v3-asset-candidate"] .party-home[data-arena-v2="true"] .game-logo{
+    margin-top:132px;
+  }
+
+  html[data-arena-graphics="v3-asset-candidate"] .arena-demo-board-v2{
+    top:auto;
+    bottom:118px;
+    left:4%;
+    right:4%;
+    width:auto;
+    min-width:0;
+    z-index:7;
+  }
+
+  html[data-arena-graphics="v3-asset-candidate"] .arena-clock-v2{
+    top:auto;
+    bottom:405px;
+    right:6%;
+  }
+
+  html[data-arena-graphics="v3-asset-candidate"] .arena-player-rail-v2{
+    bottom:42px;
+    right:50%;
+    transform:translateX(50%) scale(.92);
+  }
+
+  html[data-arena-graphics="v3-asset-candidate"] .arena-handnote-v2{display:none}
+  html[data-arena-graphics="v3-asset-candidate"] .arena-crowd-v2{left:0;right:0;bottom:-4px;height:74px;opacity:.65}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .arena-person-v3{animation:none!important}
+}
