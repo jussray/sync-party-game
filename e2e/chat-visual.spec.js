@@ -8,7 +8,8 @@ test("ChatGPT SYNC home preserves AI-host plus human-room asset identity", async
   await expect(page.locator(".chat-social-scene-v2")).toBeVisible();
   await expect(page.locator('.chat-social-scene-v2 img[src*="chat-social-scene-v2.svg"]')).toBeVisible();
   await expect(page.getByRole("heading", { name: /predict the prompt/i })).toBeVisible();
-  await expect(page.getByText(/can you predict your people/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: /can you predict your people/i })).toBeVisible();
+  await expect(page.locator(".chat-scene-note")).toContainText(/can you predict your people/i);
 
   const witness = await page.evaluate(() => ({
     surface: document.documentElement.dataset.surface,
@@ -45,7 +46,7 @@ test("ChatGPT SYNC asset identity survives mobile reduced motion", async ({ brow
   await expect(page.locator(".chat-social-scene-v2")).toBeVisible();
   await expect(page.locator('.chat-social-scene-v2 img[src*="chat-social-scene-v2.svg"]')).toBeVisible();
   await expect(page.getByRole("button", { name: /create a room/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /join a room/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /join with a code/i })).toBeVisible();
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
