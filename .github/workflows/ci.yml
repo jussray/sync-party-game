@@ -57,6 +57,7 @@ jobs:
           node --check src/multisurface-worker.js
           node --check public/app.js
           node --check public/arena-v2.js
+          node --check public/arena-v3.js
           node --check public/chat/app.js
           node --check public/chat/chat-v1.js
           node --check public/chat/chat-v2.js
