@@ -5,6 +5,23 @@ Date: 2026-09-30
 
 These fingerprints are continuity evidence, not gameplay or deployment authority. `AGENTS.md`, the Founder Intelligence constitution, exact source/runtime evidence, and the Durable Object gameplay contract still govern execution.
 
+## Asset-level continuity
+
+`visual/project.asset-manifest.json` is the machine-readable asset continuity record for these surfaces. The manifest and this fingerprint document must agree, but they prove different things:
+
+- this document describes the intended visual and interaction identity;
+- the manifest identifies the canonical source visuals, current implementation assets, provenance, prohibited substitutions, runtime references, known regressions, and rollback truth.
+
+A matching palette or CSS treatment is not proof that a SYNC surface preserved its graphics. Founder-approved source visuals outrank prose descriptions and substitute implementation assets for graphic-fidelity decisions.
+
+Until the manifest says otherwise with fresh source-vs-render evidence:
+
+- Live Site graphic continuity is `REGRESSION`;
+- repo-backed ChatGPT SYNC graphic continuity is `PARTIAL`;
+- Lovable graphic continuity remains external-provider scoped in this repository.
+
+Do not promote `public/party-art.png` or `public/chat/ai-host.svg` to canonical proof merely because those files exist or render. They are current implementation assets whose relationship to the approved source visuals must remain truthfully classified.
+
 ## CHATGPT_SYNC_VISUAL_V1
 
 **Purpose:** the Chat Edition should feel like an AI-hosted social prediction experience, not a reskin of the arena.
@@ -64,4 +81,4 @@ The three experiences may share the SYNC name and social DNA, but their visual a
 - **Lovable SYNC:** match the vibe, warm human chemistry
 - **Live Site SYNC:** survive the pressure, arena spectacle
 
-A future change that collapses two surfaces into the same palette, hero composition, primary verb, or reveal grammar is a regression unless the founder explicitly approves the convergence.
+A future change that collapses two surfaces into the same palette, hero composition, primary verb, reveal grammar, canonical asset family, character/subject treatment, or scene-depth grammar is a regression unless the founder explicitly approves the convergence.
