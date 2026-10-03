@@ -58,6 +58,8 @@ jobs:
           node --check src/surfaces.js
           node --check src/multisurface-worker.js
           node --check public/app.js
+          node --check public/arena-v2.js
+          node --check public/arena-v3.js
           node --check public/chat/app.js
           node --check public/chat/chat-v1.js
           node --check public/chat/chat-v2.js
@@ -86,6 +88,16 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Two-browser Wrangler runtime proof
         run: npm run test:e2e
+      - name: Preserve Live Site SYNC visual proof
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: live-site-sync-visual-proof
+          path: |
+            test-results/visual-sync-home.png
+            test-results/visual-sync-home-mobile.png
+          if-no-files-found: ignore
+          retention-days: 90
       - name: Preserve ChatGPT SYNC visual proof
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
