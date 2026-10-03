@@ -1,0 +1,57 @@
+name: Mobile Store Readiness
+
+on:
+  push:
+    branches:
+      - feat/mobile-native-client
+    paths:
+      - mobile/**
+      - src/worker.js
+      - .deployment-authority.json
+      - .github/workflows/mobile-store-readiness.yml
+  pull_request:
+    paths:
+      - mobile/**
+      - src/worker.js
+      - .deployment-authority.json
+      - .github/workflows/mobile-store-readiness.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  CI: true
+
+jobs:
+  native-source-contract:
+    name: Native source contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Record exact proof subject
+        run: echo "proof_subject=$(git rev-parse HEAD)"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install mobile dependencies
+        run: npm install --prefix mobile --no-audit --no-fund
+      - name: Verify native carrier contract
+        run: npm --prefix mobile run verify
+      - name: Export Android JavaScript bundle
+        run: npm --prefix mobile run export:android
+      - name: Export iOS JavaScript bundle
+        run: npm --prefix mobile run export:ios
+      - name: Retain bundle proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: sync-party-mobile-bundles-${{ github.sha }}
+          path: |
+            mobile/dist/android
+            mobile/dist/ios
+          if-no-files-found: error
+          retention-days: 30
