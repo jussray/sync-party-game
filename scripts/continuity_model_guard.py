@@ -43,6 +43,10 @@ def require_model_contract() -> None:
             fail(f"continuity contract lost required rule: {needle}")
 
 
+def guard(repo: pathlib.Path, candidate: str, current: str) -> subprocess.CompletedProcess[str]:
+    return run(repo, sys.executable, str(DEPLOY_GUARD), candidate, current, check=False)
+
+
 def attack_git_model() -> None:
     if not DEPLOY_GUARD.exists() or not POLICY.exists():
         fail("deployment candidate guard/policy missing")
@@ -54,32 +58,30 @@ def attack_git_model() -> None:
         run(repo, "git", "config", "user.name", "Continuity Guard")
 
         (repo / "src").mkdir()
+        (repo / "receipts").mkdir()
         (repo / "docs").mkdir()
         (repo / "src" / "runtime.js").write_text("export const runtime = 1;\n", encoding="utf-8")
-        (repo / "docs" / "receipt.md").write_text("baseline\n", encoding="utf-8")
+        (repo / "receipts" / "proof.md").write_text("baseline\n", encoding="utf-8")
+        (repo / "docs" / "CONTINUITY_MODEL.md").write_text("authority v1\n", encoding="utf-8")
         (repo / ".deployment-authority.json").write_text(POLICY.read_text(encoding="utf-8"), encoding="utf-8")
         run(repo, "git", "add", ".")
         run(repo, "git", "commit", "-qm", "baseline candidate")
         candidate = run(repo, "git", "rev-parse", "HEAD").stdout.strip()
 
-        # Active work starts from the candidate base.
         run(repo, "git", "checkout", "-qb", "feature")
         (repo / "src" / "feature.js").write_text("export const feature = true;\n", encoding="utf-8")
         run(repo, "git", "add", "src/feature.js")
         run(repo, "git", "commit", "-qm", "active feature")
         predecessor_head = run(repo, "git", "rev-parse", "HEAD").stdout.strip()
 
-        # Main advances with safe, non-deploying drift.
+        # Exact Unicode evidence path is safe drift.
         run(repo, "git", "checkout", "-q", "main")
-        (repo / "docs" / "receipt.md").write_text("baseline\nsafe receipt drift\n", encoding="utf-8")
-        run(repo, "git", "add", "docs/receipt.md")
-        run(repo, "git", "commit", "-qm", "safe docs drift")
-        docs_main = run(repo, "git", "rev-parse", "HEAD").stdout.strip()
-
-        # Deployment candidate should survive this safe main drift.
-        safe = run(repo, sys.executable, str(DEPLOY_GUARD), candidate, docs_main, check=False)
-        if safe.returncode != 0:
-            fail("safe docs drift incorrectly revoked deployment candidate:\n" + safe.stdout + safe.stderr)
+        (repo / "receipts" / "café.md").write_text("safe receipt drift\n", encoding="utf-8")
+        run(repo, "git", "add", "receipts/café.md")
+        run(repo, "git", "commit", "-qm", "safe evidence drift")
+        evidence_main = run(repo, "git", "rev-parse", "HEAD").stdout.strip()
+        if guard(repo, candidate, evidence_main).returncode != 0:
+            fail("safe evidence drift incorrectly revoked deployment candidate")
 
         # Active work must still roll forward to the moved base.
         run(repo, "git", "checkout", "-q", "feature")
@@ -87,24 +89,48 @@ def attack_git_model() -> None:
         successor_head = run(repo, "git", "rev-parse", "HEAD").stdout.strip()
         if successor_head == predecessor_head:
             fail("active work did not mint a successor head after base movement")
-        if run(repo, "git", "merge-base", "--is-ancestor", docs_main, successor_head, check=False).returncode != 0:
+        if run(repo, "git", "merge-base", "--is-ancestor", evidence_main, successor_head, check=False).returncode != 0:
             fail("rolled-forward successor does not contain the new trusted main base")
 
-        # Runtime drift on main must revoke the older deployment candidate.
+        # Governance docs are not evidence-only drift.
         run(repo, "git", "checkout", "-q", "main")
+        (repo / "docs" / "CONTINUITY_MODEL.md").write_text("authority v2\n", encoding="utf-8")
+        run(repo, "git", "add", "docs/CONTINUITY_MODEL.md")
+        run(repo, "git", "commit", "-qm", "authority drift")
+        authority_main = run(repo, "git", "rev-parse", "HEAD").stdout.strip()
+        if guard(repo, candidate, authority_main).returncode == 0:
+            fail("governance drift incorrectly preserved deployment candidate")
+
+        # Runtime drift followed by revert must still revoke the older lease.
+        run(repo, "git", "reset", "--hard", evidence_main)
         (repo / "src" / "runtime.js").write_text("export const runtime = 2;\n", encoding="utf-8")
         run(repo, "git", "add", "src/runtime.js")
         run(repo, "git", "commit", "-qm", "runtime drift")
-        runtime_main = run(repo, "git", "rev-parse", "HEAD").stdout.strip()
-        unsafe = run(repo, sys.executable, str(DEPLOY_GUARD), candidate, runtime_main, check=False)
-        if unsafe.returncode == 0:
-            fail("runtime drift incorrectly preserved deployment candidate")
+        runtime_commit = run(repo, "git", "rev-parse", "HEAD").stdout.strip()
+        run(repo, "git", "revert", "--no-edit", runtime_commit)
+        (repo / "receipts" / "proof.md").write_text("baseline\nafter revert\n", encoding="utf-8")
+        run(repo, "git", "add", "receipts/proof.md")
+        run(repo, "git", "commit", "-qm", "receipt after revert")
+        reverted_main = run(repo, "git", "rev-parse", "HEAD").stdout.strip()
+        if guard(repo, candidate, reverted_main).returncode == 0:
+            fail("reverted runtime drift incorrectly restored candidate authority")
+
+        # Leading whitespace is part of the path and must not normalize into the allowlist.
+        run(repo, "git", "reset", "--hard", evidence_main)
+        forged = repo / " receipts"
+        forged.mkdir()
+        (forged / "forged.md").write_text("unsafe\n", encoding="utf-8")
+        run(repo, "git", "add", " receipts/forged.md")
+        run(repo, "git", "commit", "-qm", "forged path drift")
+        forged_main = run(repo, "git", "rev-parse", "HEAD").stdout.strip()
+        if guard(repo, candidate, forged_main).returncode == 0:
+            fail("leading-space unknown path was normalized into the safe allowlist")
 
 
 def main() -> None:
     require_model_contract()
     attack_git_model()
-    print("CONTINUITY MODEL PASS: active work rolls forward; safe deploy drift leases; runtime drift revokes")
+    print("CONTINUITY MODEL PASS: work rolls forward; exact evidence drift leases; governance/reverted-runtime/forged drift revokes")
 
 
 if __name__ == "__main__":
