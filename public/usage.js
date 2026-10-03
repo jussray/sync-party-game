@@ -6,32 +6,32 @@ const ui = {
   loadButton: $("#loadButton"),
   status: $("#status"),
   results: $("#results"),
-  uniqueVisitors: $("#uniqueVisitors"),
-  landingViews: $("#landingViews"),
-  playIntent: $("#playIntent"),
+  measurementMeta: $("#measurementMeta"),
+  scopeMeta: $("#scopeMeta"),
+  firstSeen: $("#firstSeen"),
+  lastSeen: $("#lastSeen"),
+  sequenceMeta: $("#sequenceMeta"),
+  identities: $("#identities"),
+  landingSignals: $("#landingSignals"),
+  browserSignals: $("#browserSignals"),
+  automationSignals: $("#automationSignals"),
+  unverifiedSignals: $("#unverifiedSignals"),
   roomsCreated: $("#roomsCreated"),
-  roomsJoined: $("#roomsJoined"),
+  playersJoined: $("#playersJoined"),
   gamesStarted: $("#gamesStarted"),
   gamesFinished: $("#gamesFinished"),
   rematches: $("#rematches"),
-  funnelLanding: $("#funnelLanding"),
-  funnelPlay: $("#funnelPlay"),
-  funnelCreate: $("#funnelCreate"),
-  funnelStart: $("#funnelStart"),
-  funnelFinish: $("#funnelFinish"),
-  barLanding: $("#barLanding"),
-  barPlay: $("#barPlay"),
-  barCreate: $("#barCreate"),
-  barStart: $("#barStart"),
-  barFinish: $("#barFinish"),
-  campaignMeta: $("#campaignMeta"),
-  firstSeen: $("#firstSeen"),
-  lastSeen: $("#lastSeen"),
-  sequenceMeta: $("#sequenceMeta")
+  participantStarts: $("#participantStarts"),
+  participantFinishes: $("#participantFinishes"),
+  participantRematches: $("#participantRematches"),
+  sourceBreakdown: $("#sourceBreakdown"),
+  mediumBreakdown: $("#mediumBreakdown"),
+  referrerBreakdown: $("#referrerBreakdown"),
+  acquisitionEvidence: $("#acquisitionEvidence")
 };
 
-function count(summary, key) {
-  const value = Number(summary?.counters?.[key] || 0);
+function count(record, key) {
+  const value = Number(record?.[key] || 0);
   return Number.isFinite(value) && value >= 0 ? value : 0;
 }
 
@@ -39,15 +39,7 @@ function fmtTime(value) {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short"
-  }).format(date);
-}
-
-function width(value, max) {
-  if (!max || !value) return value > 0 ? "2%" : "0%";
-  return `${Math.max(2, Math.min(100, (value / max) * 100))}%`;
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
 function setStatus(message, kind = "") {
@@ -56,51 +48,63 @@ function setStatus(message, kind = "") {
   if (kind) ui.status.classList.add(kind);
 }
 
+function pairs(record = {}) {
+  return Object.entries(record)
+    .filter(([, value]) => Number(value) > 0)
+    .sort((a, b) => Number(b[1]) - Number(a[1]));
+}
+
+function renderBreakdown(target, record, empty = "No classified signals yet.") {
+  const items = pairs(record);
+  target.innerHTML = items.length
+    ? items.map(([key, value]) => `<li><span>${escapeHtml(key)}</span><strong>${Number(value)}</strong></li>`).join("")
+    : `<li class="empty">${empty}</li>`;
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
+}
+
 function render(summary) {
-  const landing = count(summary, "landing_view");
-  const play = count(summary, "play_intent");
-  const created = count(summary, "room_created");
-  const joined = count(summary, "room_joined");
-  const started = count(summary, "game_started");
-  const finished = count(summary, "game_finished");
-  const rematch = count(summary, "rematch_started");
-  const uniqueVisitors = Number(summary?.unique_visitors || 0);
-  const max = Math.max(landing, play, created, started, finished, 1);
+  const product = summary?.product_counters || {};
+  const traffic = summary?.traffic_counts || {};
+  const acquisition = summary?.acquisition || {};
+  const acquisitionEvidence = acquisition?.evidence_counts || {};
 
-  ui.uniqueVisitors.textContent = String(Number.isFinite(uniqueVisitors) ? uniqueVisitors : 0);
-  ui.landingViews.textContent = String(landing);
-  ui.playIntent.textContent = String(play);
-  ui.roomsCreated.textContent = String(created);
-  ui.roomsJoined.textContent = String(joined);
-  ui.gamesStarted.textContent = String(started);
-  ui.gamesFinished.textContent = String(finished);
-  ui.rematches.textContent = String(rematch);
+  ui.identities.textContent = String(Number(summary?.unique_growth_identities || 0));
+  ui.landingSignals.textContent = String(count(acquisition, "landing_signals"));
+  ui.browserSignals.textContent = String(count(traffic, "browser_signal"));
+  ui.automationSignals.textContent = String(count(traffic, "automation_likely"));
+  ui.unverifiedSignals.textContent = String(count(traffic, "unverified_client"));
 
-  ui.funnelLanding.textContent = String(landing);
-  ui.funnelPlay.textContent = String(play);
-  ui.funnelCreate.textContent = String(created);
-  ui.funnelStart.textContent = String(started);
-  ui.funnelFinish.textContent = String(finished);
+  ui.roomsCreated.textContent = String(count(product, "room_created"));
+  ui.playersJoined.textContent = String(count(product, "room_joined"));
+  ui.gamesStarted.textContent = String(count(product, "game_started"));
+  ui.gamesFinished.textContent = String(count(product, "game_finished"));
+  ui.rematches.textContent = String(count(product, "rematch_started"));
+  ui.participantStarts.textContent = String(count(product, "player_game_started"));
+  ui.participantFinishes.textContent = String(count(product, "player_game_finished"));
+  ui.participantRematches.textContent = String(count(product, "player_rematch_started"));
 
-  ui.barLanding.style.width = width(landing, max);
-  ui.barPlay.style.width = width(play, max);
-  ui.barCreate.style.width = width(created, max);
-  ui.barStart.style.width = width(started, max);
-  ui.barFinish.style.width = width(finished, max);
+  renderBreakdown(ui.sourceBreakdown, acquisition.source_counts, "No attributable source identities yet.");
+  renderBreakdown(ui.mediumBreakdown, acquisition.medium_counts, "No attributable medium identities yet.");
+  renderBreakdown(ui.referrerBreakdown, acquisition.referrer_counts, "No attributable referrer identities yet.");
+  renderBreakdown(ui.acquisitionEvidence, acquisitionEvidence, "No landing evidence yet.");
 
-  ui.campaignMeta.textContent = `campaign: ${summary?.campaign_key || "unattributed"}`;
+  ui.measurementMeta.textContent = `measurement: ${summary?.measurement_version || "unknown"} · legacy merged: ${summary?.legacy_merged === true ? "yes" : "no"}`;
+  ui.scopeMeta.textContent = `scope: ${summary?.scope?.type || "unknown"}${summary?.scope?.key ? ` / ${summary.scope.key}` : ""}`;
   ui.firstSeen.textContent = `first signal: ${fmtTime(summary?.first_at)}`;
   ui.lastSeen.textContent = `last signal: ${fmtTime(summary?.last_at)}`;
   ui.sequenceMeta.textContent = `events: ${Number(summary?.seq || 0)}`;
   ui.results.hidden = false;
 
-  const actualUse = created + joined + started + finished + rematch;
-  if (actualUse > 0) {
-    setStatus("Yes — SYNC has recorded real gameplay activity in this ledger.", "good");
-  } else if (landing > 0 || play > 0 || uniqueVisitors > 0) {
-    setStatus("SYNC has recorded visitors or play attempts, but no gameplay event is recorded in this ledger yet.", "good");
+  const authoritativeUse = count(product, "room_created") + count(product, "room_joined") + count(product, "game_started") + count(product, "game_finished") + count(product, "rematch_started");
+  if (authoritativeUse > 0) {
+    setStatus("SERVER VERIFIED product activity is recorded. Automation-likely activity is excluded from these product counters.", "good");
+  } else if (count(acquisition, "landing_signals") > 0) {
+    setStatus("Traffic signals are recorded, but no non-automation server-authoritative product activity is recorded in this scope yet.", "good");
   } else {
-    setStatus("No usage events are recorded in this ledger yet.", "good");
+    setStatus("No Analytics Truth V2 signals are recorded in this scope yet. Legacy data is intentionally not merged.", "good");
   }
 }
 
@@ -116,14 +120,11 @@ async function loadUsage() {
 
   ui.loadButton.disabled = true;
   ui.loadButton.textContent = "Loading…";
-  setStatus("Reading the protected growth ledger…");
+  setStatus("Reading Analytics Truth V2…");
 
   try {
     const response = await fetch(`/api/growth/summary${query}`, {
-      headers: {
-        accept: "application/json",
-        "x-growth-read-key": key
-      },
+      headers: { accept: "application/json", "x-growth-read-key": key },
       cache: "no-store"
     });
     const body = await response.json().catch(() => ({}));
@@ -140,14 +141,10 @@ async function loadUsage() {
     setStatus(error.message || "Usage lookup failed.", "bad");
   } finally {
     ui.loadButton.disabled = false;
-    ui.loadButton.textContent = "Load usage";
+    ui.loadButton.textContent = "Load truth";
   }
 }
 
 ui.loadButton.addEventListener("click", loadUsage);
-ui.growthKey.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") loadUsage();
-});
-ui.campaign.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") loadUsage();
-});
+ui.growthKey.addEventListener("keydown", (event) => { if (event.key === "Enter") loadUsage(); });
+ui.campaign.addEventListener("keydown", (event) => { if (event.key === "Enter") loadUsage(); });

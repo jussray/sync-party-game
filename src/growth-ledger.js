@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { campaignKey, canonicalGrowthIdentity, normalizeGrowthEvent } from "./growth-contract.js";
+import { ANALYTICS_TRUTH_VERSION, canonicalGrowthIdentity, normalizeGrowthEvent } from "./growth-contract.js";
 
 const enc = new TextEncoder();
 const json = (data, init = {}) => new Response(JSON.stringify(data), {
@@ -25,8 +25,50 @@ function bump(record, key) {
   return { ...record, [key]: (record[key] || 0) + 1 };
 }
 
-function continuityCookie(campaignFingerprint, seq) {
-  return `growth-v1.${campaignFingerprint.slice(0, 16)}.${seq}`;
+function continuityCookie(scopeFingerprint, seq) {
+  return `growth-v2.${scopeFingerprint.slice(0, 16)}.${seq}`;
+}
+
+function emptyAcquisition() {
+  return {
+    landing_signals: 0,
+    identified_landing_signals: 0,
+    unidentified_landing_signals: 0,
+    unique_growth_identities: 0,
+    non_automation_growth_identities: 0,
+    automation_growth_identities: 0,
+    source_counts: {},
+    medium_counts: {},
+    content_counts: {},
+    referrer_counts: {},
+    evidence_counts: {}
+  };
+}
+
+function emptySummary(scope) {
+  return {
+    measurement_version: ANALYTICS_TRUTH_VERSION,
+    legacy_merged: false,
+    scope,
+    seq: 0,
+    unique_growth_identities: 0,
+    unique_visitors: 0,
+    counters: {},
+    product_counters: {},
+    automation_counters: {},
+    evidence_counts: {},
+    traffic_counts: {},
+    acquisition: emptyAcquisition(),
+    first_at: null,
+    last_at: null,
+    recent_events: []
+  };
+}
+
+function normalizeScope(input = {}) {
+  const type = input?.type === "campaign" ? "campaign" : "all";
+  const key = type === "campaign" && typeof input?.key === "string" && input.key ? input.key : "all";
+  return { type, key };
 }
 
 function inferDuplicateSeq(summary, eventFingerprint) {
@@ -48,7 +90,7 @@ export class GrowthLedger extends DurableObject {
     if (url.pathname === "/internal/event" && request.method === "POST") {
       try {
         const body = await request.json();
-        return json(await this.record(body));
+        return json(await this.record(body?.event ?? body, { scope: body?.scope }));
       } catch (error) {
         return json({ error: error.message || "Invalid growth event" }, { status: 400 });
       }
@@ -56,114 +98,138 @@ export class GrowthLedger extends DurableObject {
 
     if (url.pathname === "/internal/summary" && request.method === "GET") {
       const summary = await this.ctx.storage.get("summary");
-      return json(summary || {
-        campaign_key: "unattributed",
-        campaign_fingerprint: null,
-        seq: 0,
-        unique_visitors: 0,
-        counters: {},
-        source_counts: {},
-        medium_counts: {},
-        content_counts: {},
-        first_at: null,
-        last_at: null,
-        recent_events: []
-      });
+      const scope = normalizeScope({ type: url.searchParams.get("scope"), key: url.searchParams.get("key") });
+      return json(summary || emptySummary(scope));
     }
 
     return new Response("Not found", { status: 404 });
   }
 
-  async record(input) {
+  async record(input, { scope: rawScope } = {}) {
     const normalized = normalizeGrowthEvent({
       ...input,
       event_id: input?.event_id || crypto.randomUUID()
-    });
-    const key = campaignKey(normalized);
+    }, { preserveEvidence: true });
+    const scope = normalizeScope(rawScope);
     const at = Date.now();
     const eventFingerprint = await digest(canonicalGrowthIdentity(normalized));
-    const campaignFingerprint = await digest({ campaign_key: key });
+    const scopeFingerprint = await digest({ measurement_version: ANALYTICS_TRUTH_VERSION, scope });
 
     const recentIds = (await this.ctx.storage.get("recent_event_ids")) || [];
-    const current = (await this.ctx.storage.get("summary")) || {
-      campaign_key: key,
-      campaign_fingerprint: campaignFingerprint,
-      seq: 0,
-      unique_visitors: 0,
-      counters: {},
-      source_counts: {},
-      medium_counts: {},
-      content_counts: {},
-      first_at: at,
-      last_at: null,
-      recent_events: []
-    };
+    const current = (await this.ctx.storage.get("summary")) || emptySummary(scope);
 
     if (recentIds.includes(normalized.event_id)) {
       const storedReceipt = await this.ctx.storage.get(`receipt:${normalized.event_id}`);
       if (storedReceipt) return { ...storedReceipt, accepted: true, duplicate: true };
 
-      const receiptCampaignFingerprint = current.campaign_fingerprint || campaignFingerprint;
       const duplicateSeq = inferDuplicateSeq(current, eventFingerprint);
       const legacyReceipt = {
         accepted: true,
         duplicate: true,
+        measurement_version: ANALYTICS_TRUTH_VERSION,
+        scope,
         seq: duplicateSeq,
         event_fingerprint: eventFingerprint,
-        campaign_fingerprint: receiptCampaignFingerprint,
-        continuity_cookie: continuityCookie(receiptCampaignFingerprint, duplicateSeq)
+        scope_fingerprint: scopeFingerprint,
+        evidence_class: normalized.evidence_class,
+        traffic_class: normalized.traffic_class,
+        continuity_cookie: continuityCookie(scopeFingerprint, duplicateSeq)
       };
       await this.ctx.storage.put(`receipt:${normalized.event_id}`, legacyReceipt);
       return legacyReceipt;
     }
 
-    let uniqueVisitors = current.unique_visitors || 0;
+    let uniqueIdentities = current.unique_growth_identities || current.unique_visitors || 0;
     if (normalized.visitor_id) {
-      const visitorFingerprint = await digest({ campaign_key: key, visitor_id: normalized.visitor_id });
+      const visitorFingerprint = await digest({ scope, visitor_id: normalized.visitor_id });
       const visitorStorageKey = `visitor:${visitorFingerprint}`;
       const seen = await this.ctx.storage.get(visitorStorageKey);
       if (!seen) {
         await this.ctx.storage.put(visitorStorageKey, true);
-        uniqueVisitors += 1;
+        uniqueIdentities += 1;
+      }
+    }
+
+    const isAutomation = normalized.traffic_class === "automation_likely";
+    let acquisition = current.acquisition || emptyAcquisition();
+    if (normalized.event === "landing_view") {
+      acquisition = {
+        ...acquisition,
+        landing_signals: (acquisition.landing_signals || 0) + 1,
+        evidence_counts: bump(acquisition.evidence_counts || {}, normalized.evidence_class)
+      };
+
+      if (normalized.visitor_id) {
+        const acquisitionFingerprint = await digest({ scope, visitor_id: normalized.visitor_id, lane: "acquisition" });
+        const acquisitionStorageKey = `acquisition:${acquisitionFingerprint}`;
+        const seenAcquisition = await this.ctx.storage.get(acquisitionStorageKey);
+        if (!seenAcquisition) {
+          await this.ctx.storage.put(acquisitionStorageKey, true);
+          acquisition = {
+            ...acquisition,
+            identified_landing_signals: (acquisition.identified_landing_signals || 0) + 1,
+            unique_growth_identities: (acquisition.unique_growth_identities || 0) + 1,
+            non_automation_growth_identities: (acquisition.non_automation_growth_identities || 0) + (isAutomation ? 0 : 1),
+            automation_growth_identities: (acquisition.automation_growth_identities || 0) + (isAutomation ? 1 : 0),
+            source_counts: isAutomation ? (acquisition.source_counts || {}) : bump(acquisition.source_counts || {}, normalized.source),
+            medium_counts: isAutomation ? (acquisition.medium_counts || {}) : bump(acquisition.medium_counts || {}, normalized.medium),
+            content_counts: isAutomation ? (acquisition.content_counts || {}) : bump(acquisition.content_counts || {}, normalized.content),
+            referrer_counts: isAutomation ? (acquisition.referrer_counts || {}) : bump(acquisition.referrer_counts || {}, normalized.referrer_host)
+          };
+        }
+      } else {
+        acquisition = {
+          ...acquisition,
+          unidentified_landing_signals: (acquisition.unidentified_landing_signals || 0) + 1
+        };
       }
     }
 
     const seq = (current.seq || 0) + 1;
+    const isProductEvidence = normalized.evidence_class === "server_authoritative" && !isAutomation;
     const recentEvents = [
       ...(current.recent_events || []),
       {
         event: normalized.event,
-        event_id: normalized.event_id,
         seq,
         at,
         game_seq: normalized.game_seq,
+        evidence_class: normalized.evidence_class,
+        traffic_class: normalized.traffic_class,
         event_fingerprint: eventFingerprint
       }
     ].slice(-20);
 
     const summary = {
       ...current,
-      campaign_key: key,
-      campaign_fingerprint: campaignFingerprint,
+      measurement_version: ANALYTICS_TRUTH_VERSION,
+      legacy_merged: false,
+      scope,
       seq,
-      unique_visitors: uniqueVisitors,
+      unique_growth_identities: uniqueIdentities,
+      unique_visitors: uniqueIdentities,
       counters: bump(current.counters || {}, normalized.event),
-      source_counts: bump(current.source_counts || {}, normalized.source),
-      medium_counts: bump(current.medium_counts || {}, normalized.medium),
-      content_counts: bump(current.content_counts || {}, normalized.content),
+      product_counters: isProductEvidence ? bump(current.product_counters || {}, normalized.event) : (current.product_counters || {}),
+      automation_counters: isAutomation ? bump(current.automation_counters || {}, normalized.event) : (current.automation_counters || {}),
+      evidence_counts: bump(current.evidence_counts || {}, normalized.evidence_class),
+      traffic_counts: bump(current.traffic_counts || {}, normalized.traffic_class),
+      acquisition,
       first_at: current.first_at || at,
       last_at: at,
       recent_events: recentEvents
     };
 
-    const continuity_cookie = continuityCookie(campaignFingerprint, seq);
     const receipt = {
       accepted: true,
       duplicate: false,
+      measurement_version: ANALYTICS_TRUTH_VERSION,
+      scope,
       seq,
       event_fingerprint: eventFingerprint,
-      campaign_fingerprint: campaignFingerprint,
-      continuity_cookie
+      scope_fingerprint: scopeFingerprint,
+      evidence_class: normalized.evidence_class,
+      traffic_class: normalized.traffic_class,
+      continuity_cookie: continuityCookie(scopeFingerprint, seq)
     };
     const nextRecentIds = [...recentIds, normalized.event_id].slice(-256);
     const evictedIds = recentIds.filter((eventId) => !nextRecentIds.includes(eventId));

@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 
 const deniedAgents = ["GPTBot", "ClaudeBot", "Google-Extended", "CCBot"];
 const privatePaths = ["/api/", "/control-room", "/control-room.html", "/usage", "/usage.html"];
+const unknownNavigationPaths = ["/about-us", "/legal", "/team", "/definitely-not-a-sync-route"];
 
 test("machine-facing crawler contract is explicit and excludes private surfaces", async ({ request }) => {
   const robotsResponse = await request.get("/robots.txt");
@@ -50,5 +51,14 @@ test("machine-facing crawler contract is explicit and excludes private surfaces"
   expect(sitemap).toContain("https://sync-party-game.mcgill-raylene.workers.dev/chat/");
   for (const path of privatePaths) {
     expect(sitemap).not.toContain(path);
+  }
+});
+
+test("unknown navigation paths return a real 404 instead of impersonating the home page", async ({ page }) => {
+  for (const path of unknownNavigationPaths) {
+    const response = await page.goto(path);
+    expect(response?.status(), `${path} should be a 404`).toBe(404);
+    await expect(page.getByRole("heading", { name: "Page not found." })).toBeVisible();
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex, nofollow");
   }
 });

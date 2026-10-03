@@ -18,6 +18,9 @@ test("campaign landing records bounded anonymous growth evidence and still creat
       content: "hero-1"
     }
   });
+  const landingReceipt = await response.json();
+  expect(landingReceipt.measurement_version).toBe("analytics-truth-v2");
+  expect(["browser_signal", "automation_likely", "unverified_client"]).toContain(landingReceipt.evidence_class);
 
   const cookies = await context.cookies();
   const visitorCookie = cookies.find((cookie) => cookie.name === "sync_growth_vid");
@@ -59,14 +62,14 @@ test("campaign landing records bounded anonymous growth evidence and still creat
   expect(receiptProbe.first.body.accepted).toBe(true);
   expect(receiptProbe.first.body.duplicate).toBe(false);
   expect(receiptProbe.first.body.event_fingerprint).toMatch(/^[0-9a-f]{64}$/);
-  expect(receiptProbe.first.body.campaign_fingerprint).toMatch(/^[0-9a-f]{64}$/);
-  expect(receiptProbe.first.body.continuity_cookie).toMatch(/^growth-v1\./);
+  expect(receiptProbe.first.body.scope_fingerprint).toMatch(/^[0-9a-f]{64}$/);
+  expect(receiptProbe.first.body.continuity_cookie).toMatch(/^growth-v2\./);
 
   expect(receiptProbe.duplicate.status).toBe(200);
   expect(receiptProbe.duplicate.body.accepted).toBe(true);
   expect(receiptProbe.duplicate.body.duplicate).toBe(true);
   expect(receiptProbe.duplicate.body.event_fingerprint).toBe(receiptProbe.first.body.event_fingerprint);
-  expect(receiptProbe.duplicate.body.campaign_fingerprint).toBe(receiptProbe.first.body.campaign_fingerprint);
+  expect(receiptProbe.duplicate.body.scope_fingerprint).toBe(receiptProbe.first.body.scope_fingerprint);
   expect(receiptProbe.duplicate.body.continuity_cookie).toBe(receiptProbe.first.body.continuity_cookie);
 
   let createPayload = null;
@@ -110,4 +113,25 @@ test("browser clients cannot forge server-authoritative conversion events", asyn
 
   expect(result.status).toBe(400);
   expect(result.body.error).toMatch(/server-authoritative/);
+});
+
+test("obvious automation is classified without storing or trusting a forged evidence class", async ({ request }) => {
+  const response = await request.post("/api/growth/event", {
+    headers: { "user-agent": "Googlebot/2.1" },
+    data: {
+      event: "landing_view",
+      event_id: "event_bot_12345678",
+      evidence_class: "server_authoritative",
+      growth: {
+        visitor_id: "visitor_bot_12345678",
+        session_id: "session_bot_12345678",
+        campaign_id: "bot-probe"
+      }
+    }
+  });
+  expect(response.status()).toBe(200);
+  const body = await response.json();
+  expect(body.measurement_version).toBe("analytics-truth-v2");
+  expect(body.evidence_class).toBe("automation_likely");
+  expect(body.traffic_class).toBe("automation_likely");
 });
