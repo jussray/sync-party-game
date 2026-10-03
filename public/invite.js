@@ -39,9 +39,12 @@ async function copyText(value) {
   if (!copied) throw new Error("Copy is unavailable in this browser.");
 }
 
+function setText(node, value) {
+  if (node && node.textContent !== value) node.textContent = value;
+}
+
 function setInviteStatus(panel, message) {
-  const status = panel.querySelector("[data-invite-status]");
-  if (status) status.textContent = message;
+  setText(panel.querySelector("[data-invite-status]"), message);
 }
 
 function rosterNames() {
@@ -123,11 +126,9 @@ function enhanceLobby() {
   }
 
   const url = canonicalRoomUrl(code);
-  const urlNode = panel.querySelector("[data-room-url]");
-  if (urlNode) urlNode.textContent = url;
+  setText(panel.querySelector("[data-room-url]"), url);
   const names = rosterNames();
-  const roster = panel.querySelector("[data-invite-roster]");
-  if (roster) roster.textContent = `${names.length}/8 joined${names.length ? ` · ${names.join(" · ")}` : ""}`;
+  setText(panel.querySelector("[data-invite-roster]"), `${names.length}/8 joined${names.length ? ` · ${names.join(" · ")}` : ""}`);
 }
 
 function bootstrapInviteArrival() {
