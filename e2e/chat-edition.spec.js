@@ -26,7 +26,7 @@ test("Chat Edition prediction lens and Cloudflare Edition share one authoritativ
 
   await expect(chat.locator(".player-chip")).toHaveCount(2);
   await expect(chat.getByText("Cloud Guest")).toBeVisible();
-  await expect(cloud.getByText("Chat Host")).toBeVisible();
+  await expect(cloud.getByText("Chat Host", { exact: true })).toBeVisible();
 
   await expect(chat.getByRole("button", { name: /start game/i })).toBeEnabled();
   await chat.getByRole("button", { name: /start game/i }).click();
