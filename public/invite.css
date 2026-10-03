@@ -1,0 +1,70 @@
+.room-invite-panel {
+  width: min(100%, 760px);
+  margin: 18px auto 22px;
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--line-hot);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--panel-2) 88%, transparent);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, .18), 0 0 30px rgba(255, 54, 170, .08);
+  text-align: left;
+}
+
+.room-invite-copy {
+  display: grid;
+  gap: 5px;
+}
+
+.room-invite-kicker {
+  color: var(--accent);
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.room-invite-copy strong {
+  font-size: 1rem;
+}
+
+.room-invite-roster,
+.room-invite-status {
+  color: var(--muted);
+  font-size: .84rem;
+}
+
+.room-invite-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.room-invite-button {
+  min-height: 46px;
+}
+
+.room-invite-url {
+  display: block;
+  overflow-wrap: anywhere;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-deep) 70%, transparent);
+  color: var(--cyan);
+  font-size: .78rem;
+}
+
+.room-invite-status:empty {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .room-invite-panel {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .room-invite-actions {
+    grid-template-columns: 1fr;
+  }
+}
