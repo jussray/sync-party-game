@@ -1,0 +1,59 @@
+/* CHATGPT_SYNC_ASSET_V2
+   Asset-level presentation layer. Shared game authority remains in the existing Chat Edition app. */
+html[data-asset-continuity="CHATGPT_SYNC_ASSET_V2"] body{
+  background:
+    radial-gradient(circle at 68% 8%,#1b77ff42,transparent 27rem),
+    radial-gradient(circle at 90% 30%,#ff4fd023,transparent 23rem),
+    radial-gradient(circle at 10% 58%,#21e4ff1f,transparent 28rem),
+    linear-gradient(180deg,#06152f 0%,#020817 74%,#05091b 100%);
+}
+.chat-home-v1{position:relative;isolation:isolate}
+.chat-home-v1>.bubble:first-child{z-index:3;background:linear-gradient(145deg,#081d3ae8,#06142cd9 64%,#0b1636d9)}
+.chat-home-v1>.bubble:first-child::after{
+  content:"";position:absolute;right:-90px;bottom:-110px;width:330px;height:330px;border-radius:50%;
+  background:radial-gradient(circle,#2de5ff1c,transparent 68%);pointer-events:none
+}
+.chat-home-v1>.bubble.you{padding-top:410px;z-index:4;background:linear-gradient(180deg,#071832d9 0 56%,#11143ee8 100%)}
+.ai-host-card{display:none!important}
+.chat-social-scene-v2{
+  position:absolute;left:10px;right:10px;top:10px;height:385px;border-radius:24px;overflow:hidden;
+  border:1px solid #57eaff4a;background:#041129;box-shadow:0 22px 62px #0008,0 0 46px #2ce4ff21;
+}
+.chat-social-scene-v2::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,transparent 68%,#07152ff3 100%);
+}
+.chat-social-scene-v2 img{width:100%;height:100%;display:block;object-fit:cover;object-position:center;animation:chat-scene-breathe 8s ease-in-out infinite alternate}
+.chat-scene-badge{position:absolute;z-index:3;left:18px;top:18px;padding:8px 11px;border-radius:999px;border:1px solid #5beaff70;background:#05172be8;color:#bdf9ff;font-size:.65rem;font-weight:950;letter-spacing:.12em;text-transform:uppercase;box-shadow:0 0 24px #36e7ff25}
+.chat-scene-note{position:absolute;z-index:3;right:18px;bottom:19px;color:#ff78d9;font:800 1rem/1.05 cursive;transform:rotate(-4deg);text-shadow:0 0 18px #ff4fcf78}
+.chat-home-v1>.bubble:first-child .eyebrow{display:inline-flex;width:max-content;padding:7px 10px;border:1px solid #4fe9ff43;border-radius:999px;background:#071c37cc}
+.chat-home-v1>.bubble:first-child h1{font-size:clamp(58px,8.3vw,102px);max-width:7.5ch}
+.chat-home-v1>.bubble:first-child .copy{font-size:1rem;line-height:1.6}
+.chat-home-v1>.bubble.you h2{font-size:1.35rem;color:#f4fbff;margin-top:2px}
+.chat-home-v1>.bubble.you::after{
+  content:"SAME PROMPT · DIFFERENT MINDS";position:absolute;left:18px;right:18px;top:374px;z-index:5;text-align:center;
+  color:#85efff;font-size:.58rem;font-weight:950;letter-spacing:.16em;text-shadow:0 0 15px #27e6ff;
+}
+.action-grid{position:relative;z-index:4}
+.local-only{position:relative;z-index:4}
+
+/* Prediction states inherit a cleaner AI panel language rather than arena spectacle. */
+.chat-prediction-badge{box-shadow:0 0 24px #2ce9ff1e}
+.prediction-intro{position:relative;overflow:hidden}
+.prediction-intro::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent,#6cf2ff12,transparent);transform:translateX(-120%);animation:chat-v2-scan 4.5s ease-in-out infinite;pointer-events:none}
+.prediction-result{border-radius:20px}
+
+@keyframes chat-scene-breathe{to{transform:scale(1.018);filter:saturate(1.07) brightness(1.03)}}
+@keyframes chat-v2-scan{0%,64%{transform:translateX(-120%)}88%,100%{transform:translateX(120%)}}
+@media(max-width:780px){
+  .chat-frame{overflow:hidden}
+  .chat-home-v1>.bubble.you{padding-top:330px}.chat-social-scene-v2{height:305px}.chat-home-v1>.bubble.you::after{top:298px}
+  .chat-home-v1>.bubble:first-child h1{font-size:clamp(52px,15vw,78px)}
+}
+@media(max-width:520px){
+  .chat-home-v1>.bubble.you{padding-top:275px}.chat-social-scene-v2{height:250px;border-radius:18px}.chat-home-v1>.bubble.you::after{top:244px;font-size:.48rem}
+  .chat-scene-badge{font-size:.54rem;left:12px;top:12px}.chat-scene-note{font-size:.8rem;right:12px;bottom:14px}
+}
+@media(prefers-reduced-motion:reduce){
+  .chat-social-scene-v2 img,.prediction-intro::after{animation:none!important;transform:none!important}
+}

@@ -1,0 +1,50 @@
+const FILES=['party-loop','tap','lock','round','reveal','win',...Array.from({length:5},(_,i)=>`tick-${i+1}`),...Array.from({length:3},(_,i)=>`count-${i+1}`)];
+const clamp=v=>Math.max(0,Math.min(1,Number(v)||0));
+export class SyncAudio {
+  constructor(onChange=()=>{}) {
+    this.onChange=onChange;this.enabled=false;this.context=null;this.buffers=new Map();this.effects=new Set();this.music=null;this.loading=null;this.revision=0;this.phase='home';this.lastCue='None yet';this.lastPlayed=new Map();this.error='';this.level=0;this.settings={master:.75,music:.35,effects:.55};
+    try{const stored=JSON.parse(localStorage.getItem('sync.audio.levels')||'null');if(stored)for(const key of Object.keys(this.settings))if(Number.isFinite(stored[key]))this.settings[key]=clamp(stored[key])}catch{}
+  }
+  emit(){this.onChange(this.snapshot())}
+  snapshot(){return {enabled:this.enabled,loading:!!this.loading,context:this.context?.state||'not started',settings:{...this.settings},lastCue:this.lastCue,error:this.error,musicPlaying:!!this.music&&this.context?.state==='running',level:this.level}}
+  async prepare(){
+    if(!this.context){const Context=window.AudioContext||window.webkitAudioContext;if(!Context)throw Error('Audio is not supported in this browser.');this.context=new Context();const c=this.context;this.master=c.createGain();this.musicGain=c.createGain();this.fxGain=c.createGain();this.analyser=c.createAnalyser();this.analyser.fftSize=256;this.wave=new Float32Array(256);this.master.gain.value=this.settings.master;this.musicGain.gain.value=this.settings.music;this.fxGain.gain.value=this.settings.effects;this.musicGain.connect(this.master);this.fxGain.connect(this.master);this.limiter=c.createDynamicsCompressor();this.limiter.threshold.value=-6;this.limiter.knee.value=0;this.limiter.ratio.value=12;this.limiter.attack.value=.003;this.limiter.release.value=.15;this.master.connect(this.limiter);this.limiter.connect(this.analyser);this.analyser.connect(c.destination);}
+    // Resume synchronously from the user's gesture, before network awaits.
+    await this.context.resume();
+    if(this.buffers.size===FILES.length)return;
+    if(!this.loading){this.loading=Promise.all(FILES.map(async name=>{const response=await fetch(new URL(`./audio/${name}.wav`,import.meta.url));if(!response.ok)throw Error('A sound could not load. Try sound again.');const buffer=await this.context.decodeAudioData(await response.arrayBuffer());this.buffers.set(name,buffer)})).finally(()=>{this.loading=null})}
+    this.emit();await this.loading;
+  }
+  async setEnabled(value){
+    const revision=++this.revision;this.enabled=!!value;this.error='';
+    if(!this.enabled){this.stopAll();if(this.context)await this.context.suspend().catch(()=>{});this.emit();return false}
+    this.emit();
+    try{await this.prepare();if(revision!==this.revision||!this.enabled)return false;if(document.hidden){await this.context.suspend();this.emit();return true}this.startMusic();this.play('tap');this.emit();return true}
+    catch(error){if(revision===this.revision){this.enabled=false;this.error=error.message||'Sound is unavailable. Try again.';this.stopAll();this.emit()}return false}
+  }
+  startMusic(){if(!this.enabled||this.music||document.hidden||this.phase==='live'||this.context?.state!=='running'||!this.buffers.has('party-loop'))return;const source=this.context.createBufferSource();source.buffer=this.buffers.get('party-loop');source.loop=true;source.connect(this.musicGain);source.start();this.music=source;this.emit()}
+  stopEffects(){for(const source of this.effects){try{source.stop()}catch{}source.disconnect()}this.effects.clear();this.level=0}
+  stopAll(){this.stopEffects();if(this.music){try{this.music.stop()}catch{}this.music.disconnect();this.music=null}if(this.context&&this.musicGain){this.musicGain.gain.cancelScheduledValues(this.context.currentTime);this.musicGain.gain.value=this.settings.music}this.lastCue='Muted'}
+  setVolume(key,value){if(!Object.hasOwn(this.settings,key))throw Error('Unknown audio control');this.settings[key]=clamp(value);if(this.context){const gain={master:this.master,music:this.musicGain,effects:this.fxGain}[key];gain.gain.cancelScheduledValues(this.context.currentTime);gain.gain.setTargetAtTime(this.settings[key],this.context.currentTime,.04)}try{localStorage.setItem('sync.audio.levels',JSON.stringify(this.settings))}catch{}this.emit()}
+  setPhase(phase){this.phase=phase;if(phase==='live'){void this.setEnabled(false);return}if(this.context&&this.musicGain){this.musicGain.gain.cancelScheduledValues(this.context.currentTime);this.musicGain.gain.setTargetAtTime(this.settings.music,this.context.currentTime,.15)}this.startMusic()}
+  play(name){if(!this.enabled||document.hidden||this.context?.state!=='running'||!this.buffers.has(name))return false;const nowMs=performance.now();if(nowMs-(this.lastPlayed.get(name)??-Infinity)<100)return false;this.lastPlayed.set(name,nowMs);if(this.effects.size>=4){const oldest=this.effects.values().next().value;try{oldest.stop()}catch{}oldest.disconnect();this.effects.delete(oldest)}const source=this.context.createBufferSource();source.buffer=this.buffers.get(name);source.connect(this.fxGain);source.onended=()=>{this.effects.delete(source);source.disconnect()};this.effects.add(source);source.start();this.lastCue=name;const duck=['reveal','win','round'].includes(name)||name.startsWith('tick-')||name.startsWith('count-');if(duck){const now=this.context.currentTime,g=this.musicGain.gain;g.cancelScheduledValues(now);g.setTargetAtTime(this.settings.music*.25,now,.035);g.setTargetAtTime(this.settings.music,now+source.buffer.duration,.2)}this.emit();return true}
+  readLevel(){if(this.enabled&&this.context?.state==='running'){this.analyser.getFloatTimeDomainData(this.wave);this.level=Math.sqrt(this.wave.reduce((sum,v)=>sum+v*v,0)/this.wave.length)}else this.level=0;return this.level}
+  async visibility(hidden){if(!this.context)return;if(hidden){this.stopEffects();await this.context.suspend().catch(()=>{})}else if(this.enabled){try{await this.context.resume();this.error='';this.startMusic()}catch{this.error='Tap Sound off, then on, to resume.'}}this.emit()}
+}
+
+export function mountAudio(){
+ const button=document.querySelector('#soundToggle');let meterFrame=0;
+ const dialog=document.createElement('dialog');dialog.id='audioDialog';dialog.setAttribute('aria-labelledby','audioTitle');
+ dialog.innerHTML=`<div class="audio-head"><div><p class="meta">SET THE VIBE</p><h2 id="audioTitle">Sound check.</h2></div><button id="closeAudio" class="icon-btn" aria-label="Close sound controls">×</button></div><p class="audio-copy">A little beat. A little pressure. Your volume.</p><button class="btn btn-primary wide" id="audioPower">TURN SOUND ON</button><p id="audioState" role="status" class="little">Sound is off. Nothing plays automatically.</p><div class="audio-sliders">${[['master','Overall volume'],['music','Background beat'],['effects','Game sounds']].map(([key,label])=>`<label for="audio-${key}"><span>${label}</span><output id="audio-${key}-value"></output><input id="audio-${key}" type="range" min="0" max="100" step="1" data-volume="${key}"></label>`).join('')}</div><p class="meta audio-section-label">TRY THE SOUNDS</p><div class="sound-tests"><button data-sound="lock">🔒 Choice lock</button><button data-sound="tick-1">⏱ Final tick</button><button data-sound="reveal">✦ Reveal</button><button data-sound="win">🏆 Victory</button></div><div class="audio-meter"><label for="audioOutput">Audio output</label><meter id="audioOutput" min="0" max="0.3" value="0" aria-label="Audio output level"></meter></div><p class="audio-last" id="lastSound">No cue played yet.</p><p class="little">Starts muted each visit. Your volume levels stay on this device.</p>`;
+ document.body.append(dialog);
+ const settingsButton=document.createElement('button');settingsButton.className='icon-btn';settingsButton.id='audioSettings';settingsButton.setAttribute('aria-label','Open sound controls');settingsButton.title='Sound controls';settingsButton.textContent='☷';button.after(settingsButton);
+ function render(snapshot){button.textContent=snapshot.enabled?'♫ ON':'♫ OFF';button.setAttribute('aria-pressed',String(snapshot.enabled));document.querySelector('#audioPower').textContent=snapshot.enabled?'MUTE ALL SOUND':'TURN SOUND ON';document.querySelector('#audioState').textContent=snapshot.error||(!snapshot.enabled?'Sound is off. Nothing plays automatically.':snapshot.loading?'Loading your sounds…':snapshot.context==='suspended'?'Sound paused while the game is in the background.':'Sound is on. Adjust your mix below.');for(const[key,value]of Object.entries(snapshot.settings)){document.querySelector(`#audio-${key}`).value=Math.round(value*100);document.querySelector(`#audio-${key}-value`).textContent=Math.round(value*100)+'%'}document.querySelector('#lastSound').textContent='Last cue: '+snapshot.lastCue;dialog.querySelectorAll('[data-sound]').forEach(b=>b.disabled=!snapshot.enabled||snapshot.loading)}
+ const audio=new SyncAudio(render);render(audio.snapshot());
+ button.onclick=()=>void audio.setEnabled(!audio.enabled);document.querySelector('#audioPower').onclick=()=>void audio.setEnabled(!audio.enabled);
+ settingsButton.onclick=()=>{dialog.showModal();render(audio.snapshot());function updateMeter(){document.querySelector('#audioOutput').value=audio.readLevel();if(dialog.open)meterFrame=requestAnimationFrame(updateMeter)}updateMeter()};
+ document.querySelector('#closeAudio').onclick=()=>dialog.close();dialog.addEventListener('close',()=>{cancelAnimationFrame(meterFrame);settingsButton.focus()});
+ dialog.querySelectorAll('[data-volume]').forEach(input=>input.addEventListener('input',()=>audio.setVolume(input.dataset.volume,Number(input.value)/100)));
+ dialog.querySelectorAll('[data-sound]').forEach(b=>b.onclick=()=>audio.play(b.dataset.sound));
+ document.addEventListener('visibilitychange',()=>void audio.visibility(document.hidden));window.addEventListener('pagehide',()=>{audio.stopAll();void audio.context?.suspend().catch(()=>{})});
+ return audio;
+}

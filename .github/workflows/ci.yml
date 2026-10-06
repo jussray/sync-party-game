@@ -10,6 +10,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: core-proof-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_name == 'proof' }}
+
 env:
   EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
@@ -47,24 +51,63 @@ jobs:
       - name: Syntax checks
         run: |
           node --check src/game.js
+          node --check src/control-room.js
+          node --check src/growth-contract.js
+          node --check src/growth-ledger.js
           node --check src/worker.js
+          node --check src/surfaces.js
+          node --check src/multisurface-worker.js
           node --check public/app.js
+          node --check public/arena-v2.js
+          node --check public/arena-v3.js
+          node --check public/chat/app.js
+          node --check public/chat/chat-v1.js
+          node --check public/chat/chat-v2.js
+          node --check public/control-room.js
+          node --check public/sync-client.js
+          node --check public/usage.js
+          node --check scripts/analytics-truth-attack.mjs
+          node --check scripts/verify-asset-continuity.mjs
           node --check playwright.config.js
           python -m py_compile scripts/bugfinder.py scripts/secret_scan.py scripts/continuity_model_guard.py scripts/deploy_candidate_guard.py
       - name: Secret scan
         run: python scripts/secret_scan.py
       - name: Pure game tests
         run: node --test test/*.test.mjs
+      - name: Analytics Truth attack
+        run: npm run attack:analytics-truth
       - name: Python continuity model attack
         run: python scripts/continuity_model_guard.py
       - name: Python bug finder
         run: python scripts/bugfinder.py
+      - name: Asset continuity truth
+        run: npm run verify:asset-continuity
       - name: Install locked runtime dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Two-browser Wrangler runtime proof
         run: npm run test:e2e
+      - name: Preserve Live Site SYNC visual proof
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: live-site-sync-visual-proof
+          path: |
+            test-results/visual-sync-home.png
+            test-results/visual-sync-home-mobile.png
+          if-no-files-found: ignore
+          retention-days: 90
+      - name: Preserve ChatGPT SYNC visual proof
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: chatgpt-sync-visual-proof
+          path: |
+            test-results/visual-chatgpt-sync-home.png
+            test-results/visual-chatgpt-sync-home-mobile.png
+          if-no-files-found: ignore
+          retention-days: 90
       - name: Preserve Playwright failure evidence
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

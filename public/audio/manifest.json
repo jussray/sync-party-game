@@ -1,0 +1,107 @@
+{
+  "party-loop": {
+    "seconds": 17.778,
+    "peak": 0.72,
+    "rms": 0.09351,
+    "sampleRate": 24000,
+    "clippedSamples": 0
+  },
+  "tap": {
+    "seconds": 0.24,
+    "peak": 0.72,
+    "rms": 0.19309,
+    "sampleRate": 24000,
+    "clippedSamples": 0
+  },
+  "lock": {
+    "seconds": 0.5,
+    "peak": 0.72,
+    "rms": 0.16381,
+    "sampleRate": 24000,
+    "clippedSamples": 0
+  },
+  "round": {
+    "seconds": 0.8,
+    "peak": 0.72,
+    "rms": 0.15487,
+    "sampleRate": 24000,
+    "clippedSamples": 0
+  },
+  "reveal": {
+    "seconds": 1.1,
+    "peak": 0.72,
+    "rms": 0.12038,
+    "sampleRate": 24000,
+    "clippedSamples": 0
+  },
+  "win": {
+    "seconds": 2.0,
+    "peak": 0.72,
+    "rms": 0.15541,
+    "sampleRate": 24000,
+    "clippedSamples": 0
+  },
+  "tick-1": {
+    "seconds": 0.38,
+    "peak": 0.72,
+    "rms": 0.14823,
+    "sampleRate": 24000,
+    "clippedSamples": 0
+  },
+  "tick-2": {
+    "seconds": 0.38,
+    "peak": 0.72,
+    "rms": 0.14907,
+    "sampleRate": 24000,
+    "clippedSamples": 0
+  },
+  "tick-3": {
+    "seconds": 0.38,
+    "peak": 0.72,
+    "rms": 0.14671,
+    "sampleRate": 24000,
+    "clippedSamples": 0
+  },
+  "tick-4": {
+    "seconds": 0.38,
+    "peak": 0.72,
+    "rms": 0.12147,
+    "sampleRate": 24000,
+    "clippedSamples": 0
+  },
+  "tick-5": {
+    "seconds": 0.38,
+    "peak": 0.72,
+    "rms": 0.12114,
+    "sampleRate": 24000,
+    "clippedSamples": 0
+  },
+  "count-3": {
+    "seconds": 0.35,
+    "peak": 0.72,
+    "rms": 0.15215,
+    "sampleRate": 24000,
+    "clippedSamples": 0
+  },
+  "count-2": {
+    "seconds": 0.35,
+    "peak": 0.72,
+    "rms": 0.15329,
+    "sampleRate": 24000,
+    "clippedSamples": 0
+  },
+  "count-1": {
+    "seconds": 0.35,
+    "peak": 0.72,
+    "rms": 0.15203,
+    "sampleRate": 24000,
+    "clippedSamples": 0
+  },
+  "sound-preview": {
+    "seconds": 12.0,
+    "peak": 0.72,
+    "rms": 0.0969,
+    "sampleRate": 24000,
+    "clippedSamples": 0
+  }
+}
