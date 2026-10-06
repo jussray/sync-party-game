@@ -27,6 +27,18 @@ Fire TV, Alexa+, AWS, 10-foot UI, and Amazon-specific judging/evidence are a sep
 
 Amazon-specific guardrails remain in `docs/HACKATHON-CONTRACT.md` and `docs/FRICTION-LOG.md`.
 
+## Editions
+
+SYNC ships as three editions with one rule each and their own look (`docs/SYNC_VISUAL_FINGERPRINTS.md`). This repository is the Live Site edition **and the game authority**: the `GameRoom` Durable Object owns room state for every edition that plays live rooms.
+
+| Edition | Mechanic | Repository | Runtime |
+|---|---|---|---|
+| Live Site SYNC | survive the pressure — arena spectacle | this repo | `sync-party-game` Worker |
+| CHATGPT SYNC (Chat Edition) | predict the room — AI-hosted cobalt chat | [`jussray/Chat-Sync`](https://github.com/jussray/Chat-Sync) | static client on `sync-party.p9s5nbwqyt.chatgpt.site`, rooms on this Worker |
+| LOVABLE SYNC | match the vibe — warm human chemistry | [`jussray/Loveable-Sync`](https://github.com/jussray/Loveable-Sync) (mirror of Lovable-connected [`jussray/sync-playtest`](https://github.com/jussray/sync-playtest)) | `sync-playtest.lovable.app`, own Supabase backend |
+
+`public/chat/` here is still served and tested (`e2e/chat-edition.spec.js`) as the same-origin copy of the Chat Edition. Its home is now `Chat-Sync`; retire this copy only after `Chat-Sync` is live on its mirror host. Any change to the chat host must move `CHAT_SITE_ORIGIN` in `src/surfaces.js` in the same change.
+
 ## Core product contract
 
 - 2–8 players
