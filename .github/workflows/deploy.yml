@@ -19,7 +19,7 @@ env:
 
 jobs:
   promote-production:
-    name: Promote exact green SHA to production
+    name: Promote exact leased green SHA to production
     if: >-
       github.event_name == 'workflow_run' &&
       github.event.workflow_run.conclusion == 'success' &&
@@ -40,7 +40,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Verify candidate is still current main and fast-forwardable
+      - name: Verify candidate lease and fast-forward production authority
         shell: bash
         run: |
           set -euo pipefail
@@ -53,12 +53,12 @@ jobs:
           CURRENT_MAIN_SHA="$(git rev-parse refs/remotes/origin/main)"
           printf 'Green candidate: %s\nChecked out: %s\nCurrent main: %s\nSource proof run: %s\n' "$TARGET_SHA" "$ACTUAL_HEAD_SHA" "$CURRENT_MAIN_SHA" "$SOURCE_PROOF_RUN_ID"
           test "$ACTUAL_HEAD_SHA" = "$TARGET_SHA"
-          test "$CURRENT_MAIN_SHA" = "$TARGET_SHA"
+          python3 scripts/deploy_candidate_guard.py "$TARGET_SHA" "$CURRENT_MAIN_SHA"
 
           if git ls-remote --exit-code --heads origin production >/dev/null 2>&1; then
             git fetch --no-tags origin refs/heads/production:refs/remotes/origin/production
             git merge-base --is-ancestor refs/remotes/origin/production "$TARGET_SHA" || {
-              echo "::error title=Non-fast-forward production promotion::Existing production is not an ancestor of the exact green candidate."
+              echo "::error title=Non-fast-forward production promotion::Existing production is not an ancestor of the exact leased green candidate."
               exit 1
             }
           fi
@@ -75,8 +75,9 @@ jobs:
           {
             echo "## SYNC production promotion"
             echo
-            echo "- Exact green SHA: \`$TARGET_SHA\`"
+            echo "- Exact green candidate SHA: \`$TARGET_SHA\`"
             echo "- Source core-proof run: \`$SOURCE_PROOF_RUN_ID\`"
+            echo "- Candidate lease: revalidated against live main"
             echo "- Promotion: fast-forward only"
             echo "- Cloudflare mutation authority: provider-held Workers Builds token"
             echo "- Cloudflare production branch: \`production\`"
