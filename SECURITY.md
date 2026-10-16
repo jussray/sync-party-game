@@ -8,7 +8,7 @@ Use repository/provider secret stores for runtime credentials and commit only re
 
 ## Reporting a vulnerability
 
-Do not publish exploitable security details in a public issue. Prefer GitHub's private vulnerability-reporting / security-advisory flow when enabled for this repository. If that path is unavailable, contact the repository owner privately through an already-established channel.
+Do not publish exploitable security details in a public issue. Prefer GitHub's private vulnerability-reporting / security-advisory flow when enabled for this repository. If that path is unavailable, report privately to **founder@jussco.company**, with subject `[Security][Live Site SYNC]`. Include the affected URL and a minimal, redacted reproduction. Never attach credentials, private player data, or children's personal information.
 
 ## Submission safety
 
