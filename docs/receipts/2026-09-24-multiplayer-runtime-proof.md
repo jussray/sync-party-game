@@ -45,3 +45,7 @@ Artifacts: screenshots `test-results/*/0[1-7]-*.png` and traces (local, gitignor
 ## Rollback
 
 Branch only (main untouched by this work): reset the branch pointer to `origin/main`, or on main after merge `git revert -m 1 <merge-sha>` on the branch (no history rewrite). No deployment exists, so there is nothing to roll back in Cloudflare.
+
+## Superseded deployment note (2026-10-20)
+
+The branch-only `deploy-and-prove` workflow described above was dropped when this work was merged onto live `main` (`b0f423e`). Main's own exact-green promotion (`core-proof` → `Deploy` → `production` branch → Cloudflare Workers Build → public `/api/version` SHA check → full Playwright suite against `https://sync-party-game.mcgill-raylene.workers.dev`) is the authoritative deploy path. Proof for the merged tree is recorded in `docs/PROOF-LEDGER.md`.

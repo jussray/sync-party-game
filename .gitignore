@@ -34,3 +34,7 @@ tmp/
 
 # wrangler local state
 .wrangler/
+
+# python bytecode
+__pycache__/
+*.pyc
