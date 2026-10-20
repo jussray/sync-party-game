@@ -1,17 +1,33 @@
 name = "sync-party-game"
-main = "src/worker.js"
+main = "src/multisurface-worker.js"
 compatibility_date = "2026-09-24"
 
 [assets]
 directory = "./public"
 binding = "ASSETS"
-run_worker_first = ["/api/*"]
-not_found_handling = "single-page-application"
+run_worker_first = ["/api/*", "/sync-client.js"]
+not_found_handling = "404-page"
 
 [[durable_objects.bindings]]
 name = "ROOMS"
 class_name = "GameRoom"
 
+[[durable_objects.bindings]]
+name = "GROWTH"
+class_name = "GrowthLedger"
+
+[[durable_objects.bindings]]
+name = "CONTROL"
+class_name = "ControlRoomLedger"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["GameRoom"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["GrowthLedger"]
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["ControlRoomLedger"]

@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "site": "https://sync-party-game.mcgill-raylene.workers.dev/",
+  "purpose": "machine-facing discovery contract",
+  "policy": {
+    "public_discovery": true,
+    "citation": true,
+    "user_directed_retrieval": true,
+    "model_training": false,
+    "bulk_harvesting": false,
+    "private_access": false,
+    "execution_authority": false
+  },
+  "public_discovery_agents": [
+    "OAI-SearchBot",
+    "ChatGPT-User",
+    "Claude-SearchBot",
+    "Claude-User",
+    "Googlebot"
+  ],
+  "training_or_bulk_agents_denied": [
+    "GPTBot",
+    "ClaudeBot",
+    "Google-Extended",
+    "CCBot"
+  ],
+  "public_paths": [
+    "/",
+    "/chat/"
+  ],
+  "private_or_operator_paths": [
+    "/api/",
+    "/control-room",
+    "/control-room.html",
+    "/usage",
+    "/usage.html"
+  ],
+  "canonical": {
+    "robots": "/robots.txt",
+    "sitemap": "/sitemap.xml",
+    "llms": "/llms.txt"
+  },
+  "authorization_note": "Crawler policy is discovery guidance only and grants no authentication, authorization, private-data access, MCP access, or execution authority."
+}

@@ -1,22 +1,45 @@
 name: core-proof
 
 on:
-  push:
-    branches: [main, 'claude/**']
   pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches: [proof, main]
 
 permissions:
   contents: read
+
+concurrency:
+  group: core-proof-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_name == 'proof' }}
+
+env:
+  EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
   core-proof:
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
-      - name: Checkout
+      - name: Checkout exact proof head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          ref: ${{ env.EXPECTED_HEAD_SHA }}
           persist-credentials: false
+          fetch-depth: 0
+      - name: Verify exact proof head
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          printf 'expected=%s\nactual=%s\n' "$EXPECTED_HEAD_SHA" "$actual"
+          test "$actual" = "$EXPECTED_HEAD_SHA"
+      - name: Candidate ancestry guard
+        if: github.ref_name == 'proof'
+        run: |
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor origin/main HEAD
       - name: Setup Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -28,59 +51,101 @@ jobs:
       - name: Syntax checks
         run: |
           node --check src/game.js
+          node --check src/control-room.js
+          node --check src/growth-contract.js
+          node --check src/growth-ledger.js
           node --check src/worker.js
+          node --check src/surfaces.js
+          node --check src/multisurface-worker.js
           node --check public/app.js
+          node --check public/arena-v2.js
+          node --check public/arena-v3.js
+          node --check public/chat/app.js
+          node --check public/chat/chat-v1.js
+          node --check public/chat/chat-v2.js
+          node --check public/control-room.js
+          node --check public/sync-client.js
+          node --check public/usage.js
+          node --check scripts/analytics-truth-attack.mjs
+          node --check scripts/verify-asset-continuity.mjs
           node --check playwright.config.js
-          python -m py_compile scripts/bugfinder.py scripts/secret_scan.py
+          python -m py_compile scripts/bugfinder.py scripts/secret_scan.py scripts/continuity_model_guard.py scripts/deploy_candidate_guard.py
       - name: Secret scan
         run: python scripts/secret_scan.py
       - name: Pure game tests
         run: node --test test/*.test.mjs
+      - name: Analytics Truth attack
+        run: npm run attack:analytics-truth
+      - name: Python continuity model attack
+        run: python scripts/continuity_model_guard.py
       - name: Python bug finder
         run: python scripts/bugfinder.py
-      - name: Install runtime dependencies
-        run: npm install --no-audit --no-fund
+      - name: Asset continuity truth
+        run: npm run verify:asset-continuity
+      - name: Install locked runtime dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Two-browser Wrangler runtime proof
         run: npm run test:e2e
-        env:
-          PW_TRACE: "on"
-      - name: Preserve Playwright evidence (screenshots, traces, report)
+      - name: Preserve Live Site SYNC visual proof
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: playwright-evidence
+          name: live-site-sync-visual-proof
+          path: |
+            test-results/visual-sync-home.png
+            test-results/visual-sync-home-mobile.png
+          if-no-files-found: ignore
+          retention-days: 90
+      - name: Preserve ChatGPT SYNC visual proof
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: chatgpt-sync-visual-proof
+          path: |
+            test-results/visual-chatgpt-sync-home.png
+            test-results/visual-chatgpt-sync-home-mobile.png
+          if-no-files-found: ignore
+          retention-days: 90
+      - name: Preserve Playwright failure evidence
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: playwright-failure-evidence
           path: |
             playwright-report/
             test-results/
           if-no-files-found: ignore
 
-  attack-proof:
-    # Seeded 8-player attack harness against the real Worker + Durable Object (wrangler dev, local mode).
-    # The two-context Playwright proof runs in core-proof above.
+  multiplayer-attack:
+    # Seeded 8-player attack harness against the real Worker + Durable Object (wrangler dev, local mode):
+    # forged identities, duplicate/overwrite/simultaneous intents, refreshes, timer alarm, host drop, rematch.
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 12
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Checkout exact proof head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          ref: ${{ env.EXPECTED_HEAD_SHA }}
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22.23.2"
-          cache: npm
-      - run: npm ci
+      - name: Install locked runtime dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Start local Worker + Durable Object
         run: |
           nohup npx wrangler dev --port 8787 --ip 127.0.0.1 > wrangler-dev.log 2>&1 &
           for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:8787/ && exit 0; sleep 1; done
           cat wrangler-dev.log; exit 1
       - name: Seeded 8-player attack harness
-        run: |
-          for seed in 7 11 23; do ATTACK_SEED=$seed ATTACK_GAMES=2 node scripts/attack.mjs; done
-      - if: always()
+        run: for seed in 7 11 23; do ATTACK_SEED=$seed ATTACK_GAMES=2 npm run attack:multiplayer; done
+      - name: Preserve Worker log on failure
+        if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: attack-wrangler-log-${{ github.sha }}
+          name: multiplayer-attack-wrangler-log
           path: wrangler-dev.log
-          retention-days: 30
+          if-no-files-found: ignore

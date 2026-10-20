@@ -6,128 +6,157 @@
 - Mission: Handshake — Create a Multiplayer Game with OpenAI
 - Product: `Sync Party` / flagship game `SYNC`
 
-## VERIFIED
-- Repository exists and is public.
-- `main` exists.
-- Handshake's current mission page states the build must be a live, reusable multiplayer game at its own public URL, joined with a room code, with no login or app install, replayable from phone or laptop.
-- The mission currently requires ChatGPT Work and lists an October 31 challenge deadline.
-- GitHub reports `main` as `protected:false`; branch protection remains a real unresolved governance gate.
-- No reusable WebSocket/Durable Object multiplayer room engine was found by targeted code search across `Sekret-Bip`, `founder-control-room`, `StoryEngine`, or `chief-ai-machine`.
-- The repo now contains a Cloudflare Worker + Durable Object room authority, WebSocket transport, browser UI, room create/join flow, reconnect identity, light/dark theme, pressure audio, state fingerprints/receipts, pure rule tests, and a two-context Playwright specification.
-- Exact head `a40b1e60a755b518bc52117213c5410f0bc097a1` passed GitHub Actions `core-proof` run `36047670313`, including JavaScript/Python syntax checks, 10 Node game tests, and the independent Python bug finder.
+## Current Handshake contract — VERIFIED
+Handshake's current public mission page says:
+- use ChatGPT Work to think through, design, build, test, and ship the multiplayer game;
+- publish a live, reusable multiplayer game at its own public URL;
+- groups join with a room code;
+- no login;
+- no app install;
+- replayable from phone or laptop;
+- current challenge deadline: October 31, 2026.
 
-## Drift found during parallel audit
-Commit `559f471c603d7789b08cdeae9ea1047eaa454c82` changed the repository root identity into an Amazon Appdev / Fire TV-specific build. That conflicted with the already-approved Handshake-first product direction and risked making an adapter authoritative over the product.
+The public mission does **not** state that an OpenAI model must be a runtime dependency inside the game. OpenAI/ChatGPT Work is the build workflow requirement. Therefore SYNC will not add an AI runtime dependency solely for challenge branding. Any later AI feature must earn its place against player value, latency, privacy, cost, and reliability.
 
-## Authority fixes applied
-- `b56fc779fcc54c127f41e77b1eda944566b62841` — restored product-first Sync Party authority in `README.md`; Handshake is immediate release gate and Amazon is a secondary adapter.
-- `bd29f284a78d8fc9b6b72bd223b0f391768503a2` — made the pull-request proof template competition-independent while preserving track-specific evidence requirements.
-- `776a2683b9e6560e24cd5d0bfb3ff0352a97c02e` — added `docs/COMPETITION-MATRIX.md` separating shared core, Handshake proof, and Amazon adapter boundaries.
-- `a298a0b0f9856cdce306beb31c65f7f06d70c925` — split the proof ledger into core, Handshake-primary, and Amazon-secondary gates.
+## Product / architecture decision — VERIFIED
+SYNC remains a standalone multiplayer product and reusable multiplayer primitive. Handshake web is the immediate release gate. Amazon / Fire TV remains a bounded secondary adapter and cannot redefine the core product.
 
-No Amazon work was deleted. It remains available as a bounded adapter track and must not block the Handshake web release.
-
-## Implementation audit findings + repairs
-
-### REMATCH phase spoof — FIXED
-The WebSocket handler previously rewrote an active room to `phase: "results"` before calling `startGame`, allowing a host to bypass the authoritative phase guard by sending `REMATCH` mid-game.
-
-- Fix: `06dc6f10d3911cf6469a7dabea8c6aa2d7858b02`
-- New rule: REMATCH requires the stored authoritative room phase to already equal `results`.
-
-### Classic tie scoring — FIXED
-Classic mode says “Match the majority,” but the initial rule awarded both players in a 1–1 split because both matched the top count.
-
-- Fix: `cefcbed2b83f4d3d228ea2091d4194f69b715788`
-- Regression: `a40b1e60a755b518bc52117213c5410f0bc097a1`
-- New rule: Classic only awards when the leading choice has a true majority (`top > total / 2`).
-
-### Python red-team lane — INSTALLED
-- verifier added: `78ad95532a14db1cd24c930ee8f81c1b1c92bb50`
-- package workflow exposed: `3ac7bab27956fb04bb82138eaecbb0acaf50d3bc`
-- CI integration: `8f903abdc8e73a9f9cb9fccf5bd19dd7cb7f3660`
-- green proof: Actions run `36047670313` at `a40b1e60a755b518bc52117213c5410f0bc097a1`
-- successor receipt: `docs/receipts/2026-09-24-python-redteam-proof.md`
-
-Python remains a verifier, not a second game authority. It checks the real JavaScript source for authority/privacy regressions, verifies the two-browser proof shape, and reruns the Node rules suite.
-
-## Required game contract
-- 2–8 players
-- room-code join
-- no login
-- authoritative shared room state
-- separate player identity from connection identity
-- reconnect after refresh/drop
-- hidden choices before reveal
-- synchronized reveal and score
-- replay/rematch in the same room
-- mobile + laptop responsive UI
-- light/dark mode
-- party music/SFX with escalating countdown pressure audio and user controls
-
-## Current architecture
+Current core:
 - Cloudflare Worker entrypoint
 - Durable Object per authoritative room
-- WebSocket client synchronization
-- resume-token reconnect identity
-- pure game rules separated in `src/game.js`
+- WebSocket synchronization
+- separate player identity and connection identity
+- resume-token reconnect
+- pure game rules in `src/game.js`
 - browser client in `public/`
-- deterministic room/state fingerprint + bounded receipt history
-- Node rule tests
+- deterministic public-state fingerprint / bounded receipts
+- locked npm dependency graph
+- Node rule/privacy tests
 - Python independent bug finder
-- two-context Playwright spec
-- competition/device integrations remain adapters around the core
+- real multi-context Playwright suite
 
-## Proof gate
-Do not claim Handshake completion until Playwright proves, with separate browser contexts against a running/deployed Worker:
-1. host creates a room
-2. another player joins by code
-3. both see synchronized membership
-4. host starts
-5. both receive the same round
-6. choices remain private until reveal
-7. reveal occurs consistently
-8. scores agree
-9. a player refreshes/reconnects successfully
-10. the game finishes and rematch works
-11. the same flow passes against the public production URL
+## Historical drift found and repaired
+Commit `559f471c603d7789b08cdeae9ea1047eaa454c82` temporarily shifted root authority toward the Amazon Appdev / Fire TV track. The correction preserved Amazon work while restoring product-first authority:
+- `b56fc779fcc54c127f41e77b1eda944566b62841` — product-first README authority
+- `bd29f284a78d8fc9b6b72bd223b0f391768503a2` — competition-neutral proof template
+- `776a2683b9e6560e24cd5d0bfb3ff0352a97c02e` — competition matrix
+- `a298a0b0f9856cdce306beb31c65f7f06d70c925` — proof-ledger separation
 
-## VERIFIED source/CI but not production proof
-- authoritative room design exists
-- room create/join routes exist
-- WebSocket synchronization code exists
-- reconnect identity code exists
-- hidden-choice projection exists
-- scoring/reveal state machine exists
-- light/dark UI exists
-- optional pressure audio exists
-- separate-context Playwright spec exists
-- Python bug finder is green in CI
+No Amazon work was deleted.
 
-## UNKNOWN / runtime gates
-- deployed public URL
-- real Worker/Durable Object WebSocket run observed in this evidence chain
-- executed two-browser Playwright trace/screenshots
-- real reconnect after network/browser interruption
-- responsive phone + laptop proof
-- live pressure audio/visual accessibility proof
-- production full loop through final results and rematch
-- host-loss/failover behavior
+## Verified implementation repairs
 
-## BLOCKED
-- Branch protection/ruleset: available GitHub metadata confirms `main` is unprotected; the current connector does not expose an administration mutation to enable it.
+### REMATCH authority bypass — FIXED
+A host could previously force an active game toward rematch by spoofing a `results` phase before validation.
+- Fix: `06dc6f10d3911cf6469a7dabea8c6aa2d7858b02`
+- Current invariant: authoritative stored state must already be `results` before REMATCH is accepted.
+
+### Classic tie scoring — FIXED
+Classic says “match the majority,” but the initial implementation awarded a 1–1 tie.
+- Fix: `cefcbed2b83f4d3d228ea2091d4194f69b715788`
+- Current invariant: Classic awards only when `top > total / 2`.
+
+### Python bug-finder lane — VERIFIED
+Python is a verifier, never a second game authority. It independently checks:
+- Durable Object room authority
+- resume-token authority binding
+- client-authority leakage
+- hidden-choice / public-fingerprint privacy
+- REMATCH phase safety
+- mobile/laptop Playwright proof shape
+- reconnect
+- full five-round completion and same-room replay
+- Durable Object timeout-alarm proof
+- production deploy workflow authority
+- Node test suite under Python orchestration
+
+Deploy-aware Python head: `a07dc550ea7d5882781a1e5ffce736d8ab87eace`.
+
+## Runtime proof — VERIFIED locally through real Wrangler
+Exact proof head: `a07dc550ea7d5882781a1e5ffce736d8ab87eace`
+GitHub Actions: `core-proof` run `36067001337` / run #44 — SUCCESS.
+
+That run passed:
+- syntax checks
+- secret scan
+- Node rules/privacy tests
+- Python bug finder
+- locked dependency install
+- Chromium install
+- real Wrangler Worker + Durable Object startup
+- full Playwright multiplayer suite
+
+Observed browser/runtime coverage includes:
+1. laptop-sized host creates a room;
+2. phone-sized guest joins with room code;
+3. both share authoritative room state;
+4. choices remain private before reveal;
+5. both progress through the game consistently;
+6. guest refresh/reconnect restores authoritative state and identity;
+7. all five rounds finish;
+8. GAME OVER / final room sync appears;
+9. Play again returns both clients to Round 1 in the same room;
+10. phone viewport is explicitly checked for horizontal overflow;
+11. a separate no-answer round waits for the real Durable Object alarm and reaches the expected reveal state.
+
+Production-readiness receipt: `docs/receipts/2026-09-24-production-deploy-readiness.md`.
+
+## Production deployment lane — VERIFIED AS CONFIGURATION, NOT AS DEPLOYMENT
+`.github/workflows/deploy.yml` was added at `981e393a3049ec6bc6b3ba89fec09b37f6a7b5df` and is guarded by Python at `a07dc550ea7d5882781a1e5ffce736d8ab87eace`.
+
+It is deliberately fail-closed:
+1. manual `workflow_dispatch` only;
+2. exact current-main SHA required;
+3. founder approval reference required;
+4. current `main` is read back and must equal the approved SHA;
+5. Cloudflare token/account credential shape is validated without printing secrets;
+6. secret scan + Node + Python rerun before mutation;
+7. pinned Wrangler Action + pinned Wrangler version deploy the Worker/Durable Object;
+8. Wrangler's emitted HTTPS `deployment-url` becomes the production Playwright target;
+9. the full multiplayer suite reruns against the public deployment;
+10. a production proof receipt and artifacts are preserved.
+
+## Handshake proof status
+### VERIFIED before production
+- repository/product authority
+- room-code create/join
+- no-login browser flow
+- no-install browser flow
+- laptop + phone viewport flow
+- authoritative multiplayer synchronization
+- pre-reveal privacy
+- timeout/alarm behavior
+- reconnect
+- five-round completion
+- same-room rematch
+- light/dark theme behavior
+- secret scan
+- local real-Worker Playwright
+- deployment workflow authority structure
+
+### BLOCKED / not yet earned
+- actual public Cloudflare URL
+- actual production deployment receipt
+- production-targeted Playwright PASS
+- branch protection/ruleset (`main` still reports `protected:false`)
+- live audio/accessibility proof remains optional polish, not a Handshake core requirement
+
+The current ChatGPT GitHub connector can edit/read the deployment workflow but does not expose workflow-dispatch execution. A direct Cloudflare deployment connector was also not returned by the current plugin search. These tooling limits do not justify changing the hosting architecture or falsely marking production as complete.
 
 ## Risk
-- Source green is not equivalent to production green.
-- Host loss can still become a stuck-room scenario unless recovery behavior is deliberately designed and proven.
-- Competition-specific requirements can cause product-authority drift if not isolated.
+- Deployment-ready is not deployed.
+- A public page that loads is insufficient; production WebSocket/Durable Object multiplayer must pass the same Playwright path.
+- Competition-specific adapters must remain outside core authority.
 - Audio must remain user-controllable and never carry required game information.
+- Branch protection is still absent and should be corrected when GitHub administration authority is available.
 
 ## Rollback
-Every repair above is isolated in its own commit and can be reverted independently. The Python lane can be removed without changing runtime authority; Amazon adapter work remains preserved.
+All focused repairs and deployment additions are isolated commits. The production workflow can be reverted without changing the already-proven local multiplayer core. Failed production runs must remain visible as evidence and must not be relabeled green.
 
 ## Next proof gate
-Run the committed Playwright spec against a real local or deployed Cloudflare Worker, preserve trace/screenshots/logs, then promote only the observed production gates in `docs/PROOF-LEDGER.md`.
+Manually dispatch `Deploy` using the exact current green `main` SHA and an auditable founder approval reference. Promote the public URL only if Wrangler emits the HTTPS deployment URL and the production Playwright job passes.
 
 ## Stop condition
-The Handshake build phase is complete only when the production multiplayer path passes the Playwright proof gate and the public URL satisfies the verified Handshake mission contract.
+Handshake build completion requires both:
+1. the public URL exists; and
+2. the full multiplayer Playwright suite passes against that public production URL.

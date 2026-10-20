@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 860" role="img" aria-labelledby="title desc">
+  <title id="title">ChatGPT SYNC social prediction scene</title>
+  <desc id="desc">A luminous AI host above four friends using phones in a cobalt and cyan room with chat bubbles and prediction graphics.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#071939"/><stop offset=".52" stop-color="#0b1e55"/><stop offset="1" stop-color="#241352"/></linearGradient>
+    <linearGradient id="cyan" x1="0" x2="1"><stop stop-color="#73f7ff"/><stop offset="1" stop-color="#3a6fff"/></linearGradient>
+    <linearGradient id="pink" x1="0" x2="1"><stop stop-color="#ff65d7"/><stop offset="1" stop-color="#7f63ff"/></linearGradient>
+    <radialGradient id="floor" cx="50%" cy="0%" r="95%"><stop stop-color="#23dfff" stop-opacity=".25"/><stop offset="1" stop-color="#020817" stop-opacity="0"/></radialGradient>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="12" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="soft" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="32"/></filter>
+    <clipPath id="room"><rect x="18" y="18" width="1244" height="824" rx="54"/></clipPath>
+  </defs>
+  <g clip-path="url(#room)">
+    <rect x="18" y="18" width="1244" height="824" rx="54" fill="url(#bg)"/>
+    <circle cx="1030" cy="145" r="220" fill="#ff48d2" opacity=".09" filter="url(#soft)"/><circle cx="300" cy="220" r="260" fill="#21ddff" opacity=".12" filter="url(#soft)"/>
+    <g opacity=".15" stroke="#63eaff"><path d="M0 720H1280M0 760H1280M0 800H1280"/><path d="M120 0V860M250 0V860M380 0V860M510 0V860M640 0V860M770 0V860M900 0V860M1030 0V860M1160 0V860"/></g>
+    <rect x="0" y="560" width="1280" height="320" fill="url(#floor)"/>
+
+    <!-- AI host -->
+    <g transform="translate(470 68)" filter="url(#glow)">
+      <ellipse cx="170" cy="180" rx="170" ry="150" fill="#25e6ff" opacity=".12"/>
+      <path d="M74 150c0-76 43-126 96-126s96 50 96 126v58c0 54-43 96-96 96s-96-42-96-96z" fill="url(#cyan)" stroke="#d8fbff" stroke-width="8"/>
+      <rect x="91" y="57" width="158" height="128" rx="48" fill="#071633" stroke="#58edff" stroke-width="7"/>
+      <path d="M126 118q17-25 34 0M180 118q17-25 34 0M145 150q25 21 50 0" fill="none" stroke="#69f3ff" stroke-width="10" stroke-linecap="round"/>
+      <rect x="49" y="92" width="30" height="74" rx="14" fill="#8df6ff" stroke="#dffcff" stroke-width="5"/><rect x="261" y="92" width="30" height="74" rx="14" fill="#8df6ff" stroke="#dffcff" stroke-width="5"/>
+      <circle cx="170" cy="239" r="22" fill="#071d47" stroke="#6ef0ff" stroke-width="6"/><path d="M170 226l5 10 12 2-9 8 3 12-11-6-11 6 3-12-9-8 12-2z" fill="#7bf3ff"/>
+    </g>
+
+    <!-- speech bubbles -->
+    <g font-family="system-ui, sans-serif" font-weight="900" fill="#fff" font-size="25">
+      <g transform="translate(86 126) rotate(-5)"><rect width="268" height="106" rx="28" fill="#0b1a40" stroke="#ff58ce" stroke-width="3"/><text x="25" y="43">DIFFERENT MINDS.</text><text x="25" y="76" fill="#72efff">SAME PROMPT.</text><path d="M217 105l28 30-3-36" fill="#0b1a40" stroke="#ff58ce" stroke-width="3"/></g>
+      <g transform="translate(930 120) rotate(4)"><rect width="265" height="106" rx="28" fill="#0a1d42" stroke="#5de9ff" stroke-width="3"/><text x="24" y="43">CAN YOU PREDICT</text><text x="24" y="76" fill="#ff71d9">THE ROOM?</text><path d="M25 103L4 132l43-31" fill="#0a1d42" stroke="#5de9ff" stroke-width="3"/></g>
+    </g>
+
+    <!-- couch -->
+    <rect x="190" y="585" width="900" height="170" rx="62" fill="#111b44" stroke="#3b73ff" stroke-opacity=".45" stroke-width="4"/><rect x="245" y="526" width="790" height="160" rx="58" fill="#18255a"/>
+
+    <!-- four friends -->
+    <g stroke-linecap="round" stroke-linejoin="round">
+      <g transform="translate(235 330)">
+        <circle cx="120" cy="92" r="62" fill="#c77758"/><path d="M58 95c0-76 37-115 72-115 44 0 82 38 75 111-22-26-45-44-85-47-29 9-43 25-62 51z" fill="#25142d"/>
+        <path d="M55 161q65-38 130 0l48 190H14z" fill="#57206f"/><path d="M118 82q12 8 24 0M120 117q18 16 36 0" fill="none" stroke="#32121d" stroke-width="6"/>
+        <g transform="translate(146 215) rotate(10)"><rect width="80" height="128" rx="16" fill="#09152d" stroke="#65e9ff" stroke-width="5"/><circle cx="40" cy="105" r="5" fill="#65e9ff"/></g>
+      </g>
+      <g transform="translate(430 345)">
+        <circle cx="120" cy="82" r="61" fill="#d7a176"/><path d="M56 70c2-66 41-102 82-102 43 0 76 35 75 94-38-16-91-18-157 8z" fill="#4b2a1f"/><path d="M56 153q68-42 134 0l38 182H12z" fill="#253c76"/><path d="M99 80q12 9 24 0M126 114q17 13 35 0" fill="none" stroke="#4a2417" stroke-width="6"/>
+        <g transform="translate(114 220) rotate(-5)"><rect width="82" height="132" rx="16" fill="#08152d" stroke="#4fe6ff" stroke-width="5"/><circle cx="41" cy="108" r="5" fill="#4fe6ff"/></g>
+      </g>
+      <g transform="translate(642 333)">
+        <circle cx="120" cy="94" r="61" fill="#7b4a36"/><path d="M58 94c-2-74 29-117 75-117 50 0 86 42 83 110-23-28-51-44-85-48-31 6-52 23-73 55z" fill="#11111e"/><circle cx="98" cy="82" r="17" fill="#11111e"/><circle cx="139" cy="72" r="19" fill="#11111e"/><circle cx="163" cy="91" r="17" fill="#11111e"/><path d="M53 165q69-43 136 0l43 183H12z" fill="#612f7b"/><path d="M95 89q12 9 24 0M122 122q18 15 36 0" fill="none" stroke="#2e1b18" stroke-width="6"/>
+        <g transform="translate(120 224) rotate(5)"><rect width="80" height="130" rx="16" fill="#09142d" stroke="#ff61d0" stroke-width="5"/><circle cx="40" cy="107" r="5" fill="#ff61d0"/></g>
+      </g>
+      <g transform="translate(842 352)">
+        <circle cx="120" cy="78" r="60" fill="#d1a07e"/><path d="M58 60c8-63 47-93 89-86 42 8 66 43 59 96-32-27-84-35-148-10z" fill="#171923"/><path d="M55 149q66-39 132 0l39 181H15z" fill="#1b4672"/><path d="M97 79q11 8 22 0M122 111q17 13 34 0" fill="none" stroke="#4a2d25" stroke-width="6"/>
+        <g transform="translate(85 218) rotate(-9)"><rect width="80" height="130" rx="16" fill="#08142b" stroke="#57e7ff" stroke-width="5"/><circle cx="40" cy="107" r="5" fill="#57e7ff"/></g>
+      </g>
+    </g>
+
+    <!-- prediction UI cards -->
+    <g transform="translate(875 505)">
+      <rect width="320" height="174" rx="30" fill="#07152eea" stroke="#5ee9ff" stroke-width="3"/>
+      <text x="24" y="34" font-family="system-ui,sans-serif" font-weight="900" font-size="17" fill="#9ef5ff">ROOM PREDICTION</text>
+      <g transform="translate(24 56)" font-family="system-ui,sans-serif" font-weight="800" font-size="14" fill="#fff">
+        <text y="14">🌶 42%</text><rect x="82" y="2" width="178" height="16" rx="8" fill="#102e56"/><rect x="82" y="2" width="128" height="16" rx="8" fill="url(#cyan)"/>
+        <text y="49">🪴 24%</text><rect x="82" y="37" width="178" height="16" rx="8" fill="#102e56"/><rect x="82" y="37" width="82" height="16" rx="8" fill="#576dff"/>
+        <text y="84">🍰 18%</text><rect x="82" y="72" width="178" height="16" rx="8" fill="#102e56"/><rect x="82" y="72" width="61" height="16" rx="8" fill="#ff58cc"/>
+      </g>
+    </g>
+
+    <g font-family="cursive" font-size="25" font-weight="800" fill="#fff">
+      <text x="82" y="712" transform="rotate(-7 82 712)">same prompt.</text><text x="72" y="742" fill="#65eeff" transform="rotate(-7 72 742)">different minds ↗</text>
+      <text x="1040" y="760" fill="#ff6ad6" transform="rotate(5 1040 760)">read the room ✦</text>
+    </g>
+  </g>
+  <rect x="18" y="18" width="1244" height="824" rx="54" fill="none" stroke="#62eaff" stroke-opacity=".36" stroke-width="3"/>
+</svg>

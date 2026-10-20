@@ -1,0 +1,17 @@
+# SYNC
+
+> A real-time multiplayer party game about matching your group's instincts.
+
+Canonical public runtime: https://sync-party-game.mcgill-raylene.workers.dev/
+
+## Public surfaces
+- Homepage: https://sync-party-game.mcgill-raylene.workers.dev/
+- Chat Edition: https://sync-party-game.mcgill-raylene.workers.dev/chat/
+- Sitemap: https://sync-party-game.mcgill-raylene.workers.dev/sitemap.xml
+- Crawler policy: https://sync-party-game.mcgill-raylene.workers.dev/crawlers.json
+
+## Machine-facing policy
+- Public indexing, citation, and user-directed retrieval are allowed.
+- Model training and bulk harvesting are not granted.
+- `/api/`, `/control-room*`, and `/usage*` are not public discovery surfaces.
+- Crawling permission is not authentication, authorization, execution authority, or permission to access private data.

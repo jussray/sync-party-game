@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "project": "jussray/sync-party-game",
+  "surface": "sync-multi-surface",
+  "visualFingerprintId": "SYNC_TRILOGY_ASSET_CONTINUITY_V1",
+  "parentContract": {
+    "repository": "jussray/founder-control-room",
+    "candidatePr": 906,
+    "contractPath": "docs/ASSET_CONTINUITY_GLOBAL_V1.md",
+    "status": "candidate-not-merged",
+    "truthBoundary": "This local manifest adopts the asset-level invariant without claiming the FCR candidate is merged or globally authoritative yet."
+  },
+  "sourceAuthority": {
+    "type": "founder-approved-visual-set",
+    "reference": "Founder-approved SYNC trilogy visual concepts shared in the ChatGPT conversation on 2026-09-30 and 2026-10-01.",
+    "status": "external-reference",
+    "rawBinaryInRepository": false,
+    "rule": "The approved source visuals outrank prose fingerprints and current substitute implementation assets for graphic-fidelity decisions."
+  },
+  "surfaces": {
+    "live-site": {
+      "fingerprint": "LIVE_SITE_SYNC_VISUAL_V1",
+      "runtime": "https://sync-party-game.mcgill-raylene.workers.dev/",
+      "mechanic": "changing-mode pressure party",
+      "graphicContinuityStatus": "REGRESSION",
+      "reason": "Current implementation preserves color/motion vocabulary but does not yet preserve the approved arena composition, people/crowd depth, dominant metallic title, contestant graphics, pressure-clock prominence, or full source-graphic family."
+    },
+    "chatgpt-sync": {
+      "fingerprint": "CHATGPT_SYNC_VISUAL_V1",
+      "runtime": "https://sync-party-game.mcgill-raylene.workers.dev/chat/",
+      "mechanic": "surface-only prediction lens before authoritative SYNC answer",
+      "graphicContinuityStatus": "PARTIAL",
+      "reason": "Current repo-backed Chat Edition has the prediction mechanic and AI-host element but the approved people-first cobalt scene and full graphic family are not materialized as canonical assets in the repository."
+    },
+    "lovable-sync": {
+      "fingerprint": "LOVABLE_SYNC_VISUAL_V1",
+      "runtime": "https://sync-playtest.lovable.app",
+      "mechanic": "social chemistry / vibe matching",
+      "graphicContinuityStatus": "EXTERNAL_PROVIDER",
+      "reason": "Lovable is a separate provider/project. Its canonical assets must be tracked at that provider and may not be inferred from this repository."
+    }
+  },
+  "assets": [
+    {
+      "id": "live-approved-arena-concept",
+      "kind": "source-visual",
+      "role": "canonical Live Site composition and graphic source of truth",
+      "continuityClass": "canonical",
+      "sourceAuthority": "founder-approved conversation visual",
+      "provenance": {
+        "type": "external-conversation-reference",
+        "creator": "OpenAI image generation in founder conversation",
+        "sourceReference": "Approved Live Site SYNC arena concept: giant LIVE SITE / SYNC chrome-neon title, expressive friend group, crowd/stage depth, central game board, blue-magenta lighting, pressure/reveal spectacle."
+      },
+      "location": {
+        "type": "external-reference",
+        "provider": "ChatGPT conversation",
+        "portableBinary": false
+      },
+      "fingerprint": {
+        "subjects": ["expressive friend group as active contestants", "foreground crowd silhouettes", "contestant portraits/tokens"],
+        "composition": ["giant title integrated into environment", "people embedded in stage scene", "central arena board", "foreground-midground-background crowd depth"],
+        "lighting": ["electric cyan", "magenta", "selective gold", "stage spill lighting"],
+        "materials": ["metallic/chrome title", "neon edge light", "arena glass/display surfaces"],
+        "motifs": ["handwritten arena marks", "pressure clock", "mode show cards", "reveal particles"],
+        "motion": ["pressure pulse", "lock silence", "whole-screen synchronized reveal", "crowd/stage light movement"]
+      },
+      "allowedTransformations": ["responsive re-composition that preserves people, title dominance and stage depth", "optimized recreation of approved asset family", "motion layers derived from the same graphic grammar"],
+      "prohibitedSubstitutions": ["generic gradient hero", "empty SaaS panel", "background-only people", "plain text logo", "generic neon cards without arena composition", "unrelated stock crowd"],
+      "replacementPolicy": "Founder-approved identity evolution or source-vs-render fidelity review required.",
+      "runtimeRefs": ["/"],
+      "semanticRole": "canonical visual reference",
+      "invalidationConditions": ["founder approves a successor Live Site visual", "source visual is superseded", "surface identity is intentionally changed"],
+      "status": "external-reference"
+    },
+    {
+      "id": "live-party-art-current",
+      "kind": "image",
+      "role": "current implementation hero/background asset",
+      "continuityClass": "supporting",
+      "sourceAuthority": "repository current implementation",
+      "provenance": {
+        "type": "repository-local",
+        "creator": "existing SYNC implementation",
+        "sourceReference": "public/party-art.png"
+      },
+      "location": {
+        "type": "local",
+        "path": "public/party-art.png",
+        "gitBlobSha": "1f91c824d1d088bdd20b3e8c2d3b63c0d86831d4"
+      },
+      "fingerprint": {
+        "subjects": ["party/friend-group imagery"],
+        "composition": ["current hero art layer"],
+        "lighting": ["neon party treatment"],
+        "materials": [],
+        "motifs": [],
+        "motion": []
+      },
+      "allowedTransformations": ["optimization", "temporary use while canonical arena family is rebuilt"],
+      "prohibitedSubstitutions": ["promotion to canonical merely because file exists", "use as evidence that approved arena composition is satisfied"],
+      "replacementPolicy": "Expected to be superseded or demoted further when the approved arena graphic family is materialized.",
+      "runtimeRefs": ["/"],
+      "semanticRole": "decorative implementation asset",
+      "invalidationConditions": ["approved arena asset family lands", "file changes", "runtime stops using it"],
+      "status": "current",
+      "graphicContinuityResult": "REGRESSION",
+      "failureClasses": ["GRAPHIC_CONTINUITY_REGRESSION", "COMPOSITION_DRIFT"]
+    },
+    {
+      "id": "chat-approved-ai-host-concept",
+      "kind": "source-visual",
+      "role": "canonical ChatGPT SYNC composition and graphic source of truth",
+      "continuityClass": "canonical",
+      "sourceAuthority": "founder-approved conversation visual",
+      "provenance": {
+        "type": "external-conversation-reference",
+        "creator": "OpenAI image generation in founder conversation",
+        "sourceReference": "Approved ChatGPT SYNC concept: luminous friendly AI host, cobalt/cyan futuristic room, people around phones, prediction UI, chat bubbles and handwritten prediction notes."
+      },
+      "location": {
+        "type": "external-reference",
+        "provider": "ChatGPT conversation",
+        "portableBinary": false
+      },
+      "fingerprint": {
+        "subjects": ["friendly luminous AI host", "human friend group clustered around phones"],
+        "composition": ["AI host anchors the scene", "people remain socially central", "prediction UI embedded into environment"],
+        "lighting": ["cobalt", "cyan electric edges", "selective pink-violet accents"],
+        "materials": ["clean futuristic panels", "luminous robot surfaces"],
+        "motifs": ["chat bubbles", "prediction bars", "handwritten white annotations"],
+        "motion": ["scanner sweeps", "prediction fills", "chat bubble drift", "soft AI-host glow"]
+      },
+      "allowedTransformations": ["responsive scene adaptation preserving AI host plus human group", "animated implementation of prediction graphics"],
+      "prohibitedSubstitutions": ["random generic bot icon", "robot-only screen with no human social scene", "arena crowd grammar", "Lovable warm lounge grammar", "generic dashboard"],
+      "replacementPolicy": "Founder-approved identity evolution or source-vs-render fidelity review required.",
+      "runtimeRefs": ["/chat/"],
+      "semanticRole": "canonical visual reference",
+      "invalidationConditions": ["founder approves successor ChatGPT SYNC visual", "source visual is superseded", "surface identity intentionally changes"],
+      "status": "external-reference"
+    },
+    {
+      "id": "chat-ai-host-current",
+      "kind": "svg",
+      "role": "current AI-host implementation asset",
+      "continuityClass": "supporting",
+      "sourceAuthority": "repository current implementation",
+      "provenance": {
+        "type": "repository-local",
+        "creator": "current Chat Edition implementation",
+        "sourceReference": "public/chat/ai-host.svg"
+      },
+      "location": {
+        "type": "local",
+        "path": "public/chat/ai-host.svg",
+        "gitBlobSha": "641a19b93dd66c48223734b8e8004ba782b47d91"
+      },
+      "fingerprint": {
+        "subjects": ["AI host"],
+        "composition": ["host card/hero element"],
+        "lighting": ["cobalt/cyan glow"],
+        "materials": ["vector luminous robot treatment"],
+        "motifs": [],
+        "motion": ["soft host glow through CSS"]
+      },
+      "allowedTransformations": ["responsive scaling", "glow/motion styling that preserves host identity"],
+      "prohibitedSubstitutions": ["promotion as proof that the full approved human-plus-AI source composition is satisfied", "generic unrelated robot replacement"],
+      "replacementPolicy": "May remain a derived/supporting host asset, but the full canonical ChatGPT graphic family still needs materialization.",
+      "runtimeRefs": ["/chat/"],
+      "semanticRole": "decorative host asset",
+      "invalidationConditions": ["canonical ChatGPT graphic family lands", "file changes", "runtime stops using it"],
+      "status": "current",
+      "graphicContinuityResult": "PARTIAL",
+      "failureClasses": ["RUNTIME_ASSET_UNKNOWN"]
+    }
+  ],
+  "antiCollapse": {
+    "rule": "Live Site, ChatGPT SYNC and Lovable SYNC must remain recognizable without reading their text labels.",
+    "liveVsChat": "Arena crowd/chrome/pressure-show graphics may not collapse into AI-host prediction graphics.",
+    "liveVsLovable": "Arena spectacle may not collapse into warm heart-first social-chemistry lounge graphics.",
+    "chatVsLovable": "Cobalt AI-host prediction graphics may not collapse into coral/pink human-chemistry graphics."
+  },
+  "rollback": {
+    "strategy": "Keep predecessor implementation assets and exact source/runtime evidence until a successor canonical asset family is approved and proven.",
+    "lastKnownGoodFunctionalSha": "b86d525dfed87334bd6abd1dd36de57ccc35aeb5",
+    "visualTruth": "Functional production proof at the last-known-good SHA does not convert the current graphics into founder-approved visual fidelity."
+  },
+  "truthBoundary": "This manifest records visual source authority and current implementation truth. It does not claim the external approved binaries are repository-owned, that licensing/exportability is proven, that current runtime visually matches the approved concepts, or that a replacement is merge/deploy ready."
+}

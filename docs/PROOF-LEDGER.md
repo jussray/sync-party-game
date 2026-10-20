@@ -11,6 +11,12 @@ A `VERIFIED` row must contain evidence tied to an exact commit SHA or immutable 
 - Initial commit timestamp: 2026-09-24
 - Default branch: `main`
 - Founder authority: `@jussray`
+- Verified game/runtime source SHA: `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c`
+- Public production proof: core-proof run `36194582903`, deploy/proof run `36194666290`
+- Public runtime: `https://sync-party-game.mcgill-raylene.workers.dev`
+- Production proof receipt: `docs/receipts/2026-09-25-handshake-public-production-proof.md`
+
+Documentation-only continuity commits after `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` are safe drift under the repository continuity model and do not redefine the game/runtime source subject. The moving `main` / `production` branch head must be read from GitHub and the deployed runtime identity from Cloudflare; this ledger intentionally does not freeze a self-referential “current head” value.
 
 ## Core gates
 
@@ -18,34 +24,40 @@ A `VERIFIED` row must contain evidence tied to an exact commit SHA or immutable 
 |---|---|---|---|---|
 | Repository provenance anchored | VERIFIED | `ee3e0264a3038695d43763709262f9a871262f02` | Git history | Preserve lineage |
 | Product-first competition routing | VERIFIED | `776a2683b9e6560e24cd5d0bfb3ff0352a97c02e` | `README.md` + `docs/COMPETITION-MATRIX.md` | Prevent adapter drift |
-| Pure game transition/scoring rules | VERIFIED | `b8efce1f7a48aeaa93d7bffd0dc9f9fa56099dd1` | 10/10 Node tests in Actions run `36050519734`; Python successor green | Keep rule tests independent of browser proof |
-| Python independent bug-finder lane | VERIFIED | `b8efce1f7a48aeaa93d7bffd0dc9f9fa56099dd1` | Python 3.12 bug-finder green in run `36050519734`; full replay shape required | Keep Python non-authoritative and independent of game implementation |
-| REMATCH phase authority | VERIFIED | `b8efce1f7a48aeaa93d7bffd0dc9f9fa56099dd1` | Phase-spoof fix `06dc6f10...`; Python guard; successful same-room rematch in run `36050519734` | Re-prove on production deployment |
+| Pure game transition/scoring rules | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Core-proof run `36194582903` passed the pure game suite before promotion | Keep rule tests independent of browser proof |
+| Python independent bug-finder lane | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Core-proof run `36194582903` passed continuity and bug-finder checks | Keep Python non-authoritative and independent of game implementation |
+| Production deploy authority workflow | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Deploy/proof run `36194666290` promoted the exact green SHA and required exact-SHA runtime identity before public Playwright | Preserve exact-SHA promotion and fail-closed drift rules |
+| REMATCH phase authority | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Public production Playwright completed five rounds and same-room rematch in run `36194666290` | Re-prove after runtime mutations |
 | Main branch protection / ruleset | BLOCKED | — | GitHub branch metadata reports `protected:false` | Enable ruleset requiring appropriate checks/review |
-| Room create / join | VERIFIED (local runtime) | `b8efce1f7a48aeaa93d7bffd0dc9f9fa56099dd1`; re-proved at `ddb239f4a0893a81c693c00247decfe9965d259f` | Two-browser Wrangler UI flow in run `36050519734`; plus Playwright desktop+phone 4/4; `docs/receipts/2026-09-24-multiplayer-runtime-proof.md` | Re-prove at public URL |
-| 2+ player synchronized state | VERIFIED (local runtime) | `b8efce1f7a48aeaa93d7bffd0dc9f9fa56099dd1`; re-proved at `ddb239f4a0893a81c693c00247decfe9965d259f` | Independent host/guest contexts traverse the same five rounds in run `36050519734`; plus Both contexts show identical seq+stateHash every round; 8-player attack converged, 3 seeds x 2 games | Re-prove at public URL |
-| Timed choice lock | VERIFIED (LOCAL wrangler dev (real Worker + DO)) | `ddb239f4a0893a81c693c00247decfe9965d259f` | Attack harness: withheld player -> DO alarm LOCKED at deadline -> REVEAL with 7/8 answers | Production proof pending |
-| Hidden choices before reveal | VERIFIED (LOCAL wrangler dev (real Worker + DO)) | `ddb239f4a0893a81c693c00247decfe9965d259f` | Playwright inspects every guest WebSocket STATE frame in CHOOSING/LOCKED; mutation test (leak in LOCKED) made the spec fail | Production proof pending |
-| Synchronized reveal + score | VERIFIED (local runtime) | `b8efce1f7a48aeaa93d7bffd0dc9f9fa56099dd1`; re-proved at `ddb239f4a0893a81c693c00247decfe9965d259f` | Both browsers observe synchronized reveal/100% state across full-loop Playwright in run `36050519734`; plus Same result rows, SYNC %, leaderboard and state hash on both contexts, all 5 modes; final room SYNC 70% on both | Add score-value equality assertion and production proof |
-| Recovery from disconnect / reconnect | VERIFIED (local runtime) | `b8efce1f7a48aeaa93d7bffd0dc9f9fa56099dd1`; re-proved at `ddb239f4a0893a81c693c00247decfe9965d259f` | Guest reload restores same room URL, identity, and authoritative reveal state in run `36050519734`; plus Guest reload in round 3 resumes same identity + same hash; attack harness refreshes a random player each round; host drop transfers host | Re-prove over public internet |
-| Replay/rematch same room | VERIFIED (local runtime) | `b8efce1f7a48aeaa93d7bffd0dc9f9fa56099dd1`; re-proved at `ddb239f4a0893a81c693c00247decfe9965d259f` | Five rounds → GAME OVER → Play again → both clients synchronized at Round 1 in same room; run `36050519734`; plus Rematch in same code, scores reset, round playable to 100% reveal | Re-prove production |
-| Pressure audio / visual escalation | INFERRED | `ddb239f4a0893a81c693c00247decfe9965d259f` | Visual countdown + LOCKED beat screenshot-verified; sound toggle aria-pressed verified; audible output NOT verified (headless) | Human listen test on a phone |
-| Light / dark mode | VERIFIED (local runtime) | `b8efce1f7a48aeaa93d7bffd0dc9f9fa56099dd1`; re-proved at `ddb239f4a0893a81c693c00247decfe9965d259f` | Environment-independent toggle + reload persistence passed in run `36050519734`; plus Toggle flips + persists across reload (Playwright) | Add visual snapshots/mobile proof |
-| Deterministic room/state fingerprint | VERIFIED (LOCAL wrangler dev (real Worker + DO)) | `ddb239f4a0893a81c693c00247decfe9965d259f` | `/api/rooms/:code/receipts` chain: contiguous seq, previousStateHash links, last hash == client hash (Playwright + attack) | Receipts capped at last 128 |
-| Secret scan / publication review | UNKNOWN | — | — | Add CI/manual evidence |
+| Room create / join | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Public production Playwright in run `36194666290` | Re-prove after runtime mutations |
+| 2+ player synchronized state | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Separate phone/laptop browser contexts traversed authoritative room state in public production proof | Re-prove after runtime mutations |
+| Timed choice lock / timeout alarm | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Public production suite passed the Durable Object timeout/alarm path | Keep alarm path in production suite |
+| LOCK tension beat (CHOOSING → LOCKED → REVEAL) | VERIFIED (local Wrangler runtime (real Worker + DO)) | `@THIS@` | `e2e/lock-authority.spec.js`: both clients pass through server phase `locked` every round of all 5 modes; 5 `ROUND_LOCKED*` + 5 `ROUND_REVEALED` receipts; music ducked in `locked` | Production proof runs automatically after promotion |
+| Host authority transfer on host drop | VERIFIED (local Wrangler runtime (real Worker + DO)) | `@THIS@` | `e2e/lock-authority.spec.js`: host context closed → earliest connected player gets Start and drives the room; `scripts/attack.mjs` 8-player host drop | Production proof after promotion |
+| 8-player seeded attack harness | VERIFIED (local Wrangler runtime (real Worker + DO)) | `@THIS@` | `npm run attack:multiplayer` seeds 7/11/23 × 2 games: forged token/player, 9th + late join, duplicate/overwrite/simultaneous submits, refresh each round, alarm timeout, host drop, rematch; 83–84 contiguous receipts per game | CI job `multiplayer-attack` |
+| Hidden choices before reveal | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Public production suite passed hidden-choice privacy before synchronized reveal | Preserve protocol-level privacy assertions |
+| Synchronized reveal + score | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Public production suite passed reveal/scoring across independent contexts | Re-prove after scoring/runtime mutations |
+| Recovery from disconnect / reconnect | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Public production suite passed refresh/drop reconnect continuity | Re-prove after identity/session changes |
+| Replay/rematch same room | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Public production suite passed five rounds → results → same-room rematch | Re-prove after phase changes |
+| Pressure audio / visual escalation | UNKNOWN | implementation present | Visual/runtime game flow is proven; audible output and final-five-second audio behavior are not explicitly captured as evidence | Browser/audio/accessibility proof if required |
+| Light / dark mode | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Existing persistence proof remained green through exact-SHA core proof | Optional visual snapshots |
+| Phone viewport horizontal fit | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Phone + laptop path passed public production Playwright; earlier suite includes explicit no-horizontal-overflow assertions | Physical-device polish remains optional |
+| Deterministic room/state fingerprint | VERIFIED (local Wrangler runtime (real Worker + DO)) | `@THIS@` | `GET /api/rooms/:code/receipts`: contiguous seq, `previousStateHash` links, last receipt == both clients' visible `#fingerprint` seq+hash; no `resumeToken` in receipts | Receipts capped at last 128; production proof after promotion |
+| Secret scan / publication review | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Secret scan passed in core-proof run `36194582903` before production promotion | Re-run before every production mutation |
 
 ## Handshake gates — PRIMARY
 
 | Gate | State | Exact SHA / version | Evidence | Risk / next proof |
 |---|---|---|---|---|
-| Mission contract verified | VERIFIED | 2026-09-24 source check | Handshake mission page + `docs/audits/2026-09-24-handshake-multiplayer-audit.md` | Re-check before submission |
-| Own public URL | BLOCKED | — | No `sync-party-game` Worker in Cloudflare account (listed 2026-09-24); no Cloudflare credentials in agent container; `deploy-and-prove` workflow needs `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` repo secrets | Founder adds secrets, merge to main |
-| Room-code join | VERIFIED | `b8efce1f7a48aeaa93d7bffd0dc9f9fa56099dd1` local Wrangler runtime | Real browser create/join in run `36050519734` | Production multiplayer proof still required |
-| No login required | VERIFIED | `b8efce1f7a48aeaa93d7bffd0dc9f9fa56099dd1` local Wrangler runtime | Full browser flow completes without auth/login in run `36050519734` | Production proof |
-| No app install required | VERIFIED | `b8efce1f7a48aeaa93d7bffd0dc9f9fa56099dd1` local Wrangler runtime | Browser-only flow via served web app in run `36050519734` | Production proof |
-| Phone + laptop usable | VERIFIED (LOCAL wrangler dev (real Worker + DO)) | `ddb239f4a0893a81c693c00247decfe9965d259f` | Full flow on Pixel 7 emulation + 1280x800; no horizontal scroll asserted; screenshots | Real device check after deploy |
-| Replayable multiplayer loop | VERIFIED | `b8efce1f7a48aeaa93d7bffd0dc9f9fa56099dd1` local Wrangler runtime | Full five-round + rematch proof in run `36050519734` | Production E2E |
-| Separate-context Playwright proof | VERIFIED (local runtime) | `b8efce1f7a48aeaa93d7bffd0dc9f9fa56099dd1`; re-proved at `ddb239f4a0893a81c693c00247decfe9965d259f` | Two independent browser contexts + real Wrangler/Durable Object passed in run `36050519734`; receipt `docs/receipts/2026-09-24-wrangler-multiplayer-runtime-proof.md`; plus 4/4 passed (desktop+phone), 2 independent contexts; `docs/receipts/2026-09-24-multiplayer-runtime-proof.md` | Production-targeted Playwright next |
+| Mission contract verified | VERIFIED | 2026-09-24 source check | Handshake mission page + `docs/audits/2026-09-24-handshake-multiplayer-audit.md` | Re-check official submission requirements before final submission |
+| Own public URL | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` / Cloudflare build `fa870ed1-ffe4-4039-b7d8-50cc995c1354` | `/api/version` exact-SHA check + public production proof run `36194666290`; receipt `docs/receipts/2026-09-25-handshake-public-production-proof.md` | Re-prove after production mutation |
+| Room-code join | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Public production Playwright create/join path | Re-prove after room API changes |
+| No login required | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Public production browser flow completes without auth/login | Preserve no-login path |
+| No app install required | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Public browser-only production flow | Preserve browser-first path |
+| Phone + laptop usable | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Public production proof passed separate phone + laptop contexts | Physical-device founder playtest remains useful polish |
+| Replayable multiplayer loop | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Public production proof passed five rounds + results + same-room rematch | Re-prove after phase/scoring changes |
+| Separate-context Playwright proof | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Core-proof run `36194582903` + public production proof run `36194666290` | Keep independent contexts |
+| Production-targeted Playwright | VERIFIED | `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c` | Deploy/proof run `36194666290`: exact-SHA runtime identity PASS; 4 public production tests PASS in 30.6s; artifact preserved | Any new runtime/config/dependency mutation must earn a successor exact-SHA receipt |
 
 ## Amazon adapter gates — SECONDARY
 
@@ -58,14 +70,21 @@ A `VERIFIED` row must contain evidence tied to an exact commit SHA or immutable 
 | Amazon friction log maintained | VERIFIED | documentation baseline | `docs/FRICTION-LOG.md` | Add only genuine events |
 | Amazon submission-rule reconciliation | UNKNOWN | — | — | Re-check official rules near submission |
 
-## Runtime proof receipt
+## Runtime / deployment-readiness receipts
 
 - Full-loop Playwright commit: `dfe36245cf3ef7d1659438830500aeb498ffd303`
-- Full-loop run: `36050346725` / run #15 — SUCCESS
-- Python full-proof successor: `b8efce1f7a48aeaa93d7bffd0dc9f9fa56099dd1`
-- Successor run: `36050519734` / run #17 — SUCCESS
-- Receipt: `docs/receipts/2026-09-24-wrangler-multiplayer-runtime-proof.md`
-- Earlier failed proof artifacts are preserved in the receipt and were not suppressed.
+- Earlier full-loop run: `36050346725` / run #15 — SUCCESS
+- Strong mobile/privacy/timeout + deploy-aware successor: `a07dc550ea7d5882781a1e5ffce736d8ab87eace`
+- Verified game/runtime source SHA: `ddafeae4b66c9c83b83d9ca1b4825836808b3d9c`
+- Exact source core-proof run: `36194582903` — SUCCESS
+- Public production deploy/proof run: `36194666290` — SUCCESS
+- Cloudflare production build: `fa870ed1-ffe4-4039-b7d8-50cc995c1354`
+- Public URL: `https://sync-party-game.mcgill-raylene.workers.dev`
+- Public production Playwright: 4 tests passed in 30.6 seconds
+- Production proof artifact: `sync-party-production-proof-36194666290-1`
+- Production proof receipt: `docs/receipts/2026-09-25-handshake-public-production-proof.md`
+- Documentation-only continuity commits are not enumerated as a moving “current head” in this ledger; GitHub branch state and Cloudflare runtime identity remain authoritative for that live value.
+- Earlier failed proof artifacts remain part of the evidence genealogy and were not suppressed.
 
 ## Evidence receipt format
 
@@ -80,3 +99,17 @@ For each meaningful proof, record:
 - artifact/log/screenshot/trace reference
 - VERIFIED / INFERRED / UNKNOWN / BLOCKED
 - rollback or retry path
+
+
+## Audio port candidate — 26 September 2026
+
+Evidence subject: SHA-256 `27838a25f5d830fbcbad9eef1d6f5a4b5cb5fb9a426932bf39a49a3e33a0f5a3` of [source manifest](receipts/2026-09-26-audio-source-manifest.json). See [scoped receipt](receipts/2026-09-26-audio-port.md).
+
+| Gate | State | Evidence / boundary |
+|---|---|---|
+| Audio lifecycle and game regression | VERIFIED | 20 local Node tests plus Python bugfinder; device seam is mocked |
+| Candidate secret/continuity checks | VERIFIED | Staged implementation scan and continuity guard |
+| Worker packaging | VERIFIED | Wrangler dry-run only; no deployment |
+| Local browser execution | BLOCKED | Chromium download invalid/truncated |
+| Candidate CI browser results | UNKNOWN | Read exact PR head CI; tests added, no assumed result |
+| Audible hardware / public candidate runtime | UNKNOWN | New frontend requires fresh runtime/audio proof |

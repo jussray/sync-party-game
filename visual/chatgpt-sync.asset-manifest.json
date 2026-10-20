@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "surface": "chatgpt-sync",
+  "visualFingerprint": "CHATGPT_SYNC_VISUAL_V1",
+  "assetContinuity": "CHATGPT_SYNC_ASSET_V2",
+  "status": "PARTIAL_REBUILD_CANDIDATE",
+  "canonicalSource": {
+    "type": "founder-approved-external-reference",
+    "description": "Approved ChatGPT SYNC concept: luminous friendly AI host above a human friend group using phones in a cobalt/cyan room with chat bubbles, prediction bars and handwritten prediction notes.",
+    "binaryInRepository": false,
+    "authorityRule": "This source outranks current implementation assets for graphic-fidelity decisions until an approved successor is explicitly accepted."
+  },
+  "runtimeAssets": [
+    {
+      "id": "chat-social-scene-v2",
+      "path": "public/chat/chat-social-scene-v2.svg",
+      "continuityClass": "derived",
+      "role": "AI-host plus human-room hero graphic family",
+      "requiredSubjects": ["friendly luminous AI host", "four friends", "phones", "prediction UI"],
+      "requiredComposition": ["AI host anchors upper scene", "human group remains socially central", "prediction graphics live inside the scene rather than replacing people"],
+      "requiredLighting": ["cobalt", "cyan", "selective pink-violet"],
+      "requiredMotifs": ["chat bubbles", "prediction bars", "handwritten notes"],
+      "prohibitedSubstitutions": ["lone robot mascot", "generic dashboard", "arena crowd grammar", "Lovable warm-lounge grammar", "generic gradient hero"],
+      "runtimeRefs": ["/chat/"],
+      "status": "candidate"
+    },
+    {
+      "id": "chat-ai-host-v1",
+      "path": "public/chat/ai-host.svg",
+      "continuityClass": "supporting",
+      "role": "legacy/derived AI-host component",
+      "runtimeRefs": ["/chat/"],
+      "status": "supporting-not-full-proof"
+    }
+  ],
+  "recognitionTest": "With copy hidden, the surface must still read as the cobalt AI-hosted social prediction world and remain clearly distinct from Live Site arena spectacle and Lovable human-chemistry lounge.",
+  "allowedTransformations": ["responsive crop", "motion overlays", "optimized vector revisions that preserve AI host plus human group", "prediction graphics that do not obscure faces"],
+  "rollback": "Remove chat-v2.css, chat-v2.js, chat-social-scene-v2.svg and their index references to return to the previous Chat Edition presentation without changing gameplay authority.",
+  "truthBoundary": "This candidate materially improves asset-level composition but does not claim pixel-level fidelity to the founder-approved external concept because the original approved binary is not repository-owned for direct comparison."
+}
