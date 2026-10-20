@@ -1,10 +1,14 @@
+import { predictionHit } from "./prediction-round.mjs";
 // CHATGPT_SYNC_VISUAL_V1
 // Surface-only prediction lens. Never mutates shared SYNC gameplay authority.
 
-const STORAGE_KEY = "sync.chat.prediction.v1";
+const STORAGE_KEY = "sync.chat.prediction.v2";
 const visualState = {
   currentRoundKey: null,
-  stage: "prediction"
+  stage: "prediction",
+  currentRoom: null,
+  currentRound: null,
+  matchKeys: new Set()
 };
 
 document.documentElement.dataset.visualCookie = "CHATGPT_SYNC_VISUAL_V1";
@@ -19,9 +23,7 @@ function writePredictions(value) {
 }
 
 function activeRoundKey() {
-  const meta = document.querySelector(".meta-row span")?.textContent?.trim() || "";
-  const prompt = document.querySelector(".prompt")?.textContent?.trim() || "";
-  return prompt ? `${meta}::${prompt}` : null;
+  return document.querySelector(".choices")?.dataset.roundKey || null;
 }
 
 function decorateHome() {
@@ -83,7 +85,16 @@ function decorateChoosing() {
   const saved = store[key];
 
   if (visualState.currentRoundKey !== key) {
+    const identity = /^room:([A-Z0-9]{4,8}):round:(\d+):deadline:(\d+)$/.exec(key);
+    const room = new URLSearchParams(location.search).get("room")?.toUpperCase();
+    if (!identity || identity[1] !== room) return;
+    const round = Number(identity[2]);
+    if (visualState.currentRoom !== room || (round === 1 && visualState.currentRound !== 1)) {
+      visualState.matchKeys = new Set();
+    }
     visualState.currentRoundKey = key;
+    visualState.currentRoom = room;
+    visualState.currentRound = round;
     visualState.stage = saved?.predictionIndex !== undefined ? "answer" : "prediction";
   }
 
@@ -147,6 +158,7 @@ function capturePrediction(event) {
     recordedAt: Date.now()
   };
   writePredictions(store);
+  visualState.matchKeys.add(key);
   visualState.stage = "answer";
 
   buttons.forEach((item) => item.classList.remove("prediction-picked"));
@@ -160,22 +172,15 @@ function decorateReveal() {
   const bubble = rows[0].closest(".bubble");
   if (!bubble || bubble.querySelector(".prediction-result")) return;
 
-  const predictions = readPredictions();
-  const candidates = Object.entries(predictions);
-  if (!candidates.length) return;
-
-  const metaText = bubble.querySelector(".eyebrow")?.textContent || "";
-  const roundMatch = metaText.match(/round\s+(\d+)/i);
-  const roundNumber = roundMatch?.[1];
-
-  let selectedEntry = candidates[candidates.length - 1];
-  if (roundNumber) {
-    const found = candidates.find(([key]) => key.includes(`Round ${roundNumber} `));
-    if (found) selectedEntry = found;
-  }
-
-  const [, prediction] = selectedEntry;
-  if (prediction?.predictionIndex === undefined) return;
+  const grid = bubble.querySelector(".result-grid");
+  const room = grid?.dataset.roomCode;
+  const round = Number(grid?.dataset.roundNumber);
+  const key = visualState.currentRoundKey;
+  // A prior room or rematch must never substitute its prediction for this reveal.
+  if (!room || room !== visualState.currentRoom || round !== visualState.currentRound ||
+      !key || !visualState.matchKeys.has(key)) return;
+  const prediction = readPredictions()[key];
+  if (!prediction || !Number.isInteger(prediction.predictionIndex)) return;
 
   const counts = rows.map((row) => {
     const text = row.querySelector("strong")?.textContent || "0/0";
@@ -183,19 +188,18 @@ function decorateReveal() {
     return count;
   });
   const winningIndex = counts.indexOf(Math.max(...counts));
-  const accurate = prediction.predictionIndex === winningIndex;
-  const winningLabel = rows[winningIndex]?.querySelector("span")?.textContent?.trim() || "the room favorite";
+  const accurate = predictionHit(counts, prediction.predictionIndex);
+  const winningLabel = rows[accurate ? prediction.predictionIndex : winningIndex]?.querySelector("span")?.textContent?.trim() || "the room favorite";
 
   const panel = document.createElement("div");
   panel.className = `prediction-result ${accurate ? "good" : ""}`;
   panel.setAttribute("role", "status");
   panel.innerHTML = accurate
-    ? `<strong>Prediction hit ✦</strong><span>You called it: ${escapeLocal(winningLabel)} was the room’s top answer.</span>`
+    ? `<strong>Prediction hit ✦</strong><span>You called it: ${escapeLocal(winningLabel)} was a top room answer.</span>`
     : `<strong>Prediction missed, room surprised you.</strong><span>You predicted ${escapeLocal(prediction.label)}. The room leaned ${escapeLocal(winningLabel)}.</span>`;
   rows[0].parentElement?.before(panel);
 
   const store = readPredictions();
-  const key = selectedEntry[0];
   if (store[key]) {
     store[key].resolved = true;
     store[key].accurate = accurate;
@@ -208,7 +212,13 @@ function decorateResults() {
   if (!rankings) return;
   const bubble = rankings.closest(".bubble");
   if (!bubble || bubble.querySelector(".prediction-result")) return;
-  const values = Object.values(readPredictions()).filter((item) => item.resolved);
+  const room = rankings.dataset.roomCode;
+  if (!room || visualState.currentRoom !== room) return;
+  const store = readPredictions();
+  const values = [...visualState.matchKeys]
+    .filter((key) => key.startsWith(`room:${room}:`))
+    .map((key) => store[key])
+    .filter((item) => item?.resolved);
   if (!values.length) return;
   const hits = values.filter((item) => item.accurate).length;
   const panel = document.createElement("div");

@@ -1,3 +1,4 @@
+import { makePredictionKey } from "./prediction-round.mjs";
 const PROD_API = "https://sync-party-game.mcgill-raylene.workers.dev";
 const mirrored = location.hostname.endsWith(".chatgpt.site");
 const apiBase = mirrored ? PROD_API : location.origin;
@@ -223,7 +224,7 @@ function renderChoosing(code, me) {
       <div class="meta-row"><span>Round ${state.roundIndex + 1} of ${state.rounds} · ${escapeHtml(state.mode?.label || "SYNC")}</span><span id="chatTimer" class="timer">15s</span></div>
       <p class="eyebrow" style="margin-top:18px">${escapeHtml(state.mode?.instruction || "Read the room.")}</p>
       <h2 class="prompt">${escapeHtml(state.prompt.text)}</h2>
-      <div class="choices">${choices}</div>
+      <div class="choices" data-round-key="${escapeHtml(makePredictionKey(state.code, state.roundIndex + 1, state.deadline) || "")}">${choices}</div>
     </article>
     <article class="bubble you"><p class="copy" id="lockCopy">${locked ? "✓ Your pick is locked. Nobody else can see it yet." : "Pick privately. Reveal happens from the shared game state."}</p></article>
   `, {
@@ -259,7 +260,7 @@ function renderReveal(code, me) {
     <article class="bubble">
       <p class="eyebrow">Reveal · round ${state.roundIndex + 1}</p>
       <div class="sync-score">${state.lastResults?.syncPercent || 0}% <small style="font-size:14px;color:var(--muted)">room sync</small></div>
-      <div class="result-grid">${rows}</div>
+      <div class="result-grid" data-room-code="${escapeHtml(state.code)}" data-round-number="${state.roundIndex + 1}">${rows}</div>
     </article>
     <article class="bubble you">
       <h2>Your answer</h2>
@@ -286,7 +287,7 @@ function renderResults(code, me) {
       <p class="eyebrow">Final scores</p>
       <h2>${escapeHtml(ranking[0]?.name || "Nobody")} takes it.</h2>
       <div class="sync-score">${roomSync}% <small style="font-size:14px;color:var(--muted)">final room sync</small></div>
-      <div class="rankings">${rows}</div>
+      <div class="rankings" data-room-code="${escapeHtml(state.code)}">${rows}</div>
     </article>
     <article class="bubble you">
       <div class="action-grid">
