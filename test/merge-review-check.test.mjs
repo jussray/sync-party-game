@@ -7,7 +7,7 @@ function fixture(overrides = {}) {
   const pr = { state: "open", draft: false, mergeable: true, user: { login: "author" }, head: { sha: SHA }, base: { ref: "main", sha: BASE }, ...overrides.pr };
   const checks = REQUIRED_CHECKS.map(name => ({ name, head_sha: SHA, app: { slug: "github-actions" }, status: "completed", conclusion: "success" }));
   const reviews = [{ user: { login: "reviewer" }, commit_id: SHA, state: "APPROVED", submitted_at: "2026-10-22T01:00:00Z" }];
-  return { pr, currentMainSha: BASE, checkRuns: checks, reviews, statuses: [], ...overrides };
+  return { pr, currentMainSha: BASE, mainIsAncestor: true, checkRuns: checks, reviews, statuses: [], ...overrides };
 }
 function denied(f, reason) {
   const outcome = evaluateMergeReview(f);
@@ -47,4 +47,8 @@ test("wrong GitHub app cannot impersonate the required checks", () => {
 });
 test("review and check cannot be borrowed from another head", () => {
   const f=fixture();f.checkRuns[1].head_sha=OLD;denied(f,"verify-agent-contract");
+});
+
+test("branch behind main blocks even when PR base SHA points to moving main", () => {
+  denied(fixture({ mainIsAncestor: false }), "not proven an ancestor");
 });
