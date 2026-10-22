@@ -213,8 +213,9 @@ function renderLobby(code, me) {
 }
 
 function renderChoosing(code, me) {
-  // Choice index 0 is a valid locked answer; truthiness would reopen it after reconnect.
-  const locked = Number.isInteger(state.answers?.[me.playerId]);
+  // During choosing, the server intentionally publishes only an answered flag,
+  // not the private choice index. Never infer a selection from this public state.
+  const locked = state.answers?.[me.playerId] === true;
   const choices = state.prompt.choices.map((choice, index) => `
     <button class="choice ${state.answers?.[me.playerId] === index ? "selected" : ""}" data-choice="${index}" ${locked ? "disabled" : ""}>
       ${escapeHtml(choice)}
