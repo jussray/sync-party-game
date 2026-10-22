@@ -33,6 +33,16 @@ test("Chat Edition predictions stay isolated across real shared-authority rooms"
     await chat.locator(".choice").first().click();
     await expect(chat.locator(".prediction-intro")).toContainText(/prediction locked/i);
 
+    // Submit the real first option (index 0). The server must acknowledge it
+    // before we reconnect; otherwise only the optimistic client UI is tested.
+    const oldChoice = await chat.locator(".choice").first().elementHandle();
+    await chat.locator(".choice").first().click();
+    await expect.poll(async () => oldChoice?.evaluate((node) => node.isConnected)).toBe(false);
+    await chat.reload();
+    await expect(chat.locator(".choice").first()).toHaveClass(/selected/);
+    await expect(chat.locator(".choice").first()).toBeDisabled();
+    await expect(chat.locator("#lockCopy")).toContainText(/locked/i);
+
     // Reload to another room in the same browser session: sessionStorage survives.
     const second = await startRoom("Second Host");
     expect(second.code).not.toBe(first.code);
