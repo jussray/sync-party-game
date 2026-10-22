@@ -99,14 +99,17 @@ export async function checkPullRequest({ api, token, repository, number }) {
   if (checks.total_count > 100 || reviews.length >= 100) {
     throw new Error("Merge review evidence exceeds page limit; manual verification required");
   }
-  return evaluateMergeReview({
-    pr,
-    currentMainSha: mainSha,
-    mainIsAncestor: ancestry?.merge_base_commit?.sha === mainSha && ["ahead", "identical"].includes(ancestry?.status),
-    checkRuns: checks.check_runs,
-    reviews,
-    statuses: status.statuses
-  });
+  return {
+    ...evaluateMergeReview({
+      pr,
+      currentMainSha: mainSha,
+      mainIsAncestor: ancestry?.merge_base_commit?.sha === mainSha && ["ahead", "identical"].includes(ancestry?.status),
+      checkRuns: checks.check_runs,
+      reviews,
+      statuses: status.statuses
+    }),
+    checked_main_sha: mainSha
+  };
 }
 
 
@@ -143,9 +146,14 @@ export async function publishMergeReview({ api, token, repository, number }) {
   let verdict = { pass: false, head, reasons: ["Unable to verify merge-review evidence"] };
   try {
     verdict = await checkPullRequest({ api, token, repository, number });
-    const fresh = await readJson(api, token, root + "/pulls/" + number);
+    const [fresh, currentMain] = await Promise.all([
+      readJson(api, token, root + "/pulls/" + number),
+      readJson(api, token, root + "/branches/main")
+    ]);
     if (verdict.head !== head || fresh.head?.sha !== head || fresh.state !== "open" ||
-        fresh.draft !== false || fresh.base?.ref !== "main") {
+        fresh.draft !== false || fresh.base?.ref !== "main" ||
+        currentMain?.commit?.sha !== verdict.checked_main_sha ||
+        fresh.base?.sha !== verdict.checked_main_sha) {
       verdict = { pass: false, head, reasons: ["PR changed while merge review was running"] };
     }
   } catch (error) {
