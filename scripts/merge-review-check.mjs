@@ -109,25 +109,94 @@ export async function checkPullRequest({ api, token, repository, number }) {
   });
 }
 
+
+async function writeCheck(api, token, repository, suffix, body, method) {
+  const response = await fetch(api + "/repos/" + repository + "/check-runs" + suffix, {
+    method,
+    headers: {
+      authorization: "Bearer " + token,
+      accept: "application/vnd.github+json",
+      "x-github-api-version": "2022-11-28",
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15000)
+  });
+  if (!response.ok) throw new Error("GitHub check publication failed (HTTP " + response.status + ")");
+  return response.json();
+}
+
+export async function publishMergeReview({ api, token, repository, number }) {
+  const root = "/repos/" + repository;
+  const pr = await readJson(api, token, root + "/pulls/" + number);
+  if (pr.state !== "open" || pr.base?.ref !== "main") return { skipped: true };
+  const head = pr.head?.sha;
+  if (!SHA.test(head || "")) throw new Error("Invalid review target head");
+
+  // Install a pending check ON the untrusted PR HEAD before reading any evidence.
+  // Never run code from that PR head; only GitHub metadata enters the verifier.
+  const run = await writeCheck(api, token, repository, "", {
+    name: "merge-review", head_sha: head, status: "in_progress",
+    details_url: "https://github.com/" + repository + "/actions/runs/" + process.env.GITHUB_RUN_ID
+  }, "POST");
+
+  let verdict = { pass: false, head, reasons: ["Unable to verify merge-review evidence"] };
+  try {
+    verdict = await checkPullRequest({ api, token, repository, number });
+    const fresh = await readJson(api, token, root + "/pulls/" + number);
+    if (verdict.head !== head || fresh.head?.sha !== head || fresh.state !== "open" ||
+        fresh.draft !== false || fresh.base?.ref !== "main") {
+      verdict = { pass: false, head, reasons: ["PR changed while merge review was running"] };
+    }
+  } catch (error) {
+    verdict = { pass: false, head, reasons: [error?.message || "Unknown verification error"] };
+  }
+
+  await writeCheck(api, token, repository, "/" + run.id, {
+    status: "completed",
+    conclusion: verdict.pass ? "success" : "failure",
+    completed_at: new Date().toISOString(),
+    output: {
+      title: verdict.pass ? "Exact-head merge review: PASS" : "Exact-head merge review: BLOCKED",
+      summary: ["Target: \`" + head + "\`", ...verdict.reasons.map(x => "- " + x)].join("\n").slice(0, 65000)
+    }
+  }, "PATCH");
+  return { ...verdict, check_run_id: run.id };
+}
+
+async function relevantPullRequests(event, token, api, repository) {
+  if (Number.isSafeInteger(event?.pull_request?.number)) {
+    return [event.pull_request.number];
+  }
+  const sha = event?.workflow_run?.head_sha || event?.check_run?.head_sha;
+  if (!SHA.test(sha || "")) return [];
+  const list = await readJson(api, token, "/repos/" + repository + "/commits/" + sha + "/pulls?per_page=100");
+  if (!Array.isArray(list) || list.length >= 100) {
+    throw new Error("Unable to enumerate complete PR association list");
+  }
+  return list.filter(x => x.state === "open" && x.base?.ref === "main" && x.head?.sha === sha).map(x => x.number);
+}
+
 async function main() {
   const { readFile } = await import("node:fs/promises");
   const event = JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH, "utf8"));
-  const number = Number(event?.pull_request?.number);
-  const result = await checkPullRequest({
-    api: process.env.GITHUB_API_URL || "https://api.github.com",
-    token: process.env.GITHUB_TOKEN,
-    repository: process.env.GITHUB_REPOSITORY,
-    number
-  });
-  console.log(JSON.stringify({
-    repository: process.env.GITHUB_REPOSITORY,
-    pr: number,
-    exact_head: result.head,
-    pass: result.pass,
-    reasons: result.reasons
-  }, null, 2));
-  if (!result.pass) process.exitCode = 1;
+  const api = "https://api.github.com";
+  const repository = process.env.GITHUB_REPOSITORY;
+  const token = process.env.GITHUB_TOKEN;
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repository || "") || !token) {
+    throw new Error("Missing repository identity or read/check-write token");
+  }
+  const numbers = await relevantPullRequests(event, token, api, repository);
+  for (const number of numbers) {
+    const result = await publishMergeReview({ api, token, repository, number });
+    console.log(JSON.stringify({
+      repository, pr: number, exact_head: result.head || null,
+      pass: result.pass || false, reasons: result.reasons || [], check_run_id: result.check_run_id || null
+    }));
+    if (!result.pass && !result.skipped) process.exitCode = 1;
+  }
 }
+
 if (process.argv[1] && import.meta.url === new URL("file://" + process.argv[1]).href) {
   main().catch(err => {
     console.error("MERGE REVIEW BLOCKED: " + err.message);
