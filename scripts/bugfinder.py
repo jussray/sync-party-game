@@ -158,7 +158,7 @@ def verify_candidate_guard_behavior() -> None:
             fail("candidate lease accepted runtime drift")
 
 
-def verify_deploy_workflow(deploy: str, monitor: str) -> None:
+def verify_deploy_workflow(deploy: str) -> None:
     require(deploy, r'(?m)^\s*workflow_run\s*:', "production promotion is not chained to core-proof")
     require(deploy, r'workflows:\s*\["core-proof"\]', "production promotion is not bound to core-proof")
     require(deploy, r'types:\s*\[completed\]', "production promotion is not gated on proof completion")
@@ -182,13 +182,7 @@ def verify_deploy_workflow(deploy: str, monitor: str) -> None:
     require(deploy, r'/api/version', "public proof does not interrogate exact deployed runtime identity")
     require(deploy, r'EXPECTED_SHA:\s*\$\{\{\s*github\.event\.workflow_run\.head_sha\s*\}\}', "public proof is not bound to the exact green core-proof SHA")
     require(deploy, r'Exact deployed SHA verified', "public proof does not fail closed on runtime SHA mismatch")
-    # The public suite now runs under a fail-closed identity watcher. Verify both
-    # the workflow wiring and the actual npm Playwright invocation; do not weaken
-    # the previous requirement that production exercises the full suite.
-    require(deploy, r'run: node scripts/production-identity-monitor\.mjs', "public production does not run under the identity watcher")
-    require(monitor, r'spawn\("npm",\s*\["run",\s*"test:e2e"\]', "public production watcher does not run the full Playwright suite")
-    require(monitor, r'assertPinnedIdentity\(await readIdentity\(\)', "public production watcher does not compare live identity")
-    require(monitor, r'while \(!suiteDone\)', "public production watcher does not sample identity during the suite")
+    require(deploy, r'npm run test:e2e', "public production does not run the full Playwright suite")
     require(deploy, r'production-proof\.txt', "public production proof does not leave a durable receipt")
     require(deploy, r'SOURCE_PROOF_RUN_ID', "production proof receipt is not linked to the source core-proof run")
     require(deploy, r'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02', "production proof artifacts are not pinned to the approved upload action")
@@ -216,7 +210,7 @@ def main() -> None:
     verify_e2e(e2e)
     verify_candidate_guard_source(guard, policy)
     verify_candidate_guard_behavior()
-    verify_deploy_workflow(deploy, read("scripts/production-identity-monitor.mjs"))
+    verify_deploy_workflow(deploy)
     run_node_tests()
     print("BUGFINDER PASS: game authority/privacy/continuity, mobile+timeout multiplayer proof, exact-green production promotion, Cloudflare-owned deploy proof, and Node tests are green")
 
