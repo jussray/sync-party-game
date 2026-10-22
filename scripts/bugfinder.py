@@ -185,10 +185,10 @@ def verify_deploy_workflow(deploy: str, monitor: str) -> None:
     # The public suite now runs under a fail-closed identity watcher. Verify both
     # the workflow wiring and the actual npm Playwright invocation; do not weaken
     # the previous requirement that production exercises the full suite.
-    require(deploy, r'run: node scripts/production-identity-monitor\\.mjs', "public production does not run under the identity watcher")
-    require(monitor, r'spawn\\("npm",\\s*\\["run",\\s*"test:e2e"\\]', "public production watcher does not run the full Playwright suite")
-    require(monitor, r'assertPinnedIdentity\\(await readIdentity\\(\\)', "public production watcher does not compare live identity")
-    require(monitor, r'while \\(!suiteDone\\)', "public production watcher does not sample identity during the suite")
+    require(deploy, r'run: node scripts/production-identity-monitor\.mjs', "public production does not run under the identity watcher")
+    require(monitor, r'spawn\("npm",\s*\["run",\s*"test:e2e"\]', "public production watcher does not run the full Playwright suite")
+    require(monitor, r'assertPinnedIdentity\(await readIdentity\(\)', "public production watcher does not compare live identity")
+    require(monitor, r'while \(!suiteDone\)', "public production watcher does not sample identity during the suite")
     require(deploy, r'production-proof\.txt', "public production proof does not leave a durable receipt")
     require(deploy, r'SOURCE_PROOF_RUN_ID', "production proof receipt is not linked to the source core-proof run")
     require(deploy, r'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02', "production proof artifacts are not pinned to the approved upload action")
