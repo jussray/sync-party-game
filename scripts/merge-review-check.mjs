@@ -56,10 +56,14 @@ export function evaluateMergeReview({ pr, currentMainSha, mainIsAncestor, checkR
   for (const review of ordered) {
     const reviewer = clean(review?.user?.login).toLowerCase();
     if (!reviewer || reviewer === author || review?.commit_id !== head) continue;
-    if (review.state === "APPROVED") decisions.set(reviewer, true);
-    if (review.state === "CHANGES_REQUESTED" || review.state === "DISMISSED") decisions.set(reviewer, false);
+    if (["APPROVED", "CHANGES_REQUESTED", "DISMISSED"].includes(review.state)) {
+      decisions.set(reviewer, review.state);
+    }
   }
-  if (![...decisions.values()].some(Boolean)) {
+  if ([...decisions.values()].some(state => state === "CHANGES_REQUESTED")) {
+    reasons.push("Unresolved independent CHANGES_REQUESTED review on exact head");
+  }
+  if (![...decisions.values()].some(state => state === "APPROVED")) {
     reasons.push("No independent APPROVED review bound to exact PR head");
   }
   return { pass: reasons.length === 0, head, reasons: [...new Set(reasons)] };
