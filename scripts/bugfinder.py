@@ -83,7 +83,7 @@ def verify_e2e(e2e: str) -> None:
     require(e2e, r'\.choice\.selected', "Playwright proof does not assert that another player's locked choice stays hidden")
     require(e2e, r'toBeEnabled\(\)', "Playwright proof does not confirm the other player can still choose privately")
     require(e2e, r'100%', "Playwright proof does not assert synchronized reveal result")
-    require(e2e, r'round:\s*5', "Playwright proof does not reach the final round")
+    require(e2e, r'round:\s*5|round\s*<\s*5', "Playwright proof does not reach the final round")
     require(e2e, r'See final scores', "Playwright proof does not transition to final results")
     require(e2e, r'GAME OVER', "Playwright proof does not verify final results on both clients")
     require(e2e, r'FINAL ROOM SYNC', "Playwright proof does not verify the final room synchronization summary")

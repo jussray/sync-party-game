@@ -31,3 +31,10 @@ tmp/
 # local AWS tooling
 .aws-sam/
 .sam-cache/
+
+# wrangler local state
+.wrangler/
+
+# python bytecode
+__pycache__/
+*.pyc
