@@ -4,24 +4,33 @@ on:
     types: [opened, reopened, synchronize, edited, ready_for_review, converted_to_draft, review_requested]
   pull_request_review:
     types: [submitted, dismissed]
+  workflow_run:
+    workflows: ["core-proof", "Agent Contract v1"]
+    types: [completed]
+  check_run:
+    types: [completed]
 
 permissions:
   contents: read
-  checks: read
+  checks: write
   statuses: read
   pull-requests: read
 
 concurrency:
-  group: sync-merge-review-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: sync-merge-review-${{ github.event.pull_request.number || github.event.workflow_run.head_sha || github.event.check_run.head_sha || github.run_id }}
+  cancel-in-progress: false
 
 jobs:
   merge-review:
-    if: github.event.pull_request.base.ref == 'main'
+    if: >-
+      (github.event_name == 'workflow_run' ||
+       github.event_name == 'check_run' ||
+       github.event.pull_request.base.ref == 'main')
     runs-on: ubuntu-24.04
     timeout-minutes: 4
     steps:
-      # pull_request_target uses trusted base code ONLY, never check out the PR head.
+      # Trusted default-branch policy only. NEVER run code from a PR head.
+      # checks:write publishes a bounded check-run on the exact PR head SHA.
       - name: Checkout trusted main release policy
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -31,7 +40,7 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22.23.2"
-      - name: Fail closed on stale, unreviewed or red PR head
+      - name: Publish exact-head merge-review check
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/merge-review-check.mjs
