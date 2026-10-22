@@ -39,9 +39,11 @@ test("Chat Edition predictions stay isolated across real shared-authority rooms"
     await chat.locator(".choice").first().click();
     await expect.poll(async () => oldChoice?.evaluate((node) => node.isConnected)).toBe(false);
     await chat.reload();
-    await expect(chat.locator(".choice").first()).toHaveClass(/selected/);
+    // The server supplies a privacy-safe answered=true flag, not the secret
+    // chosen index. Reconnected clients must stay locked without leaking it.
     await expect(chat.locator(".choice").first()).toBeDisabled();
     await expect(chat.locator("#lockCopy")).toContainText(/locked/i);
+    await expect(chat.locator(".choice").first()).not.toHaveClass(/selected/);
 
     // Reload to another room in the same browser session: sessionStorage survives.
     const second = await startRoom("Second Host");
