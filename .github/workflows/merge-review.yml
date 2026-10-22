@@ -1,0 +1,37 @@
+name: Merge Review
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited, ready_for_review, converted_to_draft, review_requested]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions:
+  contents: read
+  checks: read
+  statuses: read
+  pull-requests: read
+
+concurrency:
+  group: sync-merge-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  merge-review:
+    if: github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      # pull_request_target uses trusted base code ONLY, never check out the PR head.
+      - name: Checkout trusted main release policy
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.23.2"
+      - name: Fail closed on stale, unreviewed or red PR head
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/merge-review-check.mjs
