@@ -7,7 +7,7 @@ export const REQUIRED_CHECKS = Object.freeze(["core-proof", "verify-agent-contra
 const SHA = /^[0-9a-f]{40}$/;
 const clean = (value) => typeof value === "string" ? value : "";
 
-export function evaluateMergeReview({ pr, currentMainSha, checkRuns = [], reviews = [], statuses = [] }) {
+export function evaluateMergeReview({ pr, currentMainSha, mainIsAncestor, checkRuns = [], reviews = [], statuses = [] }) {
   const reasons = [];
   const head = clean(pr?.head?.sha);
   const author = clean(pr?.user?.login).toLowerCase();
@@ -17,6 +17,7 @@ export function evaluateMergeReview({ pr, currentMainSha, checkRuns = [], review
   if (pr?.draft !== false) reasons.push("Draft PR is not merge-authorized");
   if (!SHA.test(head)) reasons.push("Invalid or missing exact PR head SHA");
   if (!SHA.test(currentMainSha) || base !== currentMainSha) reasons.push("PR base is stale or current main is unverified");
+  if (mainIsAncestor !== true) reasons.push("Current main is not proven an ancestor of this PR head");
   if (pr?.mergeable !== true) reasons.push("PR mergeability is false or unknown");
 
   for (const name of REQUIRED_CHECKS) {
@@ -85,12 +86,14 @@ export async function checkPullRequest({ api, token, repository, number }) {
   const pr = await readJson(api, token, base + "/pulls/" + number);
   const main = await readJson(api, token, base + "/branches/main");
   const head = pr?.head?.sha;
-  if (!SHA.test(head || "")) throw new Error("Invalid PR head SHA");
+  const mainSha = main?.commit?.sha;
+  if (!SHA.test(head || "") || !SHA.test(mainSha || "")) throw new Error("Invalid PR or main SHA");
 
-  const [checks, reviews, status] = await Promise.all([
+  const [checks, reviews, status, ancestry] = await Promise.all([
     readJson(api, token, base + "/commits/" + head + "/check-runs?per_page=100&filter=latest"),
     readJson(api, token, base + "/pulls/" + number + "/reviews?per_page=100"),
-    readJson(api, token, base + "/commits/" + head + "/status")
+    readJson(api, token, base + "/commits/" + head + "/status"),
+    readJson(api, token, base + "/compare/" + mainSha + "..." + head)
   ]);
   // Do not silently drop checks/reviews on repositories that exceed a single API page.
   if (checks.total_count > 100 || reviews.length >= 100) {
@@ -98,7 +101,8 @@ export async function checkPullRequest({ api, token, repository, number }) {
   }
   return evaluateMergeReview({
     pr,
-    currentMainSha: main?.commit?.sha,
+    currentMainSha: mainSha,
+    mainIsAncestor: ancestry?.merge_base_commit?.sha === mainSha && ["ahead", "identical"].includes(ancestry?.status),
     checkRuns: checks.check_runs,
     reviews,
     statuses: status.statuses
