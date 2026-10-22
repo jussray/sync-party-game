@@ -148,3 +148,24 @@ test("main advancing during validation revokes previously green PR decision", as
   assert.equal(result.pass, false);
   assert.equal(calls.find(x => x.method === "PATCH").body.conclusion, "failure");
 });
+
+
+test("another reviewer cannot override an outstanding CHANGES_REQUESTED review", () => {
+  const f = fixture();
+  f.reviews.push({
+    user: { login: "security-reviewer" },
+    commit_id: SHA, state: "CHANGES_REQUESTED",
+    submitted_at: "2026-10-22T02:00:00Z"
+  });
+  denied(f, "Unresolved independent CHANGES_REQUESTED");
+});
+
+test("dismissed review does not veto a later valid independent approval", () => {
+  const f = fixture();
+  f.reviews.push({
+    user: { login: "different-reviewer" },
+    commit_id: SHA, state: "DISMISSED",
+    submitted_at: "2026-10-22T02:00:00Z"
+  });
+  assert.equal(evaluateMergeReview(f).pass, true);
+});
