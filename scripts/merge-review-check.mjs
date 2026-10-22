@@ -165,6 +165,11 @@ export async function publishMergeReview({ api, token, repository, number }) {
 }
 
 async function relevantPullRequests(event, token, api, repository) {
+  if (event?.inputs?.pr_number !== undefined) {
+    const n = Number(event.inputs.pr_number);
+    if (!Number.isSafeInteger(n) || n < 1) throw new Error("Invalid manual PR number");
+    return [n];
+  }
   if (Number.isSafeInteger(event?.pull_request?.number)) {
     return [event.pull_request.number];
   }
