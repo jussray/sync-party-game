@@ -9,6 +9,12 @@ on:
     types: [completed]
   check_run:
     types: [completed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Open PR number to re-evaluate against current head
+        required: true
+        type: number
 
 permissions:
   contents: read
@@ -24,7 +30,8 @@ jobs:
   merge-review:
     if: >-
       (github.event_name == 'workflow_run' ||
-       github.event_name == 'check_run' ||
+       github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'check_run' && github.event.check_run.name != 'merge-review') ||
        github.event.pull_request.base.ref == 'main')
     runs-on: ubuntu-24.04
     timeout-minutes: 4
