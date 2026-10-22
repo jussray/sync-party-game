@@ -6,14 +6,14 @@ At `main` SHA `36cf79f801ef1c84f79361bb2cfaee2ca0f21788`, GitHub reports `protec
 
 ## Proposed advisory gate
 
-The `Merge Review` workflow evaluates live pull-request metadata from GitHub using trusted `main` policy code. It does not checkout, execute, or grant token write authority to untrusted PR code. A green result requires:
+The `Merge Review` workflow evaluates live pull-request metadata from GitHub using trusted `main` policy code. It never checks out or executes PR-head code. The workflow needs only `checks: write` to publish a check-run named `merge-review` **on the exact PR head SHA**; `contents`, PR reads, and commit statuses remain read-only. It cannot merge, push source, modify rulesets, or deploy. A green result requires:
 
-- Open, non-draft, mergeable PR targeting current `main` (exact base SHA).
+- Open, non-draft, mergeable PR targeting current `main` (exact base SHA plus verified **main-to-head ancestry**).
 - `core-proof` and `verify-agent-contract` from GitHub Actions both completed successfully on the **same exact current PR head SHA**.
 - No other red, cancelled, incomplete, or missing current-head checks, or failing legacy statuses.
 - An independent `APPROVED` review explicitly bound to that same SHA; predecessor approvals cannot be reused.
 
-A historical failed intermediate commit remains red in GitHub history, but may be followed by a freshly verified green successor. Never rewrite history or represent the old red check as green.
+The head check is set to `in_progress` before evaluation, then `success` or `failure` when the current-head GitHub evidence is inspected; it refreshes on review and CI completion. Workflow and check events do not run PR-head code. A historical failed intermediate commit remains red in GitHub history, but may be followed by a freshly verified green successor. Never rewrite history or represent the old red check as green.
 
 ## Hard enforcement still required in GitHub Settings
 
@@ -28,7 +28,7 @@ Do **not** merge to enable this workflow without a separate release authorizatio
 
 ## Limitations
 
-The workflow is an evidence signal until required by branch rulesets. It evaluates GitHub check records at its run time; new checks added later require a new run, and repository administrators may still control rulesets. Its approval check excludes self-reviews but GitHub's native branch protection must enforce reviewer permissions and required approvals.
+The workflow is an evidence signal until required by branch rulesets. A push to a successor SHA and completion of `core-proof` or `Agent Contract v1` schedules re-evaluation. Third-party completed checks can trigger another evaluation. New unrecognized checks or service interruptions outside those triggers may require another run; GitHub branch protection is the hard enforcement authority. Repository administrators may still change rulesets. Its approval check excludes self-reviews but GitHub's native branch protection must enforce reviewer permissions and required approvals.
 
 ## Existing draft reverts
 
