@@ -54,7 +54,7 @@ test("branch behind main blocks even when PR base SHA points to moving main", ()
 });
 
 
-function stubMetadata({ approved = true, moveHead = false, draft = false } = {}) {
+function stubMetadata({ approved = true, moveHead = false, moveMain = false, draft = false } = {}) {
   const calls = [];
   const checks = REQUIRED_CHECKS.map(name => ({
     name, head_sha: SHA, app: { slug: "github-actions" },
@@ -66,6 +66,7 @@ function stubMetadata({ approved = true, moveHead = false, draft = false } = {})
     user: { login: "author" }, base: { ref: "main", sha: BASE }, head: { sha: SHA }
   };
   let reads = 0;
+  let mainReads = 0;
   async function mockFetch(url, options = {}) {
     const method = options.method || "GET";
     const body = options.body ? JSON.parse(options.body) : null;
@@ -77,7 +78,7 @@ function stubMetadata({ approved = true, moveHead = false, draft = false } = {})
       reads++;
       data = reads > 2 && moveHead ? { ...pr, head: { sha: OLD } } : pr;
     }
-    else if (url.endsWith("/branches/main")) data = { commit: { sha: BASE } };
+    else if (url.endsWith("/branches/main")) data = { commit: { sha: (moveMain && ++mainReads > 1) ? OLD : BASE } };
     else if (url.includes("/check-runs?per_page=100")) data = { total_count: 2, check_runs: checks };
     else if (url.endsWith("/pulls/23/reviews?per_page=100")) data = reviews;
     else if (url.endsWith("/commits/" + SHA + "/status")) data = { statuses: [] };
@@ -131,6 +132,16 @@ test("PR head movement while checking cannot publish a success", async () => {
 
 test("draft PR cannot publish a green merge check", async () => {
   const { calls, mockFetch } = stubMetadata({ draft: true });
+  const result = await withMockFetch(mockFetch, () => publishMergeReview({
+    api: "https://api.github.test", token: "fake", repository: "jussray/sync-party-game", number: 23
+  }));
+  assert.equal(result.pass, false);
+  assert.equal(calls.find(x => x.method === "PATCH").body.conclusion, "failure");
+});
+
+
+test("main advancing during validation revokes previously green PR decision", async () => {
+  const { calls, mockFetch } = stubMetadata({ moveMain: true });
   const result = await withMockFetch(mockFetch, () => publishMergeReview({
     api: "https://api.github.test", token: "fake", repository: "jussray/sync-party-game", number: 23
   }));
