@@ -96,7 +96,7 @@ html[data-arena-rebuild="v2-candidate"] body{
 }
 
 .party-home[data-arena-v2="true"] .game-logo::after{
-  content:"LIVE SITE";
+  content:"PRESSURE PARTY";
   position:absolute;
   left:.075em;
   top:-1.28em;
