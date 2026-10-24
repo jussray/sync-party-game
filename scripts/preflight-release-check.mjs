@@ -20,6 +20,8 @@ export function assessProductionPreflight({ sha, checkRuns = [], statuses = [] }
     if (OWN_DEPLOY_CHECKS.has(check?.name)) continue;
     // Workers Builds is downstream of promoting production; can't be a prerequisite.
     if (check?.name === "Workers Builds: sync-party-game" && check?.app?.slug === "cloudflare-workers-and-pages") continue;
+    // merge-review is a PR-head gate, not a release prerequisite; only the Actions-published check is exempt.
+    if (check?.name === "merge-review" && check?.app?.slug === "github-actions") continue;
     if (check?.head_sha !== sha || check?.status !== "completed" || check?.conclusion !== "success") {
       errors.push("Current-head pre-release check is red or pending: " + String(check?.name).slice(0, 100));
     }

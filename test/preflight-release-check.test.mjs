@@ -35,3 +35,11 @@ test("does not require downstream Cloudflare build before branch promotion",()=>
 });
 test("rejects red legacy commit status",()=>{const f=fixture();f.statuses=[{context:"security",state:"error"}];fail(f,"security");});
 test("rejects missing mandatory checks",()=>{const f=fixture();f.checkRuns=[];fail(f,"core-proof");});
+test("does not make the merge-review PR gate a release prerequisite",()=>{
+  const f=fixture();f.checkRuns.push({name:"merge-review",head_sha:SHA,app:{slug:"github-actions"},status:"in_progress",conclusion:null});
+  assert.equal(assessProductionPreflight(f).pass,true);
+});
+test("still blocks a non-Actions check that impersonates merge-review",()=>{
+  const f=fixture();f.checkRuns.push({name:"merge-review",head_sha:SHA,app:{slug:"spoofed-app"},status:"in_progress",conclusion:null});
+  fail(f,"merge-review");
+});
