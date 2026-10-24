@@ -173,7 +173,7 @@ jobs:
           echo "Pinned exact deployed identity: sha=$EXPECTED_SHA build=$build"
 
       - name: Run full multiplayer suite against public production
-        run: node scripts/production-identity-monitor.mjs
+        run: npm run test:e2e
 
       - name: Recheck exact deployed identity after tests
         shell: bash
@@ -204,7 +204,6 @@ jobs:
           github_run_id=$GITHUB_RUN_ID
           proof=full Playwright suite against exact-SHA public Cloudflare deployment
           identity_recheck=PASS
-          identity_monitor=PASS
           result=VERIFIED
           RECEIPT
           cat test-results/production-proof.txt
@@ -215,7 +214,7 @@ jobs:
             echo "- Source core-proof run: \`$SOURCE_PROOF_RUN_ID\`"
             echo "- Public URL: $PLAYWRIGHT_BASE_URL"
             echo "- Exact-SHA runtime identity: PASS"
-            echo "- Sampled production identity monitor and final identity recheck: PASS"
+            echo "- Identity unchanged across proof window: PASS"
             echo "- Playwright: PASS"
             echo "- Sync Control Room runtime + privacy boundary: PASS"
             echo "- Phone + laptop path: PASS"

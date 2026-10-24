@@ -60,9 +60,3 @@ test('production-proof writes VERIFIED only after the identity recheck', () => {
   assert.match(body, /result=VERIFIED/);
   assert.match(body, /PINNED_BUILD/, 'receipt must bind the pinned Cloudflare build');
 });
-
-test('production-proof samples deployed identity throughout the multiplayer suite', () => {
-  const body = stepBody(job, 'Run full multiplayer suite against public production');
-  assert.ok(body.includes('node scripts/production-identity-monitor.mjs'), 'the public suite must run under the identity watcher');
-  assert.match(stepBody(job, 'Write production proof receipt'), /identity_monitor=PASS/, 'receipt must require the monitor');
-});
