@@ -3,6 +3,8 @@
  * every independent pre-release check on the EXACT candidate SHA to be green.
  * Never trust a predecessor SHA or any self-referential deploy/proof check.
  */
+import { pathToFileURL } from "node:url";
+
 export const PRE_RELEASE_CHECKS = Object.freeze(["core-proof", "verify-agent-contract"]);
 const OWN_DEPLOY_CHECKS = new Set(["Promote exact green SHA to production", "Public exact-SHA multiplayer proof"]);
 const SHA = /^[0-9a-f]{40}$/;
@@ -64,6 +66,6 @@ async function main() {
   if (!result.pass) process.exitCode = 1;
 }
 
-if (process.argv[1] && import.meta.url === new URL("file://" + process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch(error => {console.error("PRODUCTION PREFLIGHT BLOCKED: " + error.message);process.exitCode = 1;});
 }

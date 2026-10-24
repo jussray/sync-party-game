@@ -1,3 +1,7 @@
+import { spawnSync } from "node:child_process";
+import { copyFileSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { assessProductionPreflight, PRE_RELEASE_CHECKS } from "../scripts/preflight-release-check.mjs";
@@ -42,4 +46,12 @@ test("does not make the merge-review PR gate a release prerequisite",()=>{
 test("still blocks a non-Actions check that impersonates merge-review",()=>{
   const f=fixture();f.checkRuns.push({name:"merge-review",head_sha:SHA,app:{slug:"spoofed-app"},status:"in_progress",conclusion:null});
   fail(f,"merge-review");
+});
+test("CLI fails closed when its path contains URL-significant characters",()=>{
+  const dir=mkdtempSync(join(tmpdir(),"preflight#"));
+  const copy=join(dir,"preflight-release-check.mjs");
+  copyFileSync(new URL("../scripts/preflight-release-check.mjs",import.meta.url),copy);
+  const r=spawnSync(process.execPath,[copy],{env:{PATH:process.env.PATH},encoding:"utf8"});
+  assert.equal(r.status,1);
+  assert.match(r.stderr,/PRODUCTION PREFLIGHT BLOCKED/);
 });
