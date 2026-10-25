@@ -1,4 +1,5 @@
 const MAX_RESPONSE_BYTES = 64 * 1024;
+const SAFE_MUSE_MODEL = /^muse-spark-1\.(?:1|2|3)$/;
 const TIMEOUT_MS = 60_000;
 
 const PROVIDERS = Object.freeze({
@@ -12,7 +13,12 @@ function configFor(env, provider) {
   if (!config) throw new Error('unsupported provider');
   const key = typeof env?.[config.key] === 'string' ? env[config.key].trim() : '';
   const override = typeof env?.[config.model] === 'string' ? env[config.model].trim() : '';
-  return { ...config, key, modelName: override || config.defaultModel };
+  // Muse (FCR semantics): no default fallback — the model must be explicitly
+  // configured AND allow-listed, otherwise the provider is not configured.
+  const modelName = provider === 'muse'
+    ? (SAFE_MUSE_MODEL.test(override) ? override : '')
+    : (override || config.defaultModel);
+  return { ...config, key: provider === 'muse' && !modelName ? '' : key, modelName };
 }
 
 export function providerStates(env = {}) {
@@ -56,7 +62,9 @@ export async function invokeProvider(env, input, fetchImpl = fetch) {
   const prompt = String(input?.prompt || '').trim();
   const sensitivity = String(input?.sensitivity || 'standard').trim().toLowerCase();
   if (!prompt || prompt.length > 12000) throw new Error('prompt must be 1..12000 characters');
-  if (sensitivity === 'restricted') throw new Error('restricted context is not authorized for external providers');
+  if (sensitivity !== 'standard') throw new Error('sensitive_context_not_authorized');
+  const source = String(input?.source || 'founder').trim().toLowerCase();
+  if (!['founder', 'repository', 'system'].includes(source)) throw new Error('user_content_not_authorized');
   const config = configFor(env, provider);
   if (!config.key) throw new Error(`${provider} provider is not configured`);
 
