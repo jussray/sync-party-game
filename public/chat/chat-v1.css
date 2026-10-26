@@ -108,6 +108,16 @@ h1 strong,.chat-gradient{color:transparent;background:linear-gradient(90deg,var(
 .prediction-result.good{border-color:#50f4d15a;box-shadow:0 0 28px #2affc51e}.prediction-result strong{display:block;color:var(--chat-cyan);font-size:1rem;margin-bottom:4px}.prediction-result span{color:var(--chat-muted);font-size:.84rem}
 .chat-prediction-badge{display:inline-flex;gap:7px;align-items:center;margin-bottom:10px;padding:6px 9px;border:1px solid #41e1ff38;border-radius:999px;color:#bdf7ff;background:#05203b;font-size:.67rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
 
+/* Prediction distribution bars (reveal): fills render the authoritative room counts, presentation only */
+.result-row{position:relative;overflow:hidden}
+.result-row::before{content:"";position:absolute;top:0;bottom:0;left:0;width:var(--share,0%);background:linear-gradient(90deg,#31e5ff24,#8a5cff24);border-right:2px solid #31e5ff59;pointer-events:none;transition:width .6s ease}
+.result-row>*{position:relative;z-index:1}
+.result-row.room-top{border-color:#31e5ff73;box-shadow:0 0 18px #31e5ff1f}
+.result-row.your-prediction{outline:1px dashed #ff4ed099;outline-offset:-4px}
+/* The locked prediction pick was previously unstyled; make it unmissable */
+.choice.prediction-picked{border-color:var(--chat-pink);box-shadow:0 0 0 1px var(--chat-pink),0 0 26px #ff4ed047}
+.choice.prediction-picked::before{content:"YOUR PREDICTION";position:absolute;top:8px;right:10px;z-index:2;font-size:.56rem;font-weight:950;letter-spacing:.12em;color:var(--chat-pink)}
+
 @keyframes chat-orbit{to{transform:rotate(360deg)}}
 @keyframes chat-scan{0%,62%{transform:translateX(-120%)}90%,100%{transform:translateX(120%)}}
 @keyframes host-float{50%{transform:translateY(-10px) rotate(1deg)}}
