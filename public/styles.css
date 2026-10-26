@@ -374,3 +374,11 @@ html[data-theme="light"] .logo { color: #151b38; text-shadow: none; }
   .hero-card > .grid.two { margin-top: 62px; }
 }
 @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+/* Server-authoritative LOCK beat (phase "locked") and visible state fingerprint */
+.locked-stage { padding: 12px 0 4px; }
+.lock-title { font-size: clamp(2.6rem, 9vw, 5rem); font-weight: 1000; letter-spacing: -.05em; margin: 8px 0 4px; color: var(--accent); }
+.locked-players { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 18px 0 10px; }
+.locked-player { padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); font-weight: 800; font-size: .9rem; }
+.locked-player.in { color: var(--text); border-color: var(--accent-2); }
+.fingerprint { text-align: center; color: var(--muted); font: .72rem ui-monospace, SFMono-Regular, Menlo, monospace; padding: 0 16px 24px; overflow-wrap: anywhere; }

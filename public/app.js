@@ -181,6 +181,8 @@ function send(type, payload = {}) {
 function renderRoom(code, me) {
   clearInterval(timerHandle); timerHandle = null;
   const state = roomState; if (!state) return;
+  const fingerprint = document.querySelector("#fingerprint");
+  if (fingerprint) { fingerprint.textContent = `room ${state.code} · seq ${state.seq} · #${state.stateHash}`; fingerprint.dataset.seq = state.seq; fingerprint.dataset.hash = state.stateHash; }
   const roundKey = `${code}:${state.deadline}:${state.roundIndex}`;
   const phaseKey = `${roundKey}:${state.phase}`;
   const locked = state.answers?.[me.playerId] === true;
@@ -189,6 +191,7 @@ function renderRoom(code, me) {
     sound.setPhase(state.phase);
     if (audioPhaseKey !== null) {
       if (state.phase === "choosing") sound.play("round");
+      if (state.phase === "locked") sound.play("lock");
       if (state.phase === "reveal") sound.play("reveal");
       if (state.phase === "results") sound.play("win");
     }
@@ -204,6 +207,7 @@ function renderRoom(code, me) {
     document.querySelector("#startBtn")?.addEventListener("click", () => { sound.play("tap"); send("START_GAME"); }); return;
   }
   if (state.phase === "choosing") return renderChoosing(state, me);
+  if (state.phase === "locked") return renderLocked(state);
   if (state.phase === "reveal") return renderReveal(state, me);
   if (state.phase === "results") return renderResults(state, me);
 }
@@ -211,12 +215,20 @@ function progress(state) { return `<div class="round-progress" aria-label="Round
 function modeCard(state) { return `<div class="mode-card"><span class="mode-label">${escapeHtml(state.mode?.label || "SYNC")}</span><span>${escapeHtml(state.mode?.instruction || "Read the room.")}</span></div>`; }
 function renderChoosing(state, me) {
   const selected = Object.prototype.hasOwnProperty.call(state.answers, me.playerId);
-  gameFrame(`<div class="timer-row"><span class="meta">Round ${state.roundIndex + 1} of ${state.rounds}</span><span id="timer" class="timer">15s</span></div>${progress(state)}<div class="time-track"><div id="timeFill" style="width:100%"></div></div>${modeCard(state)}<h1 class="prompt">${escapeHtml(state.prompt.text)}</h1><div class="choices">${state.prompt.choices.map((choice, index) => { const part = choiceParts(choice); return `<button class="choice" data-choice="${index}" ${selected ? "disabled" : ""}><span class="choice-icon">${escapeHtml(part.icon)}</span><span>${escapeHtml(part.label)}</span><span class="choice-check" aria-hidden="true">${state.answers[me.playerId] === index ? "✓" : ""}</span></button>`; }).join("")}</div><p class="lock-message" id="lock" role="status">${selected ? "✓ Choice locked. Waiting for everybody else." : "One pick. Keep it to yourself."}</p>`, "LIVE MULTIPLAYER");
+  gameFrame(`<div class="timer-row"><span class="meta">Round ${state.roundIndex + 1} of ${state.rounds}</span><span id="timer" class="timer">15s</span></div>${progress(state)}<div class="time-track"><div id="timeFill" style="width:100%"></div></div>${modeCard(state)}<h1 class="prompt">${escapeHtml(state.prompt.text)}</h1><div class="choices">${state.prompt.choices.map((choice, index) => { const part = choiceParts(choice); return `<button class="choice" data-choice="${index}" ${selected ? "disabled" : ""}><span class="choice-icon">${escapeHtml(part.icon)}</span><span>${escapeHtml(part.label)}</span><span class="choice-check" aria-hidden="true">${state.answers[me.playerId] === index ? "✓" : ""}</span></button>`; }).join("")}</div><p class="lock-message" id="lock" role="status">${selected ? "✓ Choice locked. Waiting for everybody else." : "One pick. Keep it to yourself."}</p><p class="meta center" id="lockCount">${lockedCount(state)}</p>`, "LIVE MULTIPLAYER");
   document.querySelectorAll(".choice").forEach((button) => button.addEventListener("click", () => {
     if (selected) return;
     sound.play("tap"); document.querySelectorAll(".choice").forEach((item) => { item.disabled = true; }); button.classList.add("selected"); button.querySelector(".choice-check").textContent = "✓"; document.querySelector("#lock").textContent = "✓ Choice locked. Waiting for everybody else."; send("SUBMIT_CHOICE", { choiceIndex: Number(button.dataset.choice) });
   }));
   updateTimer(state.deadline); timerHandle = setInterval(() => updateTimer(state.deadline), 150);
+}
+function lockedCount(state) {
+  return `${Object.keys(state.answers).length}/${state.players.filter((player) => player.connected).length} locked in`;
+}
+// Server-authoritative LOCK beat: no more choices, answers still private, reveal follows from the room alarm.
+function renderLocked(state) {
+  const players = state.players.map((player) => `<span class="locked-player ${state.answers[player.id] ? "in" : ""}">${escapeHtml(player.name)}${state.answers[player.id] ? " 🔒" : " · no answer"}</span>`).join("");
+  gameFrame(`${progress(state)}<div class="locked-stage center" role="status"><p class="meta">ROUND ${state.roundIndex + 1} · ${escapeHtml(state.mode?.label || "SYNC")}</p><h1 class="lock-title">LOCKED 🔒</h1><p class="little">Revealing…</p><div class="locked-players">${players}</div><p class="meta" id="lockCount">${lockedCount(state)}</p></div>`, "LOCKED");
 }
 function updateTimer(deadline) {
   const timer = document.querySelector("#timer"); if (!timer) return;

@@ -179,6 +179,7 @@ function renderRoom(code, me) {
   if (!state) return;
   if (state.phase === "lobby") return renderLobby(code, me);
   if (state.phase === "choosing") return renderChoosing(code, me);
+  if (state.phase === "locked") return renderLocked();
   if (state.phase === "reveal") return renderReveal(code, me);
   if (state.phase === "results") return renderResults(code, me);
 }
@@ -245,6 +246,18 @@ function updateTimer(deadline) {
   if (!timer) return;
   const ms = Math.max(0, deadline - (Date.now() + serverOffset));
   timer.textContent = `${Math.ceil(ms / 1000)}s`;
+}
+
+function renderLocked() {
+  const locked = Object.keys(state.answers || {}).length;
+  const connected = state.players.filter((player) => player.connected).length;
+  shell(`
+    <article class="bubble">
+      <div class="meta-row"><span>Round ${state.roundIndex + 1} of ${state.rounds} · ${escapeHtml(state.mode?.label || "SYNC")}</span><span>LOCKED</span></div>
+      <h2 class="prompt">LOCKED 🔒 Revealing…</h2>
+      <p class="copy">${locked}/${connected} locked in. Answers stay private until the shared reveal.</p>
+    </article>
+  `);
 }
 
 function renderReveal(code, me) {

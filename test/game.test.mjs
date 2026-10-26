@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { advance, createRoomState, joinPlayer, publicFingerprint, publicState, revealRound, startGame, submitChoice } from "../src/game.js";
+import { advance, allConnectedAnswered, createRoomState, joinPlayer, lockRound, publicFingerprint, publicState, revealRound, startGame, submitChoice, transferHostIfGone } from "../src/game.js";
 
 const player = (id, name, connected = true) => ({ id, name, resumeToken: `r-${id}`, connected });
 function started(ids = ["a", "b", "c"]) {
@@ -10,7 +10,7 @@ function started(ids = ["a", "b", "c"]) {
 }
 function answer(state, mapping) {
   for (const [id, choice] of Object.entries(mapping)) state = submitChoice(state, id, choice);
-  return revealRound(state);
+  return revealRound(lockRound(state, 5000));
 }
 
 test("requires at least two connected players", () => {
@@ -48,7 +48,10 @@ test("revealed choices become part of the public fingerprint only after reveal",
   let state = started(["a", "b"]);
   state = submitChoice(state, "a", 2);
   state = submitChoice(state, "b", 3);
-  state = revealRound(state);
+  const lockedA = lockRound(state, 5000);
+  const lockedB = lockRound(submitChoice(submitChoice(started(["a", "b"]), "a", 4), "b", 0), 5000);
+  assert.deepEqual(publicFingerprint(lockedA), publicFingerprint(lockedB), "LOCKED fingerprint leaks nothing");
+  state = revealRound(lockedA);
 
   assert.deepEqual(publicState(state).answers, { a: 2, b: 3 });
   assert.deepEqual(publicFingerprint(state).answers, { a: 2, b: 3 });
@@ -102,4 +105,39 @@ test("perfect sync only awards a unanimous room", () => {
   assert.equal(state.mode.id, "perfect");
   assert.deepEqual(state.lastResults.winners.sort(), ["a", "b", "c"]);
   assert.equal(state.lastResults.syncPercent, 100);
+});
+
+test("state machine: CHOOSING -> LOCKED -> REVEAL, no skipping, no choices after lock", () => {
+  let state = started(["a", "b"]);
+  assert.throws(() => revealRound(state), /Cannot reveal/);
+  state = submitChoice(state, "a", 1);
+  assert.equal(allConnectedAnswered(state), false);
+  state = submitChoice(state, "b", 1);
+  assert.equal(allConnectedAnswered(state), true);
+  state = lockRound(state, 5000);
+  assert.equal(state.phase, "locked");
+  assert.equal(state.revealAt, 5000 + 1500);
+  assert.throws(() => submitChoice(state, "a", 2), /not accepting/);
+  assert.deepEqual(publicState(state).answers, { a: true, b: true }, "answers private while locked");
+  assert.throws(() => lockRound(state, 6000), /Cannot lock/);
+  state = revealRound(state);
+  assert.equal(state.phase, "reveal");
+  assert.equal(state.lastResults.syncPercent, 100);
+  assert.throws(() => revealRound(state), /Cannot reveal/, "reveal cannot double-score");
+});
+test("disconnected players are not counted as answered", () => {
+  let state = started(["a", "b", "c"]);
+  state = submitChoice(submitChoice(state, "a", 0), "b", 0);
+  assert.equal(allConnectedAnswered(state), false);
+  state = { ...state, players: { ...state.players, c: { ...state.players.c, connected: false } } };
+  assert.equal(allConnectedAnswered(state), true);
+});
+test("host authority transfers to a connected player when the host drops", () => {
+  let state = started(["a", "b", "c"]);
+  assert.equal(transferHostIfGone(state).hostId, "a");
+  state = { ...state, players: { ...state.players, a: { ...state.players.a, connected: false } } };
+  state = transferHostIfGone(state);
+  assert.equal(state.hostId, "b");
+  assert.doesNotThrow(() => advance(revealRound(lockRound(state, 1)), "b", 2));
+  assert.throws(() => advance(revealRound(lockRound(state, 1)), "a", 2), /Only the host/);
 });
