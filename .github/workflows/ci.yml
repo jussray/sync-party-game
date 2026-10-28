@@ -117,3 +117,35 @@ jobs:
             playwright-report/
             test-results/
           if-no-files-found: ignore
+
+  multiplayer-attack:
+    # Seeded 8-player attack harness against the real Worker + Durable Object (wrangler dev, local mode):
+    # forged identities, duplicate/overwrite/simultaneous intents, refreshes, timer alarm, host drop, rematch.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact proof head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD_SHA }}
+          persist-credentials: false
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.23.2"
+      - name: Install locked runtime dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Start local Worker + Durable Object
+        run: |
+          nohup npx wrangler dev --port 8787 --ip 127.0.0.1 > wrangler-dev.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:8787/ && exit 0; sleep 1; done
+          cat wrangler-dev.log; exit 1
+      - name: Seeded 8-player attack harness
+        run: for seed in 7 11 23; do ATTACK_SEED=$seed ATTACK_GAMES=2 npm run attack:multiplayer; done
+      - name: Preserve Worker log on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: multiplayer-attack-wrangler-log
+          path: wrangler-dev.log
+          if-no-files-found: ignore
