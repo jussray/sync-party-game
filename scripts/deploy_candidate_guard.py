@@ -3,8 +3,8 @@
 
 The candidate SHA remains the immutable proof/deploy subject. Main may advance only
 through paths explicitly allowlisted as non-deploying drift. Unknown paths fail
-closed. This prevents documentation/receipt commits from needlessly invalidating a
-green candidate while still revoking authority for runtime/config/workflow drift.
+closed. Every intervening commit is inspected, so a sensitive change cannot regain
+authority merely by being reverted before the current main tip.
 """
 from __future__ import annotations
 
@@ -25,15 +25,18 @@ def die(message: str) -> None:
 
 
 def git(*args: str) -> str:
-    process = subprocess.run(
-        ["git", *args],
-        text=True,
-        capture_output=True,
-        check=False,
-    )
+    process = subprocess.run(["git", *args], text=True, capture_output=True, check=False)
     if process.returncode != 0:
         die(process.stderr.strip() or f"git {' '.join(args)} failed")
     return process.stdout.strip()
+
+
+def git_bytes(*args: str) -> bytes:
+    process = subprocess.run(["git", *args], capture_output=True, check=False)
+    if process.returncode != 0:
+        message = process.stderr.decode("utf-8", "replace").strip()
+        die(message or f"git {' '.join(args)} failed")
+    return process.stdout
 
 
 def load_policy(path: pathlib.Path) -> list[str]:
@@ -53,6 +56,19 @@ def load_policy(path: pathlib.Path) -> list[str]:
     if not isinstance(globs, list) or not globs or not all(isinstance(item, str) and item for item in globs):
         die("safe_drift_globs must be a non-empty list of strings")
     return globs
+
+
+def intervening_paths(candidate: str, current: str) -> list[str]:
+    commits = [commit for commit in git("rev-list", "--reverse", f"{candidate}..{current}").splitlines() if commit]
+    seen: dict[str, None] = {}
+    for commit in commits:
+        raw = git_bytes("diff-tree", "-m", "--no-commit-id", "--name-only", "-r", "-z", commit)
+        for encoded_path in raw.split(b"\0"):
+            if not encoded_path:
+                continue
+            path = encoded_path.decode("utf-8", "surrogateescape")
+            seen.setdefault(path, None)
+    return list(seen)
 
 
 def main() -> None:
@@ -82,32 +98,23 @@ def main() -> None:
         die("approved candidate is not an ancestor of current main")
 
     safe_globs = load_policy(pathlib.Path(args.policy))
-    changed = [
-        line.strip()
-        for line in git("diff", "--name-only", f"{candidate}..{current}").splitlines()
-        if line.strip()
-    ]
-
-    unsafe = [
-        path
-        for path in changed
-        if not any(fnmatch.fnmatchcase(path, pattern) for pattern in safe_globs)
-    ]
+    changed = intervening_paths(candidate, current)
+    unsafe = [path for path in changed if not any(fnmatch.fnmatchcase(path, pattern) for pattern in safe_globs)]
 
     if unsafe:
-        print("Deployment-sensitive drift detected:", file=sys.stderr)
+        print("Deployment-sensitive drift detected in candidate history:", file=sys.stderr)
         for path in unsafe:
-            print(f"  - {path}", file=sys.stderr)
-        die("main changed outside the explicit non-deploying allowlist; approve a new candidate")
+            print(f"  - {path!r}", file=sys.stderr)
+        die("an intervening commit touched a path outside the explicit non-deploying allowlist; approve a new candidate")
 
     print(f"DEPLOY CANDIDATE VALID: {candidate}")
     print(f"CURRENT MAIN: {current}")
     if changed:
-        print("SAFE DRIFT:")
+        print("SAFE INTERVENING DRIFT:")
         for path in changed:
-            print(f"  - {path}")
+            print(f"  - {path!r}")
     else:
-        print("SAFE DRIFT: none")
+        print("SAFE INTERVENING DRIFT: none")
 
 
 if __name__ == "__main__":
