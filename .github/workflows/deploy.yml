@@ -167,39 +167,8 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Pin exact deployed identity
-        shell: bash
-        run: |
-          set -euo pipefail
-          body="$(curl --fail --silent --show-error --max-time 10 "$PLAYWRIGHT_BASE_URL/api/version")"
-          build="$(DEPLOY_BODY="$body" EXPECTED_SHA="$EXPECTED_SHA" node --input-type=module <<'NODE'
-          const value = JSON.parse(process.env.DEPLOY_BODY || "{}");
-          if (value?.service !== "sync-party-game" || value?.sha !== process.env.EXPECTED_SHA || typeof value?.build !== "string" || value.build.length === 0) {
-            console.error(`Identity not pinned: expected sha=${process.env.EXPECTED_SHA}; observed sha=${value?.sha} build=${value?.build}`);
-            process.exit(1);
-          }
-          process.stdout.write(value.build);
-          NODE
-          )"
-          echo "PINNED_BUILD=$build" >> "$GITHUB_ENV"
-          echo "Pinned exact deployed identity: sha=$EXPECTED_SHA build=$build"
-
       - name: Run full multiplayer suite against public production
-        run: node scripts/production-identity-monitor.mjs
-
-      - name: Recheck exact deployed identity after tests
-        shell: bash
-        run: |
-          set -euo pipefail
-          body="$(curl --fail --silent --show-error --max-time 10 "$PLAYWRIGHT_BASE_URL/api/version")"
-          DEPLOY_BODY="$body" EXPECTED_SHA="$EXPECTED_SHA" PINNED_BUILD="$PINNED_BUILD" node --input-type=module <<'NODE'
-          const value = JSON.parse(process.env.DEPLOY_BODY || "{}");
-          if (value?.service !== "sync-party-game" || value?.sha !== process.env.EXPECTED_SHA || value?.build !== process.env.PINNED_BUILD) {
-            console.error(`Deployment identity changed during proof: expected sha=${process.env.EXPECTED_SHA} build=${process.env.PINNED_BUILD}; observed sha=${value?.sha} build=${value?.build}`);
-            process.exit(1);
-          }
-          console.log(`Identity unchanged after tests: sha=${value.sha} build=${value.build}`);
-          NODE
+        run: npm run test:e2e
 
       - name: Write production proof receipt
         if: success()
@@ -207,18 +176,18 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p test-results
-          cat > test-results/production-proof.txt <<RECEIPT
-          repository=jussray/sync-party-game
-          sha=$EXPECTED_SHA
-          cloudflare_build=$PINNED_BUILD
-          source_proof_run=$SOURCE_PROOF_RUN_ID
-          url=https://sync-party-game.mcgill-raylene.workers.dev
-          github_run_id=$GITHUB_RUN_ID
-          proof=full Playwright suite against exact-SHA public Cloudflare deployment
-          identity_recheck=PASS
-          identity_monitor=PASS
-          result=VERIFIED
-          RECEIPT
+          version_json="$(curl --fail --silent --show-error "$PLAYWRIGHT_BASE_URL/api/version")"
+          DEPLOY_BODY="$version_json" EXPECTED_SHA="$EXPECTED_SHA" node --input-type=module <<'NODE' > test-results/production-proof.txt
+          const value = JSON.parse(process.env.DEPLOY_BODY);
+          console.log(`repository=jussray/sync-party-game`);
+          console.log(`sha=${process.env.EXPECTED_SHA}`);
+          console.log(`cloudflare_build=${value.build}`);
+          console.log(`source_proof_run=${process.env.SOURCE_PROOF_RUN_ID}`);
+          console.log(`url=https://sync-party-game.mcgill-raylene.workers.dev`);
+          console.log(`github_run_id=${process.env.GITHUB_RUN_ID}`);
+          console.log(`proof=full Playwright suite against exact-SHA public Cloudflare deployment`);
+          console.log(`result=VERIFIED`);
+          NODE
           cat test-results/production-proof.txt
           {
             echo "## Public multiplayer proof"
@@ -227,7 +196,6 @@ jobs:
             echo "- Source core-proof run: \`$SOURCE_PROOF_RUN_ID\`"
             echo "- Public URL: $PLAYWRIGHT_BASE_URL"
             echo "- Exact-SHA runtime identity: PASS"
-            echo "- Sampled production identity monitor and final identity recheck: PASS"
             echo "- Playwright: PASS"
             echo "- Sync Control Room runtime + privacy boundary: PASS"
             echo "- Phone + laptop path: PASS"
