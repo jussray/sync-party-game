@@ -2,10 +2,8 @@
 name: Deploy static content to Pages
 
 on:
-  # Runs on pushes targeting the default branch
-  push:
-    branches: ["main"]
-
+  # Automatic push-to-main publication is disabled: it publishes the whole repo
+  # tree outside the exact-green-SHA promotion in deploy.yml. Manual only.
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 

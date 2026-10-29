@@ -19,12 +19,14 @@ Active work does not stay pinned to an old base merely because an earlier head w
 
 An already-proven deployment candidate remains bound to its exact SHA. If `main` advances after that candidate:
 
-- safe, explicitly non-deploying drift may preserve the candidate lease;
+- safe, explicitly evidence-only drift may preserve the candidate lease;
+- every exact path touched by every intervening commit is classified, not only the final tree delta;
 - runtime, config, dependency, migration, workflow, authority, packaging, publication, or unknown drift revokes the lease;
+- reverting a sensitive change later does not restore the older lease;
 - production deploys the exact candidate SHA, never an implicit moving `main`;
 - production proof stays bound to the deployed candidate SHA.
 
-Safe drift is repository-specific and fail-closed through `.deployment-authority.json` and `scripts/deploy_candidate_guard.py`.
+Safe drift is repository-specific and fail-closed through `.deployment-authority.json` and `scripts/deploy_candidate_guard.py`. Path matching uses Git's NUL-delimited records without trimming or quote rewriting.
 
 ## Combined state machine
 
@@ -38,7 +40,7 @@ ACTIVE WORK
 
 PROVEN DEPLOYMENT CANDIDATE
   main moves
-      -> classify drift
+      -> classify every intervening exact path
           -> explicit safe non-deploying drift: lease survives
           -> runtime/config/authority/unknown drift: lease revoked
               -> successor becomes new candidate only after fresh proof
@@ -67,7 +69,9 @@ A deployment lease must never be used to avoid rolling active work forward. A PR
 
 1. active work receives a new successor head after the base moves;
 2. predecessor proof identity cannot silently remain current after rollover;
-3. documentation-only drift preserves an approved deployment candidate under the repo allowlist; and
-4. runtime drift revokes that same candidate.
+3. evidence-only Unicode receipt drift preserves an approved deployment candidate under the repo allowlist;
+4. governance drift revokes that candidate;
+5. runtime drift still revokes after a later revert; and
+6. whitespace-bearing unknown paths cannot be normalized into the allowlist.
 
 This model is intended to be inherited by Founder Control Room and other user-owned repositories with repository-specific drift policies.

@@ -6,7 +6,8 @@ test('provider states expose no secret values', () => {
   const states = providerStates({
     OPENAI_API_KEY: 'openai-secret',
     ANTHROPIC_API_KEY: 'anthropic-secret',
-    MODEL_API_KEY: 'muse-secret'
+    MODEL_API_KEY: 'muse-secret',
+    SYNC_MUSE_MODEL: 'muse-spark-1.3'
   });
   assert.equal(states.openai.state, 'INTEGRATED');
   assert.equal(states.anthropic.state, 'INTEGRATED');
@@ -29,5 +30,5 @@ test('OpenAI invocation returns provider evidence', async () => {
 test('restricted context is rejected before provider use', async () => {
   await assert.rejects(() => invokeProvider({ MODEL_API_KEY: 'muse-key' }, {
     provider: 'muse', prompt: 'private context', sensitivity: 'restricted'
-  }, async () => { throw new Error('should not run'); }), /restricted context/);
+  }, async () => { throw new Error('should not run'); }), /sensitive_context_not_authorized/);
 });

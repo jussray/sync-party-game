@@ -166,6 +166,29 @@ function capturePrediction(event) {
   decorateChoosing();
 }
 
+function decorateBars() {
+  const rows = [...document.querySelectorAll(".result-row")];
+  if (!rows.length) return;
+  const counts = rows.map((row) => {
+    const text = row.querySelector("strong")?.textContent || "0/0";
+    return Number(text.split("/")[0]) || 0;
+  });
+  const total = counts.reduce((sum, n) => sum + n, 0);
+  if (!total) return;
+  const winningIndex = counts.indexOf(Math.max(...counts));
+  const entries = Object.values(readPredictions());
+  const latest = entries[entries.length - 1];
+  rows.forEach((row, i) => {
+    const share = Math.round((counts[i] / total) * 100);
+    row.classList.add("has-bar");
+    row.style.setProperty("--share", `${share}%`);
+    row.classList.toggle("room-top", i === winningIndex);
+    if (latest?.predictionIndex !== undefined) {
+      row.classList.toggle("your-prediction", i === latest.predictionIndex);
+    }
+  });
+}
+
 function decorateReveal() {
   const rows = [...document.querySelectorAll(".result-row")];
   if (!rows.length) return;
@@ -230,6 +253,7 @@ function decorateResults() {
 function decorate() {
   decorateHome();
   decorateChoosing();
+  decorateBars();
   decorateReveal();
   decorateResults();
 }
