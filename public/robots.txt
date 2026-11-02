@@ -23,4 +23,4 @@ Disallow: /control-room.html
 Disallow: /usage
 Disallow: /usage.html
 
-Sitemap: https://sync-party-game.mcgill-raylene.workers.dev/sitemap.xml
+Sitemap: https://sync.jussco.company/sitemap.xml
