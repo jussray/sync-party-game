@@ -41,8 +41,8 @@ test("machine-facing crawler contract is explicit and excludes private surfaces"
   const llmsResponse = await request.get("/llms.txt");
   expect(llmsResponse.ok()).toBeTruthy();
   const llms = await llmsResponse.text();
-  expect(llms).toContain("Public indexing, citation, and user-directed retrieval are allowed.");
-  expect(llms).toContain("Model training and bulk harvesting are not granted.");
+  expect(llms).toContain("Search indexing, short attributed citation, and user-directed retrieval of public descriptions are welcome.");
+  expect(llms).toContain("Model training, bulk harvesting, and commercial reuse are not granted.");
 
   const sitemapResponse = await request.get("/sitemap.xml");
   expect(sitemapResponse.ok()).toBeTruthy();
