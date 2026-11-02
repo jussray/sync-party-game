@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "site": "https://sync-party-game.mcgill-raylene.workers.dev/",
+  "site": "https://sync.jussco.company/",
   "purpose": "machine-facing discovery contract",
   "policy": {
     "public_discovery": true,
