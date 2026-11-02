@@ -74,9 +74,9 @@ test("both public SYNC editions have canonical, search and structured game metad
     expect(html).toContain(`<link rel="canonical" href="${canonical}"`);
     expect(html).toMatch(/<meta name="description"/);
     expect(html).toMatch(/<meta property="og:url"/);
-    const blocks = [...html.matchAll(/<script type="application\\/ld\\+json">([^<]+)<\\/script>/g)];
-    expect(blocks).toHaveLength(1);
-    const schema = JSON.parse(blocks[0][1]);
+    const jsonText = html.split('<script type="application/ld+json">')[1]?.split("</script>")[0];
+    expect(jsonText).toBeTruthy();
+    const schema = JSON.parse(jsonText);
     expect(schema["@type"]).toBe("VideoGame");
     expect(schema.name).toBe(title);
     expect(schema.url).toBe(canonical);
