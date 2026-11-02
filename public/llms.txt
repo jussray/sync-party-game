@@ -2,13 +2,13 @@
 
 > A real-time multiplayer party game about matching your group's instincts.
 
-Canonical public runtime: https://sync-party-game.mcgill-raylene.workers.dev/
+Canonical public runtime: https://sync.jussco.company/
 
 ## Public surfaces
-- Homepage: https://sync-party-game.mcgill-raylene.workers.dev/
-- Chat Edition: https://sync-party-game.mcgill-raylene.workers.dev/chat/
-- Sitemap: https://sync-party-game.mcgill-raylene.workers.dev/sitemap.xml
-- Crawler policy: https://sync-party-game.mcgill-raylene.workers.dev/crawlers.json
+- Homepage: https://sync.jussco.company/
+- Chat Edition: https://sync.jussco.company/chat/
+- Sitemap: https://sync.jussco.company/sitemap.xml
+- Crawler policy: https://sync.jussco.company/crawlers.json
 
 ## Machine-facing policy
 - Public indexing, citation, and user-directed retrieval are allowed.
