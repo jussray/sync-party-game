@@ -35,7 +35,7 @@ function upgradeHome() {
   home.prepend(stage);
 
   const eyebrow = home.querySelector('.eyebrow');
-  if (eyebrow) eyebrow.textContent = 'SYNC ✦ LIVE PRESSURE PARTY';
+  if (eyebrow) eyebrow.textContent = 'SYNC ✦ PRESSURE PARTY';
 
   const headline = home.querySelector('.hero-content h1');
   if (headline) headline.innerHTML = 'CAN YOU READ THE ROOM<br><span>BEFORE TIME RUNS OUT?</span>';
