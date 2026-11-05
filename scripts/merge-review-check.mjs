@@ -4,11 +4,20 @@
  * Never execute or checkout PR-head code in the pull_request_target job.
  */
 export const REQUIRED_CHECKS = Object.freeze(["core-proof", "verify-agent-contract"]);
+// Founder = repository owner. GitHub bars a PR author from approving their own
+// PR, so a founder-authored PR can never carry an independent APPROVED review.
+// Per Ray's rule of 2026-11-05, the approval leg below is satisfied by founder
+// authority for founder-authored PRs, and the verdict states that plainly; no
+// independent review is ever claimed where none exists.
+export const FOUNDER_LOGIN = "jussray";
+export const FOUNDER_APPROVAL_NOTE =
+  "Approval leg satisfied by founder authority (founder-authored PR; rule 2026-11-05) — no independent review claimed";
 const SHA = /^[0-9a-f]{40}$/;
 const clean = (value) => typeof value === "string" ? value : "";
 
 export function evaluateMergeReview({ pr, currentMainSha, mainIsAncestor, checkRuns = [], reviews = [], statuses = [] }) {
   const reasons = [];
+  const notes = [];
   const head = clean(pr?.head?.sha);
   const author = clean(pr?.user?.login).toLowerCase();
   const base = clean(pr?.base?.sha);
@@ -64,9 +73,13 @@ export function evaluateMergeReview({ pr, currentMainSha, mainIsAncestor, checkR
     reasons.push("Unresolved independent CHANGES_REQUESTED review on exact head");
   }
   if (![...decisions.values()].some(state => state === "APPROVED")) {
-    reasons.push("No independent APPROVED review bound to exact PR head");
+    if (author === FOUNDER_LOGIN) {
+      notes.push(FOUNDER_APPROVAL_NOTE);
+    } else {
+      reasons.push("No independent APPROVED review bound to exact PR head");
+    }
   }
-  return { pass: reasons.length === 0, head, reasons: [...new Set(reasons)] };
+  return { pass: reasons.length === 0, head, reasons: [...new Set(reasons)], notes: [...new Set(notes)] };
 }
 
 async function readJson(api, token, path) {
@@ -170,7 +183,7 @@ export async function publishMergeReview({ api, token, repository, number }) {
     completed_at: new Date().toISOString(),
     output: {
       title: verdict.pass ? "Exact-head merge review: PASS" : "Exact-head merge review: BLOCKED",
-      summary: ["Target: \`" + head + "\`", ...verdict.reasons.map(x => "- " + x)].join("\n").slice(0, 65000)
+      summary: ["Target: \`" + head + "\`", ...(verdict.notes || []).map(x => "- " + x), ...verdict.reasons.map(x => "- " + x)].join("\n").slice(0, 65000)
     }
   }, "PATCH");
   return { ...verdict, check_run_id: run.id };
@@ -208,7 +221,7 @@ async function main() {
     const result = await publishMergeReview({ api, token, repository, number });
     console.log(JSON.stringify({
       repository, pr: number, exact_head: result.head || null,
-      pass: result.pass || false, reasons: result.reasons || [], check_run_id: result.check_run_id || null
+      pass: result.pass || false, reasons: result.reasons || [], notes: result.notes || [], check_run_id: result.check_run_id || null
     }));
     if (!result.pass && !result.skipped) process.exitCode = 1;
   }
