@@ -19,3 +19,7 @@ A new player can receive a link, enter a name, understand the game without instr
 
 ## Scope discipline
 Game first, reusable core second. Do not prematurely extract an SDK until the working game proves the abstraction seams.
+
+## Court
+
+For consequential game decisions, convene the architectural court in `docs/sync-court.contract.json` (`juss/sync-court@v1`): Game, State, and Experience councils under the Founder Council. No second authority plane. Founder rules; the north star is never tradable.
