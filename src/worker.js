@@ -1,5 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { cueCacheKey, generateGameCue, MAX_AI_CUES_PER_ROOM } from "./game-ai.js";
+import { reserveAiCue } from "./ai-cue-cache.js";
 import { advance, allConnectedAnswered, createRoomState, joinPlayer, lockRound, publicFingerprint, publicState, revealRound, startGame, submitChoice, transferHostIfGone } from "./game.js";
 import { ANALYTICS_TRUTH_VERSION, campaignKey, classifyClientTraffic, normalizeGrowthEnvelope, normalizeGrowthEvent } from "./growth-contract.js";
 import { buildControlRoomEnvelope, fetchControlRoomSnapshot, recordControlRoomCommit } from "./control-room.js";
@@ -276,15 +277,9 @@ export class GameRoom extends DurableObject {
       if (this.env.SYNC_AI_GAME_ENABLED !== "true") return json({ error: "Game AI is unavailable" }, { status: 503 });
 
       // Reserve quota before the external request. Cached cues are shared by all players.
-      const reservation = await this.ctx.blockConcurrencyWhile(async () => {
-        const existing = await this.ctx.storage.get(key);
-        if (existing) return existing;
-        const count = (await this.ctx.storage.get("ai:used")) || 0;
-        if (count >= MAX_AI_CUES_PER_ROOM) return { status: "quota" };
-        await this.ctx.storage.put("ai:used", count + 1);
-        await this.ctx.storage.put(key, { status: "pending" });
-        return { status: "reserved" };
-      });
+      const reservation = await this.ctx.blockConcurrencyWhile(() =>
+        reserveAiCue(this.ctx.storage, key, MAX_AI_CUES_PER_ROOM)
+      );
       if (reservation.status === "ready") return json(reservation.value, { headers: { "cache-control": "no-store" } });
       if (reservation.status === "pending") return json({ status: "pending" }, { status: 202, headers: { "cache-control": "no-store" } });
       if (reservation.status === "quota") return json({ error: "Game AI quota reached" }, { status: 429 });
