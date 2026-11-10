@@ -1,3 +1,5 @@
+import { createAiCuePresenter } from "./host-cue.js";
+
 const PROD_API = "https://sync-party-game.mcgill-raylene.workers.dev";
 const mirrored = location.hostname.endsWith(".chatgpt.site");
 const apiBase = mirrored ? PROD_API : location.origin;
@@ -5,6 +7,9 @@ const sdkUrl = mirrored ? `${PROD_API}/sync-client.js` : "/sync-client.js";
 const { createSyncClient } = await import(sdkUrl);
 
 const client = createSyncClient({ baseUrl: apiBase, surface: "chat" });
+const presentAiCue = createAiCuePresenter(({ code, identity }) =>
+  client.aiCue({ code, playerId: identity.playerId, resumeToken: identity.resumeToken })
+);
 const CHAT_PATH = "/chat/index.html";
 const app = document.querySelector("#chatApp");
 const toast = document.querySelector("#chatToast");
@@ -284,6 +289,7 @@ function renderReveal(code, me) {
       document.querySelector("#nextRound")?.addEventListener("click", () => send("NEXT_ROUND"));
     }
   });
+  presentAiCue({ code, identity: me, phase: state.phase, seq: state.seq, selector: ".thread" });
 }
 
 function renderResults(code, me) {
@@ -318,6 +324,7 @@ function renderResults(code, me) {
       });
     }
   });
+  presentAiCue({ code, identity: me, phase: state.phase, seq: state.seq, selector: ".thread" });
 }
 
 async function boot() {
