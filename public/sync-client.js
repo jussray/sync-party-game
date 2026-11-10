@@ -47,6 +47,13 @@ export function createSyncClient(options = {}) {
         body: JSON.stringify({ name, growth, surface })
       });
     },
+    async aiCue({ code, playerId, resumeToken }) {
+      const room = String(code || "").trim().toUpperCase();
+      return requestJson(`/api/rooms/${encodeURIComponent(room)}/ai-cue`, {
+        method: "POST",
+        body: JSON.stringify({ playerId, resumeToken, edition: surface })
+      });
+    },
     async trackGrowth({ event, event_id, growth = {} }) {
       return requestJson("/api/growth/event", {
         method: "POST",
