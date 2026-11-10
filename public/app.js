@@ -1,4 +1,15 @@
 import { mountAudio } from './audio.js';
+import { createAiCuePresenter } from './host-cue.js';
+
+const presentAiCue = createAiCuePresenter(async ({ code, identity }) => {
+  const response = await fetch(`/api/rooms/${encodeURIComponent(code)}/ai-cue`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ playerId: identity.playerId, resumeToken: identity.resumeToken, edition: "cloudflare" })
+  });
+  if (!response.ok) throw new Error("AI host unavailable");
+  return response.json();
+});
 const app = document.querySelector("#app");
 const themeToggle = document.querySelector("#themeToggle");
 const toast = document.querySelector("#toast");
@@ -256,6 +267,7 @@ function renderReveal(state, me) {
   const syncPercent = state.lastResults?.syncPercent || 0;
   gameFrame(`${progress(state)}<p class="meta center">ROUND ${state.roundIndex + 1} · ${escapeHtml(state.mode?.label || "SYNC")}</p><h1 class="screen-title center">Here’s what everyone chose!</h1><div class="sync-readout"><span>ROOM SYNC</span><strong>${syncPercent}%</strong><b>${syncLabel(syncPercent)}</b></div><div class="answer-results">${rows}</div><div class="your-result ${won ? "won" : ""}"><div><small>YOUR CHOICE</small><b>${mine === undefined ? "No pick this round" : escapeHtml(state.prompt.choices[mine])}</b><span>${won ? "You nailed this round." : "Read the room again."}</span></div><strong>${won ? "+3" : "0"} pts</strong></div>${me.playerId === state.hostId ? `<button id="nextBtn" class="btn btn-primary wide">${state.roundIndex + 1 >= state.rounds ? "SEE FINAL SCORES" : "NEXT ROUND"} →</button>` : `<p class="little center">Waiting for the host…</p>`}`, "LIVE REVEAL");
   document.querySelector("#nextBtn")?.addEventListener("click", () => { sound.play("tap"); send("NEXT_ROUND"); });
+  presentAiCue({ code: state.code, identity: me, phase: state.phase, seq: state.seq, selector: "#gameCard" });
 }
 function renderResults(state, me) {
   const ranking = [...state.players].sort((a, b) => (state.scores[b.id] || 0) - (state.scores[a.id] || 0));
@@ -264,6 +276,7 @@ function renderResults(state, me) {
   gameFrame(`<div class="celebration" aria-hidden="true">${Array.from({ length: 16 }, (_, index) => `<i style="--x:${index * 6.3}%;--r:${index * 37}deg;--d:${(index % 5) * .13}s;--color:${["#ffcc4d", "#ef3cbe", "#7296ff"][index % 3]}"></i>`).join("")}</div><div class="center"><div class="trophy" aria-hidden="true">🏆</div><p class="meta">GAME OVER · ROOM ${escapeHtml(state.code)}</p><h1 class="screen-title">${escapeHtml(ranking[0]?.name || "Nobody")} wins!</h1><div class="final-sync"><span>FINAL ROOM SYNC</span><strong>${roomSync}%</strong><b>${syncLabel(roomSync)}</b></div></div><div class="scoreboard">${ranking.map((player, index) => `<div class="rank-row ${(state.scores[player.id] || 0) === high ? "leader" : ""}"><span class="rank-number">${index + 1}</span>${avatar(index)}<span class="rank-name">${escapeHtml(player.name)}${player.id === me.playerId ? " <small>(you)</small>" : ""}${(state.scores[player.id] || 0) === high ? " ♛" : ""}</span><strong>${state.scores[player.id] || 0}</strong></div>`).join("")}</div><div class="actions" style="margin-top:22px">${me.playerId === state.hostId ? `<button id="rematchBtn" class="btn btn-primary">PLAY AGAIN ↻</button>` : ""}<button id="homeBtn" class="btn btn-secondary">NEW ROOM</button></div>`, "FINAL SCORES");
   document.querySelector("#rematchBtn")?.addEventListener("click", () => send("REMATCH"));
   document.querySelector("#homeBtn").addEventListener("click", () => { closeSocket(); history.pushState({}, "", "/"); home(); });
+  presentAiCue({ code: state.code, identity: me, phase: state.phase, seq: state.seq, selector: "#gameCard" });
 }
 addEventListener("popstate", route);
 function route() { const code = new URLSearchParams(location.search).get("room")?.toUpperCase(); code ? connect(code) : home(); }
