@@ -1,4 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
+import { cueCacheKey, generateGameCue, MAX_AI_CUES_PER_ROOM } from "./game-ai.js";
 import { advance, allConnectedAnswered, createRoomState, joinPlayer, lockRound, publicFingerprint, publicState, revealRound, startGame, submitChoice, transferHostIfGone } from "./game.js";
 import { ANALYTICS_TRUTH_VERSION, campaignKey, classifyClientTraffic, normalizeGrowthEnvelope, normalizeGrowthEvent } from "./growth-contract.js";
 import { buildControlRoomEnvelope, fetchControlRoomSnapshot, recordControlRoomCommit } from "./control-room.js";
@@ -187,7 +188,7 @@ export default {
       }));
     }
 
-    const match = url.pathname.match(/^\/api\/rooms\/([A-Z0-9]{5})\/(join|ws|receipts)$/);
+    const match = url.pathname.match(/^\/api\/rooms\/([A-Z0-9]{5})\/(join|ws|receipts|ai-cue)$/);
     if (match) {
       const [, code, action] = match;
       const stub = env.ROOMS.get(env.ROOMS.idFromName(code));
@@ -260,6 +261,46 @@ export class GameRoom extends DurableObject {
       return json(receipts);
     }
 
+    if (url.pathname === "/internal/ai-cue" && request.method === "POST") {
+      const state = await this.ctx.storage.get("state");
+      if (!state) return json({ error: "Room not found" }, { status: 404 });
+      const body = await request.json().catch(() => ({}));
+      const player = state.players?.[body.playerId];
+      if (!player || !body.resumeToken || player.resumeToken !== body.resumeToken) {
+        return json({ error: "Invalid player" }, { status: 401 });
+      }
+      if (!["chat", "cloudflare"].includes(body.edition)) return json({ error: "Invalid edition" }, { status: 400 });
+      const epoch = (await this.ctx.storage.get("ai:epoch")) || 0;
+      const key = cueCacheKey(state, body.edition, epoch);
+      if (!key) return json({ error: "No AI cue for this phase" }, { status: 409 });
+      if (this.env.SYNC_AI_GAME_ENABLED !== "true") return json({ error: "Game AI is unavailable" }, { status: 503 });
+
+      // Reserve quota before the external request. Cached cues are shared by all players.
+      const reservation = await this.ctx.blockConcurrencyWhile(async () => {
+        const existing = await this.ctx.storage.get(key);
+        if (existing) return existing;
+        const count = (await this.ctx.storage.get("ai:used")) || 0;
+        if (count >= MAX_AI_CUES_PER_ROOM) return { status: "quota" };
+        await this.ctx.storage.put("ai:used", count + 1);
+        await this.ctx.storage.put(key, { status: "pending" });
+        return { status: "reserved" };
+      });
+      if (reservation.status === "ready") return json(reservation.value, { headers: { "cache-control": "no-store" } });
+      if (reservation.status === "pending") return json({ status: "pending" }, { status: 202, headers: { "cache-control": "no-store" } });
+      if (reservation.status === "quota") return json({ error: "Game AI quota reached" }, { status: 429 });
+      if (reservation.status === "unavailable") return json({ error: "Game AI unavailable for this phase" }, { status: 503 });
+
+      try {
+        const value = await generateGameCue(this.env, state, body.edition);
+        await this.ctx.storage.put(key, { status: "ready", value });
+        return json(value, { headers: { "cache-control": "no-store" } });
+      } catch {
+        // Never fail or mutate gameplay because an external model is unavailable.
+        await this.ctx.storage.put(key, { status: "unavailable" });
+        return json({ error: "Game AI unavailable for this phase" }, { status: 503 });
+      }
+    }
+
     if (url.pathname === "/internal/ws") {
       if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") return new Response("Expected websocket", { status: 426 });
       let state = await this.ctx.storage.get("state");
@@ -325,6 +366,7 @@ export class GameRoom extends DurableObject {
     try {
       if (action.type === "START_GAME") {
         state = startGame(state, playerId);
+        await this.ctx.storage.put("ai:epoch", ((await this.ctx.storage.get("ai:epoch")) || 0) + 1);
         state = await this.commit(state, "GAME_STARTED", playerId);
         await this.ctx.storage.setAlarm(state.deadline);
       } else if (action.type === "SUBMIT_CHOICE") {
@@ -338,6 +380,7 @@ export class GameRoom extends DurableObject {
       } else if (action.type === "REMATCH") {
         if (state.phase !== "results") throw new Error("Cannot rematch now");
         state = startGame(state, playerId);
+        await this.ctx.storage.put("ai:epoch", ((await this.ctx.storage.get("ai:epoch")) || 0) + 1);
         state = await this.commit(state, "REMATCH_STARTED", playerId);
         await this.ctx.storage.setAlarm(state.deadline);
       } else if (action.type === "PING") {
