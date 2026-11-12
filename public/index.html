@@ -4,9 +4,24 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#020817" />
-  <title>LIVE SITE SYNC ✦ Read. Pick. Lock. Reveal.</title>
+  <title>SYNC Party | Real-Time Multiplayer Game | Juss & Co.</title>
+  <meta name="description" content="Play SYNC Party, a real-time multiplayer game for 2–8 players. Create or join a room, answer privately, beat the clock, and reveal together." />
+  <link rel="canonical" href="https://sync.jussco.company/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Juss &amp; Co. Games" />
+  <meta property="og:title" content="SYNC Party | Real-Time Multiplayer Party Game" />
+  <meta property="og:description" content="Think alike. Beat the clock. Create or join a room with friends, lock your answers, and reveal together." />
+  <meta property="og:url" content="https://sync.jussco.company/" />
+  <meta property="og:image" content="https://sync.jussco.company/party-art.png" />
+  <meta property="og:image:alt" content="SYNC Party game artwork" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="SYNC Party | Play Together Online" />
+  <meta name="twitter:description" content="A real-time party game for 2–8 players. Private picks, timed rounds, and a group reveal." />
+  <meta name="twitter:image" content="https://sync.jussco.company/party-art.png" />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"SYNC Party","alternateName":"Live Site SYNC","url":"https://sync.jussco.company/","description":"A real-time multiplayer party game for 2–8 people. Create or join a room with a code, choose answers privately, and reveal them together.","genre":["Party game","Multiplayer game"],"playMode":"MultiPlayer","gamePlatform":["Web browser","Mobile browser"],"isAccessibleForFree":true,"image":"https://sync.jussco.company/party-art.png","publisher":{"@type":"Organization","name":"Juss & Co.","url":"https://www.jussco.company/"}}</script>
   <link rel="stylesheet" href="/styles.css" />
   <link rel="stylesheet" href="/site.css" />
+  <link rel="stylesheet" href="/sync-worlds.css" />
   <link rel="stylesheet" href="/arena-v1.css" />
   <link rel="stylesheet" href="/arena-v2.css" />
   <link rel="stylesheet" href="/arena-v3.css" />
@@ -15,13 +30,39 @@
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="/">LIVE SITE SYNC</a>
+    <a class="brand" href="/">SYNC</a>
     <div class="controls">
       <button id="themeToggle" class="icon-btn" aria-label="Toggle light or dark theme">☀︎</button>
       <button id="soundToggle" class="icon-btn" aria-pressed="false" aria-label="Toggle party sound">♫</button>
     </div>
   </header>
-  <main id="app" class="shell" aria-live="polite"></main>
+  <section class="sync-worlds" id="sync-worlds" aria-labelledby="sync-worlds-title">
+    <div class="sync-worlds-intro">
+      <div><p class="sync-worlds-kicker">THE SYNC UNIVERSE</p><h2 id="sync-worlds-title">Three ways to read the room.</h2></div>
+      <p>Choose your experience. Each world has its own feel.</p>
+    </div>
+    <div class="sync-worlds-grid">
+      <a class="sync-world sync-world--live" href="#app" aria-label="Live Site SYNC, play the multiplayer party game">
+        <span class="sync-world-tag">LIVE MULTIPLAYER</span>
+        <strong>Live Site <em>SYNC</em></strong>
+        <span class="sync-world-description">Beat the clock. Lock your pick. Reveal together.</span>
+        <span class="sync-world-action">Play right here <span aria-hidden="true">↗</span></span>
+      </a>
+      <a class="sync-world sync-world--chat" href="/chat/" aria-label="Chat SYNC, explore the AI-hosted prediction game">
+        <span class="sync-world-tag">AI-HOSTED PREDICTIONS</span>
+        <strong>Chat <em>SYNC</em></strong>
+        <span class="sync-world-description">Predict your people before the room reveals.</span>
+        <span class="sync-world-action">Explore Chat SYNC <span aria-hidden="true">↗</span></span>
+      </a>
+      <a class="sync-world sync-world--lovable" href="https://sync-playtest.lovable.app/" aria-label="Lovable SYNC, visit the separate playtest" rel="noopener noreferrer">
+        <span class="sync-world-tag">PLAYTEST EXPERIENCE</span>
+        <strong>Lovable <em>SYNC</em></strong>
+        <span class="sync-world-description">Match the vibe. Discover your group's chemistry.</span>
+        <span class="sync-world-action">Visit the playtest <span aria-hidden="true">↗</span></span>
+      </a>
+    </div>
+  </section>
+  <main id="app" class="shell" aria-live="polite"><section aria-labelledby="sync-intro"><h1 id="sync-intro">SYNC Party: think alike, beat the clock</h1><p>Play with 2–8 players. Make a private pick, beat the clock, and reveal together. No login or app install required.</p><p><a href="/chat/">Explore Chat SYNC</a></p></section></main>
   <footer id="fingerprint" class="fingerprint" aria-label="Authoritative room state fingerprint"></footer>
   <div id="toast" class="toast" role="status"></div>
   <script type="module" src="/invite.js"></script>

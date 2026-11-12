@@ -16,7 +16,7 @@ test("machine-facing crawler contract is explicit and excludes private surfaces"
   for (const path of privatePaths) {
     expect(robots).toContain(`Disallow: ${path}`);
   }
-  expect(robots).toContain("Sitemap: https://sync-party-game.mcgill-raylene.workers.dev/sitemap.xml");
+  expect(robots).toContain("Sitemap: https://sync.jussco.company/sitemap.xml");
 
   const policyResponse = await request.get("/crawlers.json");
   expect(policyResponse.ok()).toBeTruthy();
@@ -41,14 +41,14 @@ test("machine-facing crawler contract is explicit and excludes private surfaces"
   const llmsResponse = await request.get("/llms.txt");
   expect(llmsResponse.ok()).toBeTruthy();
   const llms = await llmsResponse.text();
-  expect(llms).toContain("Public indexing, citation, and user-directed retrieval are allowed.");
-  expect(llms).toContain("Model training and bulk harvesting are not granted.");
+  expect(llms).toContain("Search indexing, short attributed citation, and user-directed retrieval of public descriptions are welcome.");
+  expect(llms).toContain("Model training, bulk harvesting, and commercial reuse are not granted.");
 
   const sitemapResponse = await request.get("/sitemap.xml");
   expect(sitemapResponse.ok()).toBeTruthy();
   const sitemap = await sitemapResponse.text();
-  expect(sitemap).toContain("https://sync-party-game.mcgill-raylene.workers.dev/");
-  expect(sitemap).toContain("https://sync-party-game.mcgill-raylene.workers.dev/chat/");
+  expect(sitemap).toContain("https://sync.jussco.company/");
+  expect(sitemap).toContain("https://sync.jussco.company/chat/");
   for (const path of privatePaths) {
     expect(sitemap).not.toContain(path);
   }
@@ -60,5 +60,25 @@ test("unknown navigation paths return a real 404 instead of impersonating the ho
     expect(response?.status(), `${path} should be a 404`).toBe(404);
     await expect(page.getByRole("heading", { name: "Page not found." })).toBeVisible();
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex, nofollow");
+  }
+});
+
+test("both public SYNC editions have canonical, search and structured game metadata", async ({ request }) => {
+  for (const [path, title, canonical] of [
+    ["/", "SYNC Party", "https://sync.jussco.company/"],
+    ["/chat/", "Chat SYNC", "https://sync.jussco.company/chat/"]
+  ]) {
+    const response = await request.get(path);
+    expect(response.ok()).toBeTruthy();
+    const html = await response.text();
+    expect(html).toContain(`<link rel="canonical" href="${canonical}"`);
+    expect(html).toMatch(/<meta name="description"/);
+    expect(html).toMatch(/<meta property="og:url"/);
+    const jsonText = html.split('<script type="application/ld+json">')[1]?.split("</script>")[0];
+    expect(jsonText).toBeTruthy();
+    const schema = JSON.parse(jsonText);
+    expect(schema["@type"]).toBe("VideoGame");
+    expect(schema.name).toBe(title);
+    expect(schema.url).toBe(canonical);
   }
 });

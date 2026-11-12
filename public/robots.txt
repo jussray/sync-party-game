@@ -1,8 +1,5 @@
-# SYNC machine-facing discovery contract.
-# Public indexing, citation, and user-directed retrieval are welcome.
-# Model-training and bulk-harvesting crawlers are not.
-# robots.txt guides crawling only; it grants no authorization.
-
+# Public search discovery is welcome; training and bulk-harvesting remain disallowed.
+# robots.txt is guidance, not access control or a license.
 User-agent: GPTBot
 Disallow: /
 
@@ -23,4 +20,4 @@ Disallow: /control-room.html
 Disallow: /usage
 Disallow: /usage.html
 
-Sitemap: https://sync-party-game.mcgill-raylene.workers.dev/sitemap.xml
+Sitemap: https://sync.jussco.company/sitemap.xml
