@@ -1,17 +1,23 @@
-# SYNC
+# SYNC Games | Juss & Co.
 
-> A real-time multiplayer party game about matching your group's instincts.
+> Three distinct SYNC experiences built for social play: Live Site SYNC (SYNC Party), Chat SYNC, and Lovable SYNC.
 
-Canonical public runtime: https://sync-party-game.mcgill-raylene.workers.dev/
+Publisher: Juss & Co. | https://www.jussco.company/
+Game hub: https://games.jussco.company/
 
-## Public surfaces
-- Homepage: https://sync-party-game.mcgill-raylene.workers.dev/
-- Chat Edition: https://sync-party-game.mcgill-raylene.workers.dev/chat/
-- Sitemap: https://sync-party-game.mcgill-raylene.workers.dev/sitemap.xml
-- Crawler policy: https://sync-party-game.mcgill-raylene.workers.dev/crawlers.json
+## Public, citable game pages
+- SYNC Party / Live Site SYNC: https://sync.jussco.company/ — real-time multiplayer party game for 2–8 players, timed private picks, room codes, synchronized reveal, no app installation or login.
+- Chat SYNC: https://sync.jussco.company/chat/ — AI-hosted chat presentation with local predictions; the prediction is not a game answer or authoritative room state.
+- Lovable SYNC: https://sync-playtest.lovable.app/ — social vibe matching and playtest signup; not a claim of full public production gameplay.
 
-## Machine-facing policy
-- Public indexing, citation, and user-directed retrieval are allowed.
-- Model training and bulk harvesting are not granted.
-- `/api/`, `/control-room*`, and `/usage*` are not public discovery surfaces.
-- Crawling permission is not authentication, authorization, execution authority, or permission to access private data.
+## Discovery
+- Canonical sitemap: https://sync.jussco.company/sitemap.xml
+- Crawler policy: https://sync.jussco.company/crawlers.json
+- Game family hub: https://games.jussco.company/
+
+## Boundaries
+- Search indexing, short attributed citation, and user-directed retrieval of public descriptions are welcome.
+- Model training, bulk harvesting, and commercial reuse are not granted.
+- Never retrieve private rooms, player answers, tokens, personal data, internal analytics, or operator paths.
+- /api/, /control-room*, and /usage* are not public discovery surfaces.
+- Robots and discovery documents do not grant authorization or execution authority.

@@ -29,7 +29,7 @@ test("rejects unrelated failed current-head verification",()=>{
   const f=fixture();f.checkRuns.push({name:"security",head_sha:SHA,status:"completed",conclusion:"failure"});fail(f,"security");
 });
 test("does not make in-flight own deployment/proof jobs a circular dependency",()=>{
-  const f=fixture();f.checkRuns.push({name:"Promote exact green SHA to production",head_sha:SHA,status:"in_progress",conclusion:null});
+  const f=fixture();f.checkRuns.push({name:"Promote exact leased green SHA to production",head_sha:SHA,status:"in_progress",conclusion:null});
   f.checkRuns.push({name:"Public exact-SHA multiplayer proof",head_sha:SHA,status:"queued",conclusion:null});
   assert.equal(assessProductionPreflight(f).pass,true);
 });

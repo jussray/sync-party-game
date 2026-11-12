@@ -6,7 +6,7 @@
 import { pathToFileURL } from "node:url";
 
 export const PRE_RELEASE_CHECKS = Object.freeze(["core-proof", "verify-agent-contract"]);
-const OWN_DEPLOY_CHECKS = new Set(["Promote exact green SHA to production", "Public exact-SHA multiplayer proof"]);
+const OWN_DEPLOY_CHECKS = new Set(["Promote exact leased green SHA to production", "Public exact-SHA multiplayer proof"]);
 const SHA = /^[0-9a-f]{40}$/;
 
 export function assessProductionPreflight({ sha, checkRuns = [], statuses = [] }) {
