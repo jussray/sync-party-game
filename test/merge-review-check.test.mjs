@@ -169,3 +169,93 @@ test("dismissed review does not veto a later valid independent approval", () => 
   });
   assert.equal(evaluateMergeReview(f).pass, true);
 });
+
+// --- Publish-leg transport resilience (2026-11-12 flake fix) ---
+// The verdict logic above is unchanged. These tests pin the transport
+// contract: transient API failures are retried within a bound, a failure
+// that persists past the bound still fails closed, and repeated publishes
+// of the same head converge instead of erroring.
+
+test("transient 403 on check creation is retried and still publishes success", async () => {
+  const { calls, mockFetch } = stubMetadata();
+  let posts = 0;
+  const flaky = async (url, options = {}) => {
+    if ((options.method || "GET") === "POST" && url.endsWith("/check-runs")) {
+      posts++;
+      if (posts <= 2) return { ok: false, status: 403, json: async () => ({ message: "secondary rate limit" }) };
+    }
+    return mockFetch(url, options);
+  };
+  const result = await withMockFetch(flaky, () => publishMergeReview({
+    api: "https://api.github.test", token: "fake", repository: "jussray/sync-party-game", number: 23
+  }));
+  assert.equal(result.pass, true);
+  assert.equal(posts, 3);
+  assert.equal(calls.find(x => x.method === "PATCH").body.conclusion, "success");
+});
+
+test("persistent transient failure is bounded and still fails closed", async () => {
+  const { mockFetch } = stubMetadata();
+  let posts = 0;
+  const down = async (url, options = {}) => {
+    if ((options.method || "GET") === "POST" && url.endsWith("/check-runs")) {
+      posts++;
+      return { ok: false, status: 500, json: async () => ({}) };
+    }
+    return mockFetch(url, options);
+  };
+  await assert.rejects(withMockFetch(down, () => publishMergeReview({
+    api: "https://api.github.test", token: "fake", repository: "jussray/sync-party-game", number: 23
+  })));
+  assert.equal(posts, 3); // 1 initial attempt + 2 bounded retries, never more
+});
+
+test("two publishes of the same head converge to one effective latest verdict", async () => {
+  const stored = [];
+  let nextId = 100;
+  const required = REQUIRED_CHECKS.map(name => ({
+    name, head_sha: SHA, app: { slug: "github-actions" }, status: "completed", conclusion: "success"
+  }));
+  const pr = {
+    number: 23, state: "open", draft: false, mergeable: true,
+    user: { login: "author" }, base: { ref: "main", sha: BASE }, head: { sha: SHA }
+  };
+  const mockFetch = async (url, options = {}) => {
+    const method = options.method || "GET";
+    const body = options.body ? JSON.parse(options.body) : null;
+    let data;
+    if (method === "POST" && url.endsWith("/check-runs")) {
+      data = { id: ++nextId };
+      stored.push({ id: data.id, name: body.name, head_sha: body.head_sha,
+        app: { slug: "github-actions" }, status: body.status, conclusion: null });
+    } else if (method === "PATCH" && url.includes("/check-runs/")) {
+      const id = Number(url.split("/check-runs/")[1]);
+      const run = stored.find(x => x.id === id);
+      run.status = body.status; run.conclusion = body.conclusion;
+      data = { id };
+    }
+    else if (url.endsWith("/pulls/23")) data = pr;
+    else if (url.endsWith("/branches/main")) data = { commit: { sha: BASE } };
+    else if (url.includes("/check-runs?per_page=100")) {
+      const all = [...required, ...stored];
+      data = { total_count: all.length, check_runs: all };
+    }
+    else if (url.endsWith("/pulls/23/reviews?per_page=100")) data = [
+      { user: { login: "reviewer" }, commit_id: SHA, state: "APPROVED", submitted_at: "2026-10-22T01:00:00Z" }
+    ];
+    else if (url.endsWith("/commits/" + SHA + "/status")) data = { statuses: [] };
+    else if (url.endsWith("/compare/" + BASE + "..." + SHA)) data = {
+      status: "ahead", merge_base_commit: { sha: BASE }
+    };
+    else throw Error("Unexpected request: " + method + " " + url);
+    return { ok: true, status: 200, json: async () => data };
+  };
+  const args = { api: "https://api.github.test", token: "fake", repository: "jussray/sync-party-game", number: 23 };
+  const first = await withMockFetch(mockFetch, () => publishMergeReview(args));
+  const second = await withMockFetch(mockFetch, () => publishMergeReview(args));
+  assert.equal(first.pass, true);
+  assert.equal(second.pass, true); // a prior published merge-review check never poisons a re-publish
+  const completed = stored.filter(x => x.status === "completed");
+  assert.equal(completed.length, 2);
+  assert.equal(completed[completed.length - 1].conclusion, "success"); // latest governs
+});
