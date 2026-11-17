@@ -33,6 +33,9 @@ async function createTwoPlayerRoom(host, guest, hostName = "Ray", guestName = "N
 }
 
 test("laptop host and phone guest complete, reconnect, and rematch an authoritative game", async ({ browser }) => {
+  // 6 rounds incl. rematch, each with the server's 1.5s LOCK beat (LOCK_MS): ~22s on localhost,
+  // so the default 30s budget is too tight against the public URL.
+  test.setTimeout(90_000);
   const hostContext = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const guestContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true });
   const host = await hostContext.newPage();
@@ -146,6 +149,8 @@ test("laptop host and phone guest complete, reconnect, and rematch an authoritat
 });
 
 test("Durable Object alarm reveals a round when players do not answer", async ({ browser }) => {
+  // waits out a real 15s round deadline plus the LOCK beat before reveal
+  test.setTimeout(60_000);
   const hostContext = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const guestContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true });
   const host = await hostContext.newPage();
