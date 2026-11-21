@@ -80,10 +80,32 @@ test("Durable Object records validated entries and serves the public board", asy
   assert.equal(typeof board.updated_at, "string");
 });
 
+const HUMANS = ["browser_signal", "browser_signal"];
+
 test("recordLeaderboard is a no-op without the binding or a qualifying game", async () => {
-  assert.equal(await lb.recordLeaderboard({}, finished()), null);
+  assert.equal(await lb.recordLeaderboard({}, finished(), HUMANS), null);
   let called = false;
   const env = { LEADERBOARD: { idFromName: () => "id", get: () => ({ fetch: async () => { called = true; return new Response("{}"); } }) } };
-  assert.equal(await lb.recordLeaderboard(env, finished({ phase: "lobby" })), null);
+  assert.equal(await lb.recordLeaderboard(env, finished({ phase: "lobby" }), HUMANS), null);
   assert.equal(called, false);
+});
+
+test("only fully human-verified games reach the board; bots and unverified fail closed", async () => {
+  assert.equal(lb.humanVerifiedGame(HUMANS), true);
+  assert.equal(lb.humanVerifiedGame(["browser_signal", "automation_likely"]), false);
+  assert.equal(lb.humanVerifiedGame(["browser_signal", "unverified_client"]), false);
+  assert.equal(lb.humanVerifiedGame(["browser_signal", null]), false);
+  assert.equal(lb.humanVerifiedGame(["browser_signal"]), false);
+  assert.equal(lb.humanVerifiedGame(null), false);
+  let calls = 0;
+  const env = { LEADERBOARD: { idFromName: () => "id", get: () => ({ fetch: async () => { calls += 1; return new Response(JSON.stringify({ rank: 1 })); } }) } };
+  assert.equal(await lb.recordLeaderboard(env, finished(), ["automation_likely", "automation_likely"]), null);
+  assert.equal(calls, 0);
+  assert.deepEqual(await lb.recordLeaderboard(env, finished(), HUMANS), { rank: 1 });
+  assert.equal(calls, 1);
+});
+
+test("board storage moved off the bot-seeded v1 object", () => {
+  assert.notEqual(lb.LEADERBOARD_OBJECT, "sync-leaderboard-v1");
+  assert.equal(lb.LEADERBOARD_VERSION, "sync-leaderboard-v1");
 });

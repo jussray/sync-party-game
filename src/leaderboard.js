@@ -5,7 +5,9 @@ import { averageSync } from "./game.js";
 // Privacy contract: an entry holds only numbers and a UTC day. Never names,
 // room codes, player ids, answers, tokens or exact timestamps.
 export const LEADERBOARD_VERSION = "sync-leaderboard-v1";
-export const LEADERBOARD_OBJECT = LEADERBOARD_VERSION;
+// Storage object name. v2 starts a fresh board: v1 storage was seeded by CI
+// production-proof bot games and is never served again.
+export const LEADERBOARD_OBJECT = "sync-leaderboard-v2-human-verified";
 export const LEADERBOARD_SIZE = 25;
 export const MIN_ANSWERING_PLAYERS = 2;
 
@@ -65,8 +67,17 @@ export function publicBoard(board, updatedAt = null) {
   return { version: LEADERBOARD_VERSION, metric: "average_room_sync_percent", min_players: MIN_ANSWERING_PLAYERS, size: LEADERBOARD_SIZE, updated_at: updatedAt, entries };
 }
 
-export async function recordLeaderboard(env, state, now = Date.now()) {
+// Only games where EVERY participant was server-classified as a real browser
+// count. Automation (headless, Playwright, bots) or unverified clients keep a
+// game off the public board, fail closed.
+export function humanVerifiedGame(trafficClasses) {
+  return Array.isArray(trafficClasses) && trafficClasses.length >= MIN_ANSWERING_PLAYERS &&
+    trafficClasses.every((value) => value === "browser_signal");
+}
+
+export async function recordLeaderboard(env, state, trafficClasses, now = Date.now()) {
   if (!env.LEADERBOARD) return null;
+  if (!humanVerifiedGame(trafficClasses)) return null;
   const entry = leaderboardEntry(state, now);
   if (!entry) return null;
   const stub = env.LEADERBOARD.get(env.LEADERBOARD.idFromName(LEADERBOARD_OBJECT));

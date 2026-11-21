@@ -489,10 +489,20 @@ export class GameRoom extends DurableObject {
       at: Date.now()
     });
     await this.ctx.storage.put({ state: committed, receipts: receipts.slice(-128) });
+    // Read participants' server-side traffic classes before growth bookkeeping clears them.
+    let leaderboardTraffic = null;
+    if (event === "GAME_FINISHED") {
+      try {
+        const ids = (await this.ctx.storage.get(participationKey)) || Object.keys(committed.players);
+        leaderboardTraffic = await Promise.all(ids.map(async (id) => ((await this.ctx.storage.get(growthKey(id))) || {}).traffic_class || null));
+      } catch {
+        leaderboardTraffic = null;
+      }
+    }
     await this.recordGrowthForCommit(event, actor, committed);
     if (event === "GAME_FINISHED") {
       try {
-        await recordLeaderboard(this.env, committed);
+        await recordLeaderboard(this.env, committed, leaderboardTraffic);
       } catch {
         // The leaderboard is a public projection and must never block gameplay authority.
       }
