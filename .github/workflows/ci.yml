@@ -54,6 +54,7 @@ jobs:
           node --check src/control-room.js
           node --check src/growth-contract.js
           node --check src/growth-ledger.js
+          node --check src/leaderboard.js
           node --check src/worker.js
           node --check src/surfaces.js
           node --check src/multisurface-worker.js
