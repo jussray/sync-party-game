@@ -137,6 +137,10 @@ test("draft PR cannot publish a green merge check", async () => {
   }));
   assert.equal(result.pass, false);
   assert.equal(calls.find(x => x.method === "PATCH").body.conclusion, "failure");
+  // The true reason is reported; a draft is not mislabelled as a mid-run change.
+  assert.equal(result.reasons[0], "Draft PR is not merge-authorized");
+  assert.equal(result.reasons.includes("PR changed while merge review was running"), false);
+  assert.match(calls.find(x => x.method === "PATCH").body.output.summary, /Draft PR is not merge-authorized/);
 });
 
 
