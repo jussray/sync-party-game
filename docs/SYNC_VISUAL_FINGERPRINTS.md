@@ -22,6 +22,14 @@ Until the manifest says otherwise with fresh source-vs-render evidence:
 
 Do not promote `public/party-art.png` or `public/chat/ai-host.svg` to canonical proof merely because those files exist or render. They are current implementation assets whose relationship to the approved source visuals must remain truthfully classified.
 
+## Founder source files (2026-11-21)
+
+The founder-approved source visuals are now committed as exact binaries in `visual/source/` (hashes in `visual/project.asset-manifest.json` → `sourceFilesInRepository`):
+
+- `live-site-sync-approved.png`, `chatgpt-sync-approved.png`, `lovable-sync-approved.png`, `sync-ui-flow-approved.png`
+
+Live (`/`) and ChatGPT SYNC (`/chat/`) were rebuilt to these compositions, with their art cropped from the source files. Their continuity status stays `REGRESSION` / `PARTIAL` until the founder approves the rendered result against the source. Lovable SYNC was confirmed by the founder on 2026-11-21 as fully meeting its intended visual.
+
 ## CHATGPT_SYNC_VISUAL_V1
 
 **Purpose:** the Chat Edition should feel like an AI-hosted social prediction experience, not a reskin of the arena.

@@ -27,15 +27,18 @@
   <link rel="stylesheet" href="/arena-v3.css" />
   <link rel="stylesheet" href="/audio.css" />
   <link rel="stylesheet" href="/invite.css" />
+  <link rel="stylesheet" href="/founder-live.css" />
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="/">SYNC</a>
+    <a class="brand" href="/">LIVE SITE <span>SYNC</span></a>
+    <nav class="fl-nav" aria-label="Live Site SYNC"><a href="#app">Play</a><a href="#modes">Modes</a><a href="#features">Features</a><a href="#how">How it works</a><a href="#sync-worlds">Other SYNCs</a></nav>
     <div class="controls">
       <button id="themeToggle" class="icon-btn" aria-label="Toggle light or dark theme">☀︎</button>
       <button id="soundToggle" class="icon-btn" aria-pressed="false" aria-label="Toggle party sound">♫</button>
     </div>
   </header>
+  <main id="app" class="shell" aria-live="polite"><section aria-labelledby="sync-intro"><h1 id="sync-intro">SYNC Party: think alike, beat the clock</h1><p>Play with 2–8 players. Make a private pick, beat the clock, and reveal together. No login or app install required.</p><p><a href="/chat/">Explore Chat SYNC</a></p></section></main>
   <section class="sync-worlds" id="sync-worlds" aria-labelledby="sync-worlds-title">
     <div class="sync-worlds-intro">
       <div><p class="sync-worlds-kicker">THE SYNC UNIVERSE</p><h2 id="sync-worlds-title">Three ways to read the room.</h2></div>
@@ -62,13 +65,10 @@
       </a>
     </div>
   </section>
-  <main id="app" class="shell" aria-live="polite"><section aria-labelledby="sync-intro"><h1 id="sync-intro">SYNC Party: think alike, beat the clock</h1><p>Play with 2–8 players. Make a private pick, beat the clock, and reveal together. No login or app install required.</p><p><a href="/chat/">Explore Chat SYNC</a></p></section></main>
   <footer id="fingerprint" class="fingerprint" aria-label="Authoritative room state fingerprint"></footer>
   <div id="toast" class="toast" role="status"></div>
   <script type="module" src="/invite.js"></script>
   <script type="module" src="/app.js"></script>
   <script type="module" src="/arena-v1.js"></script>
-  <script type="module" src="/arena-v2.js"></script>
-  <script type="module" src="/arena-v3.js"></script>
 </body>
 </html>
