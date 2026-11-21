@@ -56,3 +56,18 @@ test("finished game lands on the anonymous SYNC leaderboard", async ({ browser, 
   await hostContext.close();
   await guestContext.close();
 });
+
+test("Game Hub origins can read the board cross-origin; other origins and APIs stay gated", async ({ request }) => {
+  for (const origin of ["https://games.jussco.company", "https://www.jussco.company"]) {
+    const response = await request.get("/api/leaderboard", { headers: { origin } });
+    expect(response.status()).toBe(200);
+    expect(response.headers()["access-control-allow-origin"]).toBe(origin);
+    expect((await response.json()).version).toBe("sync-leaderboard-v1");
+  }
+  const blocked = await request.get("/api/leaderboard", { headers: { origin: "https://evil.example" } });
+  expect(blocked.status()).toBe(403);
+  const otherApi = await request.post("/api/rooms/create", { headers: { origin: "https://games.jussco.company" }, data: { name: "x" } });
+  expect(otherApi.status()).toBe(403);
+  const write = await request.post("/api/leaderboard", { headers: { origin: "https://games.jussco.company" }, data: { sync: 100 } });
+  expect(write.status()).toBe(403);
+});

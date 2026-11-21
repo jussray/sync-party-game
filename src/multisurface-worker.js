@@ -6,6 +6,14 @@ export { ControlRoomLedger, GameRoom, GrowthLedger, LeaderboardLedger };
 
 const SDK_PATH = "/sync-client.js";
 const API_PREFIX = "/api/";
+// The public leaderboard is anonymous, read-only data. Only the Juss & Co Game Hub
+// origins may read it cross-origin; every other API keeps the strict origin gate.
+const LEADERBOARD_PATH = "/api/leaderboard";
+const LEADERBOARD_READ_ORIGINS = new Set([
+  "https://games.jussco.company",
+  "https://www.jussco.company",
+  "https://jussco.company"
+]);
 
 const json = (data, init = {}) => new Response(JSON.stringify(data), {
   ...init,
@@ -58,6 +66,15 @@ export default {
 
     if (url.pathname === SDK_PATH && request.method === "GET") {
       return sdkResponse(request, env);
+    }
+
+    if (url.pathname === LEADERBOARD_PATH && origin && LEADERBOARD_READ_ORIGINS.has(origin) && (request.method === "GET" || request.method === "OPTIONS")) {
+      const readHeaders = { "access-control-allow-origin": origin, "access-control-allow-methods": "GET", "access-control-max-age": "600", "vary": "Origin" };
+      if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: readHeaders });
+      const board = await baseWorker.fetch(request, env, ctx);
+      const headers = new Headers(board.headers);
+      for (const [key, value] of Object.entries(readHeaders)) headers.set(key, value);
+      return new Response(board.body, { status: board.status, statusText: board.statusText, headers });
     }
 
     if (isApi && origin && !isAllowedClientOrigin(origin, url.origin)) {
