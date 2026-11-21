@@ -261,9 +261,30 @@ function renderResults(state, me) {
   const ranking = [...state.players].sort((a, b) => (state.scores[b.id] || 0) - (state.scores[a.id] || 0));
   const roomSync = state.syncHistory?.length ? Math.round(state.syncHistory.reduce((sum, value) => sum + value, 0) / state.syncHistory.length) : 0;
   const high = Math.max(...ranking.map((player) => state.scores[player.id] || 0));
-  gameFrame(`<div class="celebration" aria-hidden="true">${Array.from({ length: 16 }, (_, index) => `<i style="--x:${index * 6.3}%;--r:${index * 37}deg;--d:${(index % 5) * .13}s;--color:${["#ffcc4d", "#ef3cbe", "#7296ff"][index % 3]}"></i>`).join("")}</div><div class="center"><div class="trophy" aria-hidden="true">🏆</div><p class="meta">GAME OVER · ROOM ${escapeHtml(state.code)}</p><h1 class="screen-title">${escapeHtml(ranking[0]?.name || "Nobody")} wins!</h1><div class="final-sync"><span>FINAL ROOM SYNC</span><strong>${roomSync}%</strong><b>${syncLabel(roomSync)}</b></div></div><div class="scoreboard">${ranking.map((player, index) => `<div class="rank-row ${(state.scores[player.id] || 0) === high ? "leader" : ""}"><span class="rank-number">${index + 1}</span>${avatar(index)}<span class="rank-name">${escapeHtml(player.name)}${player.id === me.playerId ? " <small>(you)</small>" : ""}${(state.scores[player.id] || 0) === high ? " ♛" : ""}</span><strong>${state.scores[player.id] || 0}</strong></div>`).join("")}</div><div class="actions" style="margin-top:22px">${me.playerId === state.hostId ? `<button id="rematchBtn" class="btn btn-primary">PLAY AGAIN ↻</button>` : ""}<button id="homeBtn" class="btn btn-secondary">NEW ROOM</button></div>`, "FINAL SCORES");
+  gameFrame(`<div class="celebration" aria-hidden="true">${Array.from({ length: 16 }, (_, index) => `<i style="--x:${index * 6.3}%;--r:${index * 37}deg;--d:${(index % 5) * .13}s;--color:${["#ffcc4d", "#ef3cbe", "#7296ff"][index % 3]}"></i>`).join("")}</div><div class="center"><div class="trophy" aria-hidden="true">🏆</div><p class="meta">GAME OVER · ROOM ${escapeHtml(state.code)}</p><h1 class="screen-title">${escapeHtml(ranking[0]?.name || "Nobody")} wins!</h1><div class="final-sync"><span>FINAL ROOM SYNC</span><strong>${roomSync}%</strong><b>${syncLabel(roomSync)}</b></div></div><div class="scoreboard">${ranking.map((player, index) => `<div class="rank-row ${(state.scores[player.id] || 0) === high ? "leader" : ""}"><span class="rank-number">${index + 1}</span>${avatar(index)}<span class="rank-name">${escapeHtml(player.name)}${player.id === me.playerId ? " <small>(you)</small>" : ""}${(state.scores[player.id] || 0) === high ? " ♛" : ""}</span><strong>${state.scores[player.id] || 0}</strong></div>`).join("")}</div><section id="leaderboard" class="leaderboard" aria-labelledby="leaderboardTitle"><h2 id="leaderboardTitle" class="meta">SYNC LEADERBOARD · TOP ROOMS</h2><p class="little" id="leaderboardStatus" role="status">Loading the board…</p><ol class="leaderboard-list" id="leaderboardList"></ol></section><div class="actions" style="margin-top:22px">${me.playerId === state.hostId ? `<button id="rematchBtn" class="btn btn-primary">PLAY AGAIN ↻</button>` : ""}<button id="homeBtn" class="btn btn-secondary">NEW ROOM</button></div>`, "FINAL SCORES");
+  loadLeaderboard(roomSync);
   document.querySelector("#rematchBtn")?.addEventListener("click", () => send("REMATCH"));
   document.querySelector("#homeBtn").addEventListener("click", () => { closeSocket(); history.pushState({}, "", "/"); home(); });
+}
+// Public board: anonymous rooms only (sync %, players, rounds, day). No names or room codes.
+async function loadLeaderboard(roomSync) {
+  const status = document.querySelector("#leaderboardStatus");
+  const list = document.querySelector("#leaderboardList");
+  if (!status || !list) return;
+  try {
+    const response = await fetch("/api/leaderboard", { headers: { accept: "application/json" } });
+    if (!response.ok) throw new Error(String(response.status));
+    const board = await response.json();
+    if (!document.body.contains(list)) return;
+    const entries = Array.isArray(board.entries) ? board.entries : [];
+    list.innerHTML = entries.slice(0, 10).map((entry) => `<li class="leaderboard-row"><span class="rank-number">${Number(entry.rank)}</span><strong>${Number(entry.sync)}%</strong><span>${Number(entry.players)} players · ${Number(entry.rounds)} rounds</span><small>${escapeHtml(String(entry.day))}</small></li>`).join("");
+    const cutoff = entries.length >= Number(board.size) ? Number(entries[entries.length - 1].sync) : null;
+    status.textContent = !entries.length ? "No rooms on the board yet. Finish a game with 2+ players to set the first record."
+      : cutoff === null ? `Your room synced ${roomSync}%. The board isn't full yet, so every finished game makes it.`
+      : `Your room synced ${roomSync}%. The top ${Number(board.size)} starts at ${cutoff}%.`;
+  } catch {
+    status.textContent = "The leaderboard is unavailable right now. Your game is unaffected.";
+  }
 }
 addEventListener("popstate", route);
 function route() { const code = new URLSearchParams(location.search).get("room")?.toUpperCase(); code ? connect(code) : home(); }

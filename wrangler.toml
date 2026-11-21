@@ -20,6 +20,10 @@ class_name = "GrowthLedger"
 name = "CONTROL"
 class_name = "ControlRoomLedger"
 
+[[durable_objects.bindings]]
+name = "LEADERBOARD"
+class_name = "LeaderboardLedger"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["GameRoom"]
@@ -31,3 +35,7 @@ new_sqlite_classes = ["GrowthLedger"]
 [[migrations]]
 tag = "v3"
 new_sqlite_classes = ["ControlRoomLedger"]
+
+[[migrations]]
+tag = "v4"
+new_sqlite_classes = ["LeaderboardLedger"]
