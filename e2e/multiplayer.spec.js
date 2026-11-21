@@ -8,9 +8,9 @@ async function expectFitsViewport(page) {
 async function expectChatSiteShell(page) {
   await expect(page.locator(".party-home")).toBeVisible();
   await expect(page.locator(".game-logo")).toHaveText(/SYNC/);
-  await expect(page.locator(".party-art")).toBeVisible();
-  const art = await page.locator(".party-art").evaluate((element) => getComputedStyle(element).backgroundImage);
-  expect(art).toContain("party-art.png");
+  await expect(page.locator(".game-logo")).toBeVisible();
+  const art = await page.locator(".game-logo").evaluate((element) => getComputedStyle(element).backgroundImage);
+  expect(art).toMatch(/\/founder\/live-(hero|title)\.webp/);
   await expect(page.getByRole("button", { name: new RegExp("Create a game", "i") })).toBeVisible();
   await expect(page.getByRole("button", { name: new RegExp("Join a game", "i") })).toBeVisible();
 }
