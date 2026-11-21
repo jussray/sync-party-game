@@ -30,6 +30,16 @@ The founder-approved source visuals are now committed as exact binaries in `visu
 
 Live (`/`) and ChatGPT SYNC (`/chat/`) were rebuilt to these compositions, with their art cropped from the source files. Their continuity status stays `REGRESSION` / `PARTIAL` until the founder approves the rendered result against the source. Lovable SYNC was confirmed by the founder on 2026-11-21 as fully meeting its intended visual.
 
+## Brand repositories (founder rule, 2026-11-21)
+
+Each SYNC has its own repository implementation of its brand. A visual change to a SYNC lands in that SYNC's repo, not only in this one:
+
+| SYNC | Brand repo | Runtime |
+|---|---|---|
+| Live Site SYNC | `jussray/sync-party-game` (also the game authority) | sync.jussco.company |
+| ChatGPT SYNC | `jussray/chat-sync` (static client; mirrors `/chat/` here) | `*.chatgpt.site` mirror and `/chat/` here |
+| Lovable SYNC | `jussray/sync-playtest` (Lovable-connected; `jussray/loveable-sync` is its mirror) | sync-playtest.lovable.app |
+
 ## CHATGPT_SYNC_VISUAL_V1
 
 **Purpose:** the Chat Edition should feel like an AI-hosted social prediction experience, not a reskin of the arena.
