@@ -1,8 +1,14 @@
 import { test, expect } from "@playwright/test";
 
-// Real path: two players finish a 5-round game; the server records an anonymous
-// entry and the results screen shows the public board without names or room codes.
-test("finished game lands on the anonymous SYNC leaderboard", async ({ browser, request }) => {
+// Real path: two (headless, so automated) players finish a 5-round game. The results
+// screen shows the public board without names or room codes, and the automated game
+// is NOT recorded: only fully human-verified games reach the public board. This also
+// keeps the production proof from seeding the live board with CI games.
+const matching = (board, day) => board.entries.filter((e) => e.players === 2 && e.rounds === 5 && e.sync === 100 && e.day === day).length;
+
+test("automated games show the anonymous board but never land on it", async ({ browser, request }) => {
+  const day = new Date().toISOString().slice(0, 10);
+  const before = await (await request.get("/api/leaderboard")).json();
   const hostContext = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const guestContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true });
   const host = await hostContext.newPage();
@@ -35,9 +41,7 @@ test("finished game lands on the anonymous SYNC leaderboard", async ({ browser, 
   for (const page of [host, guest]) {
     const board = page.locator("#leaderboard");
     await expect(board.getByRole("heading", { name: /SYNC LEADERBOARD/ })).toBeVisible();
-    await expect(board.locator(".leaderboard-row").first()).toContainText("100%");
-    await expect(board.locator(".leaderboard-row").first()).toContainText("2 players · 5 rounds");
-    await expect(page.locator("#leaderboardStatus")).toContainText("Your room synced 100%");
+    await expect(page.locator("#leaderboardStatus")).not.toContainText("Loading");
     const text = await board.textContent();
     for (const secret of [code, hostName, guestName]) expect(text).not.toContain(secret);
   }
@@ -49,6 +53,8 @@ test("finished game lands on the anonymous SYNC leaderboard", async ({ browser, 
   for (const secret of [code, hostName, guestName, "p_"]) expect(raw).not.toContain(secret);
   const body = JSON.parse(raw);
   expect(body.version).toBe("sync-leaderboard-v1");
+  // Not recorded: no new 100% / 2-player / 5-round row for today.
+  expect(matching(body, day)).toBeLessThanOrEqual(matching(before, day));
   for (const entry of body.entries) expect(Object.keys(entry).sort()).toEqual(["day", "players", "rank", "rounds", "sync"]);
 
   await host.screenshot({ path: test.info().outputPath("leaderboard-host.png"), fullPage: true });
