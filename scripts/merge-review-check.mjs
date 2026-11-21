@@ -199,11 +199,19 @@ export async function publishMergeReview({ api, token, repository, number }) {
       readJson(api, token, root + "/pulls/" + number),
       readJson(api, token, root + "/branches/main")
     ]);
-    if (verdict.head !== head || fresh.head?.sha !== head || fresh.state !== "open" ||
-        fresh.draft !== false || fresh.base?.ref !== "main" ||
-        currentMain?.commit?.sha !== verdict.checked_main_sha ||
-        fresh.base?.sha !== verdict.checked_main_sha) {
+    // Only a real change during the run is a race. A PR that was simply a draft
+    // the whole time keeps its true reason ("Draft PR is not merge-authorized")
+    // from evaluateMergeReview instead of being masked as a race.
+    const changed = verdict.head !== head || fresh.head?.sha !== head || fresh.state !== "open" ||
+      fresh.base?.ref !== "main" ||
+      currentMain?.commit?.sha !== verdict.checked_main_sha ||
+      fresh.base?.sha !== verdict.checked_main_sha;
+    if (changed) {
       verdict = { pass: false, head, reasons: ["PR changed while merge review was running"] };
+    } else if (fresh.draft !== false) {
+      // Fail closed: a draft never passes, including one converted to draft mid-run.
+      const reasons = (verdict.reasons || []).filter(x => x !== "Draft PR is not merge-authorized");
+      verdict = { ...verdict, pass: false, reasons: ["Draft PR is not merge-authorized", ...reasons] };
     }
   } catch (error) {
     verdict = { pass: false, head, reasons: [error?.message || "Unknown verification error"] };
