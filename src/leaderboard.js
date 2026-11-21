@@ -1,14 +1,17 @@
 import { DurableObject } from "cloudflare:workers";
 import { averageSync } from "./game.js";
 
-// Public SYNC leaderboard: the best finished rooms by average room sync.
+// Public SYNC leaderboard: the best finished rooms by average room sync,
+// ranked separately by room size (founder decision 2026-11-21: 2, 3 and 4+).
 // Privacy contract: an entry holds only numbers and a UTC day. Never names,
 // room codes, player ids, answers, tokens or exact timestamps.
-export const LEADERBOARD_VERSION = "sync-leaderboard-v1";
+export const LEADERBOARD_VERSION = "sync-leaderboard-v2";
 // Storage object name. v2 starts a fresh board: v1 storage was seeded by CI
 // production-proof bot games and is never served again.
 export const LEADERBOARD_OBJECT = "sync-leaderboard-v2-human-verified";
-export const LEADERBOARD_SIZE = 25;
+export const LEADERBOARD_SIZE = 25; // per room-size board
+export const BRACKETS = Object.freeze(["2", "3", "4+"]);
+export const bracketOf = (players) => players >= 4 ? "4+" : String(players);
 export const MIN_ANSWERING_PLAYERS = 2;
 
 const ENTRY_KEYS = "day,players,rounds,sync";
@@ -44,27 +47,42 @@ export function validEntry(entry) {
   return { sync, players, rounds, day };
 }
 
-// Higher sync wins; ties go to the bigger room (harder to sync), then the earlier day.
+// Within one room-size board: higher sync wins; ties go to the bigger room
+// (harder to sync), then the earlier day.
 export function compareEntries(a, b) {
   return b.sync - a.sync || b.players - a.players || (a.day < b.day ? -1 : a.day > b.day ? 1 : 0);
+}
+
+function byBracket(entries) {
+  const boards = Object.fromEntries(BRACKETS.map((key) => [key, []]));
+  for (const entry of entries) boards[bracketOf(entry.players)].push(entry);
+  for (const key of BRACKETS) boards[key] = boards[key].sort(compareEntries).slice(0, LEADERBOARD_SIZE);
+  return boards;
 }
 
 export function insertEntry(board, entry) {
   const clean = validEntry(entry);
   const current = Array.isArray(board) ? board.map(validEntry).filter(Boolean) : [];
-  if (!clean) return { board: current, rank: null };
-  const next = [...current, clean].sort(compareEntries);
-  const index = next.indexOf(clean);
-  const kept = next.slice(0, LEADERBOARD_SIZE);
-  return { board: kept, rank: index < LEADERBOARD_SIZE ? index + 1 : null };
+  if (!clean) return { board: current, rank: null, bracket: null };
+  const boards = byBracket([...current, clean]);
+  const bracket = bracketOf(clean.players);
+  const index = boards[bracket].indexOf(clean);
+  return { board: BRACKETS.flatMap((key) => boards[key]), rank: index >= 0 ? index + 1 : null, bracket };
 }
 
 export function publicBoard(board, updatedAt = null) {
-  const entries = (Array.isArray(board) ? board.map(validEntry).filter(Boolean) : [])
-    .sort(compareEntries)
-    .slice(0, LEADERBOARD_SIZE)
-    .map((entry, index) => ({ rank: index + 1, ...entry }));
-  return { version: LEADERBOARD_VERSION, metric: "average_room_sync_percent", min_players: MIN_ANSWERING_PLAYERS, size: LEADERBOARD_SIZE, updated_at: updatedAt, entries };
+  const boards = byBracket(Array.isArray(board) ? board.map(validEntry).filter(Boolean) : []);
+  const ranked = Object.fromEntries(BRACKETS.map((key) => [key, boards[key].map((entry, index) => ({ bracket: key, rank: index + 1, ...entry }))]));
+  return {
+    version: LEADERBOARD_VERSION,
+    metric: "average_room_sync_percent",
+    min_players: MIN_ANSWERING_PLAYERS,
+    brackets: BRACKETS,
+    size: LEADERBOARD_SIZE,
+    updated_at: updatedAt,
+    boards: ranked,
+    entries: BRACKETS.flatMap((key) => ranked[key])
+  };
 }
 
 // Only games where EVERY participant was server-classified as a real browser
@@ -105,10 +123,10 @@ export class LeaderboardLedger extends DurableObject {
       const entry = validEntry(await request.json().catch(() => null));
       if (!entry) return json({ error: "Invalid leaderboard entry" }, { status: 400 });
       const stored = (await this.ctx.storage.get("board")) || [];
-      const { board, rank } = insertEntry(stored, entry);
+      const { board, rank, bracket } = insertEntry(stored, entry);
       const updatedAt = new Date().toISOString();
       await this.ctx.storage.put({ board, updatedAt });
-      return json({ rank, size: board.length });
+      return json({ rank, bracket, size: board.length });
     }
     if (url.pathname === "/internal/board" && request.method === "GET") {
       const [board, updatedAt] = await Promise.all([this.ctx.storage.get("board"), this.ctx.storage.get("updatedAt")]);

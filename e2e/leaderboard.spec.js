@@ -42,6 +42,10 @@ test("automated games show the anonymous board but never land on it", async ({ b
     const board = page.locator("#leaderboard");
     await expect(board.getByRole("heading", { name: /SYNC LEADERBOARD/ })).toBeVisible();
     await expect(page.locator("#leaderboardStatus")).not.toContainText("Loading");
+    // Three room-size boards, with this 2-player room's board marked as its own.
+    await expect(board.locator(".leaderboard-board")).toHaveCount(3);
+    await expect(board.locator(".leaderboard-board h3")).toHaveText(["2 PLAYERS", "3 PLAYERS", "4+ PLAYERS"]);
+    await expect(board.locator('.leaderboard-board[data-bracket="2"]')).toHaveClass(/yours/);
     const text = await board.textContent();
     for (const secret of [code, hostName, guestName]) expect(text).not.toContain(secret);
   }
@@ -52,10 +56,11 @@ test("automated games show the anonymous board but never land on it", async ({ b
   const raw = await response.text();
   for (const secret of [code, hostName, guestName, "p_"]) expect(raw).not.toContain(secret);
   const body = JSON.parse(raw);
-  expect(body.version).toBe("sync-leaderboard-v1");
+  expect(body.version).toBe("sync-leaderboard-v2");
+  expect(body.brackets).toEqual(["2", "3", "4+"]);
   // Not recorded: no new 100% / 2-player / 5-round row for today.
   expect(matching(body, day)).toBeLessThanOrEqual(matching(before, day));
-  for (const entry of body.entries) expect(Object.keys(entry).sort()).toEqual(["day", "players", "rank", "rounds", "sync"]);
+  for (const entry of body.entries) expect(Object.keys(entry).sort()).toEqual(["bracket", "day", "players", "rank", "rounds", "sync"]);
 
   await host.screenshot({ path: test.info().outputPath("leaderboard-host.png"), fullPage: true });
   await guest.screenshot({ path: test.info().outputPath("leaderboard-guest.png"), fullPage: true });
@@ -68,7 +73,7 @@ test("Game Hub origins can read the board cross-origin; other origins and APIs s
     const response = await request.get("/api/leaderboard", { headers: { origin } });
     expect(response.status()).toBe(200);
     expect(response.headers()["access-control-allow-origin"]).toBe(origin);
-    expect((await response.json()).version).toBe("sync-leaderboard-v1");
+    expect((await response.json()).version).toBe("sync-leaderboard-v2");
   }
   const blocked = await request.get("/api/leaderboard", { headers: { origin: "https://evil.example" } });
   expect(blocked.status()).toBe(403);
