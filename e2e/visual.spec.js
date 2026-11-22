@@ -52,3 +52,12 @@ test("founder Live composition survives mobile and reduced motion", async ({ pag
   expect(witness.heroArt).toContain("/founder/live-title.webp");
   await page.screenshot({ path: "test-results/visual-sync-home-mobile.png", fullPage: true });
 });
+
+test("leaving the tall founder home starts the next screen at the top, without smooth-scroll drift", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));
+  await page.getByRole("button", { name: /create a game/i }).click();
+  await expect(page.getByLabel(/^your nickname$/i)).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+});
