@@ -3,7 +3,8 @@ name: core-proof
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, edited]
+    # Metadata edits are handled by Merge Review; they do not change the proof SHA.
+    types: [opened, synchronize, reopened]
   push:
     branches: [proof, main]
 
