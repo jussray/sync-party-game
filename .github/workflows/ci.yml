@@ -3,7 +3,8 @@ name: core-proof
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, edited]
+    # Metadata edits are handled by Merge Review; they do not change the proof SHA.
+    types: [opened, synchronize, reopened]
   push:
     branches: [proof, main]
 
@@ -54,6 +55,7 @@ jobs:
           node --check src/control-room.js
           node --check src/growth-contract.js
           node --check src/growth-ledger.js
+          node --check src/leaderboard.js
           node --check src/worker.js
           node --check src/surfaces.js
           node --check src/multisurface-worker.js

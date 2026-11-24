@@ -1,0 +1,9 @@
+{
+  "project": "sync-party-game",
+  "status": "draft",
+  "intendedUseCases": [
+    "Shared multiplayer room experiences",
+    "Coordinated choices and reveals"
+  ],
+  "verifiedCapabilities": []
+}

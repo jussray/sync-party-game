@@ -58,19 +58,64 @@
         "portableBinary": false
       },
       "fingerprint": {
-        "subjects": ["expressive friend group as active contestants", "foreground crowd silhouettes", "contestant portraits/tokens"],
-        "composition": ["giant title integrated into environment", "people embedded in stage scene", "central arena board", "foreground-midground-background crowd depth"],
-        "lighting": ["electric cyan", "magenta", "selective gold", "stage spill lighting"],
-        "materials": ["metallic/chrome title", "neon edge light", "arena glass/display surfaces"],
-        "motifs": ["handwritten arena marks", "pressure clock", "mode show cards", "reveal particles"],
-        "motion": ["pressure pulse", "lock silence", "whole-screen synchronized reveal", "crowd/stage light movement"]
+        "subjects": [
+          "expressive friend group as active contestants",
+          "foreground crowd silhouettes",
+          "contestant portraits/tokens"
+        ],
+        "composition": [
+          "giant title integrated into environment",
+          "people embedded in stage scene",
+          "central arena board",
+          "foreground-midground-background crowd depth"
+        ],
+        "lighting": [
+          "electric cyan",
+          "magenta",
+          "selective gold",
+          "stage spill lighting"
+        ],
+        "materials": [
+          "metallic/chrome title",
+          "neon edge light",
+          "arena glass/display surfaces"
+        ],
+        "motifs": [
+          "handwritten arena marks",
+          "pressure clock",
+          "mode show cards",
+          "reveal particles"
+        ],
+        "motion": [
+          "pressure pulse",
+          "lock silence",
+          "whole-screen synchronized reveal",
+          "crowd/stage light movement"
+        ]
       },
-      "allowedTransformations": ["responsive re-composition that preserves people, title dominance and stage depth", "optimized recreation of approved asset family", "motion layers derived from the same graphic grammar"],
-      "prohibitedSubstitutions": ["generic gradient hero", "empty SaaS panel", "background-only people", "plain text logo", "generic neon cards without arena composition", "unrelated stock crowd"],
+      "allowedTransformations": [
+        "responsive re-composition that preserves people, title dominance and stage depth",
+        "optimized recreation of approved asset family",
+        "motion layers derived from the same graphic grammar"
+      ],
+      "prohibitedSubstitutions": [
+        "generic gradient hero",
+        "empty SaaS panel",
+        "background-only people",
+        "plain text logo",
+        "generic neon cards without arena composition",
+        "unrelated stock crowd"
+      ],
       "replacementPolicy": "Founder-approved identity evolution or source-vs-render fidelity review required.",
-      "runtimeRefs": ["/"],
+      "runtimeRefs": [
+        "/"
+      ],
       "semanticRole": "canonical visual reference",
-      "invalidationConditions": ["founder approves a successor Live Site visual", "source visual is superseded", "surface identity is intentionally changed"],
+      "invalidationConditions": [
+        "founder approves a successor Live Site visual",
+        "source visual is superseded",
+        "surface identity is intentionally changed"
+      ],
       "status": "external-reference"
     },
     {
@@ -90,22 +135,43 @@
         "gitBlobSha": "1f91c824d1d088bdd20b3e8c2d3b63c0d86831d4"
       },
       "fingerprint": {
-        "subjects": ["party/friend-group imagery"],
-        "composition": ["current hero art layer"],
-        "lighting": ["neon party treatment"],
+        "subjects": [
+          "party/friend-group imagery"
+        ],
+        "composition": [
+          "current hero art layer"
+        ],
+        "lighting": [
+          "neon party treatment"
+        ],
         "materials": [],
         "motifs": [],
         "motion": []
       },
-      "allowedTransformations": ["optimization", "temporary use while canonical arena family is rebuilt"],
-      "prohibitedSubstitutions": ["promotion to canonical merely because file exists", "use as evidence that approved arena composition is satisfied"],
+      "allowedTransformations": [
+        "optimization",
+        "temporary use while canonical arena family is rebuilt"
+      ],
+      "prohibitedSubstitutions": [
+        "promotion to canonical merely because file exists",
+        "use as evidence that approved arena composition is satisfied"
+      ],
       "replacementPolicy": "Expected to be superseded or demoted further when the approved arena graphic family is materialized.",
-      "runtimeRefs": ["/"],
+      "runtimeRefs": [
+        "/"
+      ],
       "semanticRole": "decorative implementation asset",
-      "invalidationConditions": ["approved arena asset family lands", "file changes", "runtime stops using it"],
+      "invalidationConditions": [
+        "approved arena asset family lands",
+        "file changes",
+        "runtime stops using it"
+      ],
       "status": "current",
       "graphicContinuityResult": "REGRESSION",
-      "failureClasses": ["GRAPHIC_CONTINUITY_REGRESSION", "COMPOSITION_DRIFT"]
+      "failureClasses": [
+        "GRAPHIC_CONTINUITY_REGRESSION",
+        "COMPOSITION_DRIFT"
+      ]
     },
     {
       "id": "chat-approved-ai-host-concept",
@@ -124,19 +190,57 @@
         "portableBinary": false
       },
       "fingerprint": {
-        "subjects": ["friendly luminous AI host", "human friend group clustered around phones"],
-        "composition": ["AI host anchors the scene", "people remain socially central", "prediction UI embedded into environment"],
-        "lighting": ["cobalt", "cyan electric edges", "selective pink-violet accents"],
-        "materials": ["clean futuristic panels", "luminous robot surfaces"],
-        "motifs": ["chat bubbles", "prediction bars", "handwritten white annotations"],
-        "motion": ["scanner sweeps", "prediction fills", "chat bubble drift", "soft AI-host glow"]
+        "subjects": [
+          "friendly luminous AI host",
+          "human friend group clustered around phones"
+        ],
+        "composition": [
+          "AI host anchors the scene",
+          "people remain socially central",
+          "prediction UI embedded into environment"
+        ],
+        "lighting": [
+          "cobalt",
+          "cyan electric edges",
+          "selective pink-violet accents"
+        ],
+        "materials": [
+          "clean futuristic panels",
+          "luminous robot surfaces"
+        ],
+        "motifs": [
+          "chat bubbles",
+          "prediction bars",
+          "handwritten white annotations"
+        ],
+        "motion": [
+          "scanner sweeps",
+          "prediction fills",
+          "chat bubble drift",
+          "soft AI-host glow"
+        ]
       },
-      "allowedTransformations": ["responsive scene adaptation preserving AI host plus human group", "animated implementation of prediction graphics"],
-      "prohibitedSubstitutions": ["random generic bot icon", "robot-only screen with no human social scene", "arena crowd grammar", "Lovable warm lounge grammar", "generic dashboard"],
+      "allowedTransformations": [
+        "responsive scene adaptation preserving AI host plus human group",
+        "animated implementation of prediction graphics"
+      ],
+      "prohibitedSubstitutions": [
+        "random generic bot icon",
+        "robot-only screen with no human social scene",
+        "arena crowd grammar",
+        "Lovable warm lounge grammar",
+        "generic dashboard"
+      ],
       "replacementPolicy": "Founder-approved identity evolution or source-vs-render fidelity review required.",
-      "runtimeRefs": ["/chat/"],
+      "runtimeRefs": [
+        "/chat/"
+      ],
       "semanticRole": "canonical visual reference",
-      "invalidationConditions": ["founder approves successor ChatGPT SYNC visual", "source visual is superseded", "surface identity intentionally changes"],
+      "invalidationConditions": [
+        "founder approves successor ChatGPT SYNC visual",
+        "source visual is superseded",
+        "surface identity intentionally changes"
+      ],
       "status": "external-reference"
     },
     {
@@ -156,22 +260,46 @@
         "gitBlobSha": "641a19b93dd66c48223734b8e8004ba782b47d91"
       },
       "fingerprint": {
-        "subjects": ["AI host"],
-        "composition": ["host card/hero element"],
-        "lighting": ["cobalt/cyan glow"],
-        "materials": ["vector luminous robot treatment"],
+        "subjects": [
+          "AI host"
+        ],
+        "composition": [
+          "host card/hero element"
+        ],
+        "lighting": [
+          "cobalt/cyan glow"
+        ],
+        "materials": [
+          "vector luminous robot treatment"
+        ],
         "motifs": [],
-        "motion": ["soft host glow through CSS"]
+        "motion": [
+          "soft host glow through CSS"
+        ]
       },
-      "allowedTransformations": ["responsive scaling", "glow/motion styling that preserves host identity"],
-      "prohibitedSubstitutions": ["promotion as proof that the full approved human-plus-AI source composition is satisfied", "generic unrelated robot replacement"],
+      "allowedTransformations": [
+        "responsive scaling",
+        "glow/motion styling that preserves host identity"
+      ],
+      "prohibitedSubstitutions": [
+        "promotion as proof that the full approved human-plus-AI source composition is satisfied",
+        "generic unrelated robot replacement"
+      ],
       "replacementPolicy": "May remain a derived/supporting host asset, but the full canonical ChatGPT graphic family still needs materialization.",
-      "runtimeRefs": ["/chat/"],
+      "runtimeRefs": [
+        "/chat/"
+      ],
       "semanticRole": "decorative host asset",
-      "invalidationConditions": ["canonical ChatGPT graphic family lands", "file changes", "runtime stops using it"],
+      "invalidationConditions": [
+        "canonical ChatGPT graphic family lands",
+        "file changes",
+        "runtime stops using it"
+      ],
       "status": "current",
       "graphicContinuityResult": "PARTIAL",
-      "failureClasses": ["RUNTIME_ASSET_UNKNOWN"]
+      "failureClasses": [
+        "RUNTIME_ASSET_UNKNOWN"
+      ]
     }
   ],
   "antiCollapse": {
@@ -185,5 +313,45 @@
     "lastKnownGoodFunctionalSha": "b86d525dfed87334bd6abd1dd36de57ccc35aeb5",
     "visualTruth": "Functional production proof at the last-known-good SHA does not convert the current graphics into founder-approved visual fidelity."
   },
-  "truthBoundary": "This manifest records visual source authority and current implementation truth. It does not claim the external approved binaries are repository-owned, that licensing/exportability is proven, that current runtime visually matches the approved concepts, or that a replacement is merge/deploy ready."
+  "truthBoundary": "This manifest records visual source authority and current implementation truth. It does not claim the external approved binaries are repository-owned, that licensing/exportability is proven, that current runtime visually matches the approved concepts, or that a replacement is merge/deploy ready.",
+  "sourceFilesInRepository": {
+    "addedOn": "2026-11-21",
+    "providedBy": "founder (Claude Code session upload)",
+    "note": "Founder-approved source visuals committed as exact binaries. Surface statuses stay REGRESSION/PARTIAL until the founder approves the rebuilt render against these files.",
+    "files": {
+      "live-site-sync-approved": {
+        "path": "visual/source/live-site-sync-approved.png",
+        "sha256": "85a0a081c12fb12267ea545ca917e818dac3154f7de39d9bf79d4c1503a7d337"
+      },
+      "chatgpt-sync-approved": {
+        "path": "visual/source/chatgpt-sync-approved.png",
+        "sha256": "7f59bf3b69a4e5975323c781e1cc65bd0145709376e84a8f85117fb65f7161e0"
+      },
+      "lovable-sync-approved": {
+        "path": "visual/source/lovable-sync-approved.png",
+        "sha256": "337f7c66ec0eb804289efe9048adb6ea48ccabb6b69d4de989ab87a857d4bbf5"
+      },
+      "sync-ui-flow-approved": {
+        "path": "visual/source/sync-ui-flow-approved.png",
+        "sha256": "d172f987b7312341a17307a8dee281b82d0e4667ebaec85e138bf594bf31168d"
+      }
+    },
+    "rebuildCandidates": {
+      "live-site": {
+        "runtimeRef": "/",
+        "assets": "public/founder/live-*.webp (cropped from live-site-sync-approved.png)",
+        "status": "CANDIDATE_AWAITING_FOUNDER_FIDELITY_REVIEW"
+      },
+      "chatgpt-sync": {
+        "runtimeRef": "/chat/",
+        "assets": "public/chat/founder-*.webp (cropped from chatgpt-sync-approved.png)",
+        "status": "CANDIDATE_AWAITING_FOUNDER_FIDELITY_REVIEW"
+      },
+      "lovable-sync": {
+        "status": "FOUNDER_CONFIRMED_MATCH",
+        "confirmedOn": "2026-11-21",
+        "note": "Founder: Lovable fully meets the intended visual (maintained in jussray/sync-playtest)."
+      }
+    }
+  }
 }
