@@ -82,14 +82,47 @@ export function evaluateMergeReview({ pr, currentMainSha, mainIsAncestor, checkR
   return { pass: reasons.length === 0, head, reasons: [...new Set(reasons)], notes: [...new Set(notes)] };
 }
 
+// Bounded retry for transient GitHub API failures only (secondary rate
+// limits under event bursts, 5xx, network errors, timeouts). A single
+// transient response must neither decide a verdict nor kill publication:
+// on 2026-11-12, three branch updates inside six minutes produced bursts
+// of failed publish runs on static evidence that published nothing, while
+// identical evaluations minutes later passed. Verdict logic is untouched;
+// only the transport is retried, and a failure that persists past the
+// bound still throws, fail-closed, exactly as before.
+const RETRY_DELAYS_MS = [1000, 2000];
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const isTransientStatus = (status) => status === 403 || status === 429 || status >= 500;
+
+async function fetchWithRetry(url, options) {
+  const delays = [...RETRY_DELAYS_MS];
+  let lastError;
+  for (let attempt = 0; attempt <= delays.length; attempt++) {
+    if (attempt > 0) await sleep(delays[attempt - 1]);
+    let res;
+    try {
+      res = await fetch(url, { ...options, signal: AbortSignal.timeout(15000) });
+    } catch (error) {
+      lastError = error;
+      continue;
+    }
+    if (res.ok || !isTransientStatus(res.status)) return res;
+    lastError = new Error("transient GitHub API status " + res.status);
+    const retryAfter = Number(res.headers?.get?.("retry-after"));
+    if (Number.isFinite(retryAfter) && retryAfter > 0 && attempt < delays.length) {
+      delays[attempt] = Math.min(retryAfter * 1000, 15000);
+    }
+  }
+  throw lastError;
+}
+
 async function readJson(api, token, path) {
-  const res = await fetch(api + path, {
+  const res = await fetchWithRetry(api + path, {
     headers: {
       authorization: "Bearer " + token,
       accept: "application/vnd.github+json",
       "x-github-api-version": "2022-11-28"
-    },
-    signal: AbortSignal.timeout(15000)
+    }
   });
   if (!res.ok) throw new Error("GitHub API " + res.status + " for " + path.split("?")[0]);
   return res.json();
@@ -131,7 +164,7 @@ export async function checkPullRequest({ api, token, repository, number }) {
 
 
 async function writeCheck(api, token, repository, suffix, body, method) {
-  const response = await fetch(api + "/repos/" + repository + "/check-runs" + suffix, {
+  const response = await fetchWithRetry(api + "/repos/" + repository + "/check-runs" + suffix, {
     method,
     headers: {
       authorization: "Bearer " + token,
@@ -139,8 +172,7 @@ async function writeCheck(api, token, repository, suffix, body, method) {
       "x-github-api-version": "2022-11-28",
       "content-type": "application/json"
     },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(15000)
+    body: JSON.stringify(body)
   });
   if (!response.ok) throw new Error("GitHub check publication failed (HTTP " + response.status + ")");
   return response.json();
@@ -167,11 +199,19 @@ export async function publishMergeReview({ api, token, repository, number }) {
       readJson(api, token, root + "/pulls/" + number),
       readJson(api, token, root + "/branches/main")
     ]);
-    if (verdict.head !== head || fresh.head?.sha !== head || fresh.state !== "open" ||
-        fresh.draft !== false || fresh.base?.ref !== "main" ||
-        currentMain?.commit?.sha !== verdict.checked_main_sha ||
-        fresh.base?.sha !== verdict.checked_main_sha) {
+    // Only a real change during the run is a race. A PR that was simply a draft
+    // the whole time keeps its true reason ("Draft PR is not merge-authorized")
+    // from evaluateMergeReview instead of being masked as a race.
+    const changed = verdict.head !== head || fresh.head?.sha !== head || fresh.state !== "open" ||
+      fresh.base?.ref !== "main" ||
+      currentMain?.commit?.sha !== verdict.checked_main_sha ||
+      fresh.base?.sha !== verdict.checked_main_sha;
+    if (changed) {
       verdict = { pass: false, head, reasons: ["PR changed while merge review was running"] };
+    } else if (fresh.draft !== false) {
+      // Fail closed: a draft never passes, including one converted to draft mid-run.
+      const reasons = (verdict.reasons || []).filter(x => x !== "Draft PR is not merge-authorized");
+      verdict = { ...verdict, pass: false, reasons: ["Draft PR is not merge-authorized", ...reasons] };
     }
   } catch (error) {
     verdict = { pass: false, head, reasons: [error?.message || "Unknown verification error"] };

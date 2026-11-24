@@ -279,6 +279,20 @@ h2 { letter-spacing: -.025em; }
 .bar { height: 16px; background: rgba(90,110,165,.22); border-radius: 999px; overflow: hidden; }
 .bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), #e544d9, var(--accent-2)); border-radius: inherit; box-shadow: 0 0 14px rgba(255,54,170,.28); }
 .scoreboard { display: grid; gap: 9px; }
+.leaderboard { margin-top: 22px; display: grid; gap: 8px; }
+.leaderboard h2 { margin: 0; }
+.leaderboard-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.leaderboard-row { display: grid; grid-template-columns: 2.2em 4.2em 1fr auto; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; background: rgba(255, 255, 255, .06); }
+.leaderboard-row small { opacity: .7; }
+.leaderboard-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.leaderboard-board { display: grid; gap: 6px; align-content: start; padding: 10px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, .12); }
+.leaderboard-board.yours { border-color: #ffcc4d; box-shadow: 0 0 0 1px #ffcc4d55; }
+.leaderboard-board h3 { margin: 0; font-size: 12px; letter-spacing: .12em; }
+.leaderboard-board ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.leaderboard-board .leaderboard-row { grid-template-columns: 1.6em 3.6em minmax(0, 1fr); padding: 6px 8px; font-size: 13px; }
+.leaderboard-board .leaderboard-row small { grid-column: 3; }
+.leaderboard-empty { font-size: 13px; opacity: .7; }
+@media (max-width: 640px) { .leaderboard-list { grid-template-columns: 1fr; } }
 .score {
   display: flex;
   justify-content: space-between;
