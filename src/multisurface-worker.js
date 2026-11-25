@@ -1,8 +1,9 @@
 import baseWorker, { ControlRoomLedger, GameRoom, GrowthLedger, LeaderboardLedger } from "./worker.js";
 import { invokeProvider, providerStates } from "./provider-runtime.js";
+import { AiBudget } from "./ai-budget.js";
 import { buildSurfaceManifest, isAllowedClientOrigin, listSurfaceProfiles } from "./surfaces.js";
 
-export { ControlRoomLedger, GameRoom, GrowthLedger, LeaderboardLedger };
+export { ControlRoomLedger, GameRoom, GrowthLedger, LeaderboardLedger, AiBudget };
 
 const SDK_PATH = "/sync-client.js";
 const API_PREFIX = "/api/";
