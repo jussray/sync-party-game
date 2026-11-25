@@ -39,3 +39,11 @@ new_sqlite_classes = ["ControlRoomLedger"]
 [[migrations]]
 tag = "v4"
 new_sqlite_classes = ["LeaderboardLedger"]
+
+[[durable_objects.bindings]]
+name = "AI_BUDGET"
+class_name = "AiBudget"
+
+[[migrations]]
+tag = "v5"
+new_sqlite_classes = ["AiBudget"]
