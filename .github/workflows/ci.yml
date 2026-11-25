@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: core-proof-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref_name == 'proof' }}
+  cancel-in-progress: ${{ github.ref_name == 'proof' || github.ref_name == 'feat/ai-cues-runtime-20261110' }}
 
 env:
   EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -59,6 +59,8 @@ jobs:
           node --check src/worker.js
           node --check src/game-ai.js
           node --check src/ai-cue-cache.js
+          node --check src/ai-budget.js
+          node --check src/ai-budget-logic.js
           node --check public/host-cue.js
           node --check public/chat/host-cue.js
           node --check src/surfaces.js
