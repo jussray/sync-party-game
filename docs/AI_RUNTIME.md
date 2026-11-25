@@ -4,7 +4,7 @@ The three editions remain distinct. Live Site SYNC and Chat SYNC use **one** Clo
 
 ## Live Site + Chat runtime
 
-The `sync-party-game` Worker serves `POST /api/rooms/{CODE}/ai-cue` for existing players. Body: `{ "playerId": "...", "resumeToken": "...", "edition": "cloudflare" | "chat" }`. The Durable Object validates the player against the stored room, reserves one per-phase provider invocation, caches the response, and enforces 24 total AI calls per room. The UI requests commentary only for reveal and final results. Hidden choices, identities, tokens and scores are not sent to the provider. Provider failure hides the optional commentary and must not affect the game.
+The `sync-party-game` Worker serves `POST /api/rooms/{CODE}/ai-cue` for existing players. Body: `{ "playerId": "...", "resumeToken": "...", "edition": "cloudflare" | "chat" }`. The Durable Object validates the player against the stored room, reserves one per-phase provider invocation, caches the response, and enforces 24 total AI calls per room. A separate global `AI_BUDGET` Durable Object reserves provider calls across **all rooms**, resetting at UTC midnight; the default cap is 12/day, and `SYNC_AI_DAILY_BUDGET` can be set to an integer 1–50. A missing budget binding blocks paid calls. The UI requests commentary only for reveal and final results. Hidden choices, identities, tokens and scores are not sent to the provider. Provider failure hides the optional commentary and must not affect the game.
 
 Set server-only Worker configuration:
 - `SYNC_AI_GAME_ENABLED=true` (default: off).
@@ -12,7 +12,7 @@ Set server-only Worker configuration:
 - Secret `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` set in Cloudflare Workers, **not** Git.
 - Select a provider-confirmed `SYNC_OPENAI_MODEL` or `SYNC_ANTHROPIC_MODEL`; do not assume the existing fallback is available.
 
-**Do not enable public billing** until Worker-wide rate limiting, abuse protection, provider spending limits and rollout/rollback are configured. The per-room quota is **not** a global spend cap. Operator-only `/api/control-room/providers*` endpoints remain separate.
+**Do not activate paid AI yet.** The global Worker call budget limits provider-request count, not exact dollars. Provider-side billing limits, abuse/WAF controls and a verified rollback must still be configured before setting `SYNC_AI_GAME_ENABLED=true`. Operator-only `/api/control-room/providers*` endpoints remain separate.
 
 ## Required release evidence
 
