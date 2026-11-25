@@ -1,0 +1,14 @@
+export const expected = {
+  "project": "sync-party-game",
+  "name": "Sync Party",
+  "description": "Reusable real-time multiplayer party-game system",
+  "publicPage": null,
+  "source": "https://github.com/jussray/sync-party-game/blob/50a17144ab95c86b4c73565618c7b5eff8f72502/README.md",
+  "intendedUseCases": [
+    "Shared multiplayer room experiences",
+    "Coordinated choices and reveals"
+  ],
+  "limitations": [
+    "Live multiplayer availability and deployment are not established by this metadata"
+  ]
+};

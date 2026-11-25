@@ -57,7 +57,7 @@ function shell(body, options = {}) {
   app.innerHTML = `
     <section class="chat-frame" data-surface="chat">
       <header class="chat-topbar">
-        <div class="brand"><span class="brand-mark">✦</span><span>SYNC // CHAT EDITION</span></div>
+        <div class="brand"><span class="brand-mark">✦</span><span>CHATGPT <em>SYNC</em></span></div>
         <span class="surface-pill">same room brain · different vibe</span>
         <span class="fingerprint">surface ${escapeHtml(fingerprint)}</span>
       </header>
@@ -74,24 +74,56 @@ function shell(body, options = {}) {
 function renderHome() {
   stopConnection();
   state = null;
+  // CHATGPT_SYNC_VISUAL_V1 founder-approved composition (visual/source/chatgpt-sync-approved.png).
   shell(`
-    <article class="bubble">
-      <p class="eyebrow">Chat surface · independent presentation</p>
-      <h1>Same game.<br>Different mood.</h1>
-      <p class="copy">Create or join the exact same SYNC rooms as the Cloudflare edition. This surface can change its look, copy and surface-only features without changing game authority.</p>
-    </article>
-    <article class="bubble you">
-      <h2>What are we doing?</h2>
-      <div class="action-grid">
-        <button id="showCreate" class="btn primary" type="button">Create a room ✦</button>
-        <button id="showJoin" class="btn" type="button">Join with a code</button>
-      </div>
-      <p class="local-only">This conversation layout is Chat Edition only. Scores, rounds and room state still come from the shared Durable Object.</p>
-    </article>
+    <div class="cf-home">
+      <section class="cf-hero">
+        <div class="cf-copy">
+          <h1 class="cf-title"><span>ChatGPT</span> <span>SYNC</span></h1>
+          <h2 class="cf-tag">Predict the prompt. <em>Read the room.</em></h2>
+          <p class="cf-lede">A fast social prediction game where players respond to quirky prompts and guess the room's answer pattern.</p>
+          <div class="cf-join">
+            <h3>Play now</h3>
+            <p>Same SYNC rooms as the live site. Your prediction stays on your device.</p>
+            <div class="cf-actions"><button id="showCreate" class="btn primary" type="button">Create a room →</button><button id="showJoin" class="btn" type="button">Join with a code</button></div>
+            <ul><li>👥 No account</li><li>☆ Private picks</li><li>✦ Shared reveal</li></ul>
+            <p class="cf-fine">Your prediction is private to this Chat Edition. The shared Durable Object still owns room state, timing, answers and scoring.</p>
+          </div>
+        </div>
+        <div class="cf-art" role="img" aria-label="A friendly AI host robot above four friends laughing at their phones"></div>
+      </section>
+      <section class="cf-features" aria-label="Features">
+        <div><span aria-hidden="true">👥</span><p><b>2–8 players</b><small>Friends, family, any room</small></p></div>
+        <div><span aria-hidden="true">🔒</span><p><b>Private picks</b><small>Keep your answer secret</small></p></div>
+        <div><span aria-hidden="true">🧠</span><p><b>Prompt prediction</b><small>Guess what the room chooses</small></p></div>
+        <div><span aria-hidden="true">⚡</span><p><b>Instant reveal</b><small>See the group's answer pattern</small></p></div>
+      </section>
+      <section class="cf-board-wrap" aria-label="How a round looks (demo)">
+        <span class="cf-note cf-note--left" aria-hidden="true"></span><span class="cf-note cf-note--right" aria-hidden="true"></span>
+        <div class="cf-board">
+          <div class="cf-board-top"><span>Round 3 / 5</span><div class="cf-phase"><small>Answer phase</small><i><em></em></i></div><b>18s</b></div>
+          <p class="cf-prompt"><span aria-hidden="true">💬</span>What's the weirdest thing someone would keep in their fridge?</p>
+          <div class="cf-board-body">
+            <div><ul class="cf-answers"><li class="cf-answer"><span>Hot sauce collection</span><b aria-hidden="true">🌶️</b></li><li class="cf-answer"><span>A single sock</span><b aria-hidden="true">🧦</b></li><li class="cf-answer picked"><span>A house plant</span><b aria-hidden="true">🪴</b></li><li class="cf-answer"><span>Leftover cake (always)</span><b aria-hidden="true">🍰</b></li><li class="cf-answer"><span>Nothing. That's normal.</span><b aria-hidden="true">❓</b></li></ul><ul class="cf-people" aria-hidden="true"><li class="cf-person you"><span class="cf-face" style="background-image:url(/chat/founder-face-0.webp)"></span><b>You</b><em>Picked</em></li><li class="cf-person"><span class="cf-face" style="background-image:url(/chat/founder-face-1.webp)"></span><b>Alex</b></li><li class="cf-person"><span class="cf-face" style="background-image:url(/chat/founder-face-2.webp)"></span><b>Maya</b></li><li class="cf-person"><span class="cf-face" style="background-image:url(/chat/founder-face-3.webp)"></span><b>Noah</b></li><li class="cf-person"><span class="cf-face" style="background-image:url(/chat/founder-face-4.webp)"></span><b>Priya</b></li><li class="cf-person"><span class="cf-face" style="background-image:url(/chat/founder-face-5.webp)"></span><b>Sam</b></li></ul></div>
+            <aside class="cf-prediction"><h3>Your prediction</h3><p>What do you think most people will choose?</p><ul><li><span aria-hidden="true">🪴</span><i><em style="width:42%"></em></i><b>42%</b></li><li><span aria-hidden="true">🌶️</span><i><em style="width:24%"></em></i><b>24%</b></li><li><span aria-hidden="true">🍰</span><i><em style="width:18%"></em></i><b>18%</b></li><li><span aria-hidden="true">🧦</span><i><em style="width:12%"></em></i><b>12%</b></li><li><span aria-hidden="true">❓</span><i><em style="width:4%"></em></i><b>4%</b></li></ul></aside>
+          </div>
+        </div>
+        <p class="cf-demo-tag">Demo round · names are examples</p>
+      </section>
+      <section class="cf-bottom">
+        <div class="cf-bottom-tag" role="img" aria-label="Same people. Different minds. That's the game."></div>
+        <div><span aria-hidden="true">💬</span><b>Quirky prompts</b><small>Funny, surprising, thought-provoking</small></div>
+        <div><span aria-hidden="true">👥</span><b>Read the room</b><small>It's a game of people, not just answers</small></div>
+        <div><span aria-hidden="true">📊</span><b>Find the consensus</b><small>Can you see what others will pick?</small></div>
+        <div><span aria-hidden="true">☆</span><b>Endless variety</b><small>New prompts, new conversations</small></div>
+      </section>
+      <div class="cf-cta"><button id="ctaCreate" class="btn primary" type="button">Start playing →</button><p>Fun prompts. Real people. Unpredictable results.</p></div>
+    </div>
   `, {
     after() {
       document.querySelector("#showCreate").addEventListener("click", renderCreate);
       document.querySelector("#showJoin").addEventListener("click", renderJoin);
+      document.querySelector("#ctaCreate").addEventListener("click", renderCreate);
     }
   });
 }

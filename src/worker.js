@@ -6,6 +6,8 @@ import { ANALYTICS_TRUTH_VERSION, campaignKey, classifyClientTraffic, normalizeG
 import { buildControlRoomEnvelope, fetchControlRoomSnapshot, recordControlRoomCommit } from "./control-room.js";
 export { ControlRoomLedger } from "./control-room.js";
 export { GrowthLedger } from "./growth-ledger.js";
+export { LeaderboardLedger } from "./leaderboard.js";
+import { readLeaderboard, recordLeaderboard } from "./leaderboard.js";
 
 const enc = new TextEncoder();
 const MAX_MESSAGE_BYTES = 2048;
@@ -152,6 +154,16 @@ export default {
         return json(buildControlRoomEnvelope(env, snapshot, { exportMode: true }), { headers: { "cache-control": "no-store" } });
       } catch (error) {
         return json({ error: error.message || "Control room export unavailable" }, { status: 503, headers: { "cache-control": "no-store" } });
+      }
+    }
+
+    if (url.pathname === "/api/leaderboard" && request.method === "GET") {
+      try {
+        const board = await readLeaderboard(env);
+        if (!board) return json({ error: "Leaderboard unavailable" }, { status: 503, headers: { "cache-control": "no-store" } });
+        return json(board, { headers: { "cache-control": "public, max-age=30" } });
+      } catch {
+        return json({ error: "Leaderboard unavailable" }, { status: 503, headers: { "cache-control": "no-store" } });
       }
     }
 
@@ -515,7 +527,24 @@ export class GameRoom extends DurableObject {
       at: Date.now()
     });
     await this.ctx.storage.put({ state: committed, receipts: receipts.slice(-128) });
+    // Read participants' server-side traffic classes before growth bookkeeping clears them.
+    let leaderboardTraffic = null;
+    if (event === "GAME_FINISHED") {
+      try {
+        const ids = (await this.ctx.storage.get(participationKey)) || Object.keys(committed.players);
+        leaderboardTraffic = await Promise.all(ids.map(async (id) => ((await this.ctx.storage.get(growthKey(id))) || {}).traffic_class || null));
+      } catch {
+        leaderboardTraffic = null;
+      }
+    }
     await this.recordGrowthForCommit(event, actor, committed);
+    if (event === "GAME_FINISHED") {
+      try {
+        await recordLeaderboard(this.env, committed, leaderboardTraffic);
+      } catch {
+        // The leaderboard is a public projection and must never block gameplay authority.
+      }
+    }
     try {
       await recordControlRoomCommit(this.env, committed, event, actor);
     } catch {

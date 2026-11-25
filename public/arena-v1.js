@@ -7,7 +7,7 @@ let lastRevealKey = "";
 
 function addHomeMarquee() {
   const home = document.querySelector(".party-home");
-  if (!home || home.querySelector(".arena-marquee")) return;
+  if (!home || home.classList.contains("founder-home") || home.querySelector(".arena-marquee")) return;
   const marquee = document.createElement("div");
   marquee.className = "arena-marquee";
   marquee.setAttribute("aria-hidden", "true");
