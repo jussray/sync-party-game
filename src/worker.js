@@ -298,6 +298,13 @@ export class GameRoom extends DurableObject {
       if (reservation.status === "unavailable") return json({ error: "Game AI unavailable for this phase" }, { status: 503 });
 
       try {
+        // Global paid-call budget is mandatory. No binding means no paid AI invocation.
+        if (!this.env.AI_BUDGET) throw new Error("Global AI budget not configured");
+        const budgetStub = this.env.AI_BUDGET.get(this.env.AI_BUDGET.idFromName("global"));
+        const budgetResponse = await budgetStub.fetch(new Request("https://ai.internal/internal/reserve", {
+          method: "POST"
+        }));
+        if (!budgetResponse.ok) throw new Error("Global AI budget unavailable or exhausted");
         const value = await generateGameCue(this.env, state, body.edition);
         await this.ctx.storage.put(key, { status: "ready", value });
         return json(value, { headers: { "cache-control": "no-store" } });
