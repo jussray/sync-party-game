@@ -6,7 +6,7 @@ on:
     # Metadata edits are handled by Merge Review; they do not change the proof SHA.
     types: [opened, synchronize, reopened]
   push:
-    branches: [proof, main]
+    branches: [proof, main, feat/ai-cues-runtime-20261110]
 
 permissions:
   contents: read
@@ -57,6 +57,10 @@ jobs:
           node --check src/growth-ledger.js
           node --check src/leaderboard.js
           node --check src/worker.js
+          node --check src/game-ai.js
+          node --check src/ai-cue-cache.js
+          node --check public/host-cue.js
+          node --check public/chat/host-cue.js
           node --check src/surfaces.js
           node --check src/multisurface-worker.js
           node --check public/app.js
