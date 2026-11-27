@@ -87,7 +87,21 @@ jobs:
       - name: Install locked runtime dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The ephemeral Ubuntu runner includes a Microsoft apt feed that
+          # returned HTTP 403 on this exact PR, preventing Playwright install.
+          # Temporarily disable only source files referencing that feed in CI.
+          # Keep Playwright's real browser and OS-dependency installation intact.
+          for source in /etc/apt/sources.list.d/*; do
+            [ -f "$source" ] || continue
+            if grep -Fq 'packages.microsoft.com/ubuntu/24.04/prod' "$source"; then
+              echo "CI-only: setting aside unavailable Microsoft apt source"
+              sudo mv "$source" "$source.ci-disabled"
+            fi
+          done
+          npx playwright install --with-deps chromium
       - name: Two-browser Wrangler runtime proof
         run: npm run test:e2e
       - name: Preserve Live Site SYNC visual proof
