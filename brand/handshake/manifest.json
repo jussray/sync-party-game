@@ -1,0 +1,46 @@
+{
+  "schema": "fcr/handshake-brand-social@v1",
+  "slug": "sync",
+  "product": "SYNC Party",
+  "sourceRepository": "jussray/sync-party-game",
+  "publicProductUrl": "https://sync.jussco.company/",
+  "brand": {
+    "logoSource": "brand/handshake/logo.svg",
+    "logoFormat": "svg",
+    "logoWidth": 1200,
+    "logoHeight": 490,
+    "colors": [
+      "#21dfff",
+      "#ff3fbd",
+      "#ffc85a"
+    ],
+    "sourceAuthority": "repository visual design source plus live site; logo is an authored candidate, not approved canonical",
+    "reviewState": "PENDING_FOUNDER_LIVE_SITE_COMPARISON",
+    "neverBorrowBrandFromOtherProjects": true
+  },
+  "handshake": {
+    "target": "Handshake AI Showcase project card",
+    "coverLocalOutput": "handshake-cover.png",
+    "coverWidth": 1536,
+    "coverHeight": 1024,
+    "coverSha256": "92a41959ba8463958ddfdd96e3c37b87dbc262a823cc0fb2b9c9f3dda18a4c6f",
+    "mediaPublicUrl": null,
+    "externalSubmissionState": "NOT_SUBMITTED",
+    "requireNativeConfirmation": true
+  },
+  "social": {
+    "owner": "jussray/founder-control-room",
+    "adapter": "src/lib/handshakeBrandSocial.ts",
+    "existingClassification": "src/lib/socialCampaignPolicy.ts",
+    "existingPublisher": "src/lib/firstPartySocialPublisher.ts",
+    "targetAudience": "business",
+    "firstPartyMode": "draft",
+    "publishAllowed": false,
+    "businessAccountBinding": "UNVERIFIED",
+    "publicMediaReadback": "UNVERIFIED",
+    "exactMediaReview": "REQUIRED",
+    "nativePublicationReceipt": "NOT_PRESENT",
+    "proofRoot": "https://github.com/jussray/sync-party-game"
+  },
+  "safety": "Live Site SYNC only; no blending Chat Edition or Lovable Edition; no unverified game-user numbers."
+}
