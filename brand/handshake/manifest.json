@@ -42,8 +42,8 @@
     "targetAudience": "business",
     "firstPartyMode": "draft",
     "publishAllowed": false,
-    "businessAccountBinding": "UNVERIFIED",
-    "publicMediaReadback": "UNVERIFIED",
+    "businessAccountBinding": "PUBLORA_INSTAGRAM_CONNECTED_FCR_PUBLISHING_UNVERIFIED",
+    "publicMediaReadback": "BYTES_NOT_INDEPENDENTLY_VERIFIED",
     "exactMediaReview": "REQUIRED",
     "nativePublicationReceipt": "NOT_PRESENT",
     "proofRoot": "https://github.com/jussray/sync-party-game",
@@ -54,11 +54,25 @@
       "height": 1350,
       "aspectRatio": "4:5",
       "sha256": "1ef557b582da64eae74b47f8b3a7f20c1118f701d3bc75a8beaa0a5693fbd16b",
-      "publicUrl": null,
+      "publicUrl": "https://media.publora.com/images/1795755735837-0-a495c153-SYNC_Party_Social_Ad_4x5.png",
       "approval": "PENDING_FOUNDER_EXACT_MEDIA_REVIEW",
-      "mediaSourceReadback": "NOT_VERIFIED"
+      "mediaSourceReadback": "PUBLORA_READY_METADATA_ONLY"
     },
-    "draftInputReady": false
+    "draftInputReady": false,
+    "providerDraft": {
+      "provider": "publora",
+      "platform": "instagram",
+      "businessChannel": "@jussnco",
+      "postGroupId": "6b090ed6f04b2c093e246545",
+      "mediaId": "6b090ed7f04b2c093e24656e",
+      "editorUrl": "https://app.publora.com/dashboard/editor?id=6b090ed6f04b2c093e246545",
+      "state": "draft",
+      "mediaState": "ready",
+      "scheduled": false,
+      "published": false,
+      "verifiedSource": "Publora get_post metadata",
+      "assetByteParity": "UNVERIFIED"
+    }
   },
   "safety": "Live Site SYNC only; no blending Chat Edition or Lovable Edition; no unverified game-user numbers."
 }
