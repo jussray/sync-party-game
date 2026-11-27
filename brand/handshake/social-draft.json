@@ -16,13 +16,23 @@
     "copy": "What is SYNC Party?\n\nSYNC Party is a real-time multiplayer game project built around shared rounds, synchronized reveals, and group decisions.\n\nLive multiplayer performance and current deployment still require exact-path browser proof.\n\nProject evidence: https://github.com/jussray/sync-party-game\n\n#SYNCParty #MultiplayerGames #GameDevelopment #RealtimeWeb #CreativeTech",
     "mediaAltText": "Illustrative neon gaming desk, gamer with controller, and the blue-magenta SYNC Party title in arena lighting.",
     "mediaPathLocal": "brand/handshake/handshake-cover.png (candidate file in downloadable kit, not publicly hosted)",
-    "mediaPublicUrl": null
+    "mediaPublicUrl": null,
+    "mediaPackagePath": "Social/SYNC_Party_Social_Ad_4x5.png",
+    "mediaSha256": "1ef557b582da64eae74b47f8b3a7f20c1118f701d3bc75a8beaa0a5693fbd16b",
+    "mediaDimensions": [
+      1080,
+      1350
+    ],
+    "mediaPurpose": "social_ad",
+    "mediaState": "LOCAL_CANDIDATE_UNHOSTED"
   },
   "handshake": {
     "name": "SYNC Party",
     "description": "SYNC Party is a real-time multiplayer game project built around shared rounds, synchronized reveals, and group decisions. Live multiplayer performance and current deployment still require exact-path browser proof.",
     "productUrl": "https://sync.jussco.company/",
-    "submissionState": "NOT_SUBMITTED"
+    "submissionState": "NOT_SUBMITTED",
+    "coverPackagePath": "Handshake/SYNC_Party_Handshake_3x2.png",
+    "coverStatus": "LOCAL_CANDIDATE_UNHOSTED"
   },
   "review": {
     "exactMediaFounderApproval": false,
