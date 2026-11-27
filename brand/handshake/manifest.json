@@ -27,7 +27,12 @@
     "coverSha256": "ffe59a6338e37f5148463a7252d24e7e41df59747666cd63b7fc6edffb754a18",
     "mediaPublicUrl": null,
     "externalSubmissionState": "NOT_SUBMITTED",
-    "requireNativeConfirmation": true
+    "requireNativeConfirmation": true,
+    "coverPackagePath": "Handshake/SYNC_Party_Handshake_3x2.png",
+    "coverDimensions": [
+      1536,
+      1024
+    ]
   },
   "social": {
     "owner": "jussray/founder-control-room",
@@ -41,7 +46,19 @@
     "publicMediaReadback": "UNVERIFIED",
     "exactMediaReview": "REQUIRED",
     "nativePublicationReceipt": "NOT_PRESENT",
-    "proofRoot": "https://github.com/jussray/sync-party-game"
+    "proofRoot": "https://github.com/jussray/sync-party-game",
+    "adCreative": {
+      "source": "founder-delivered download package only; not committed, hosted or published",
+      "packagePath": "Social/SYNC_Party_Social_Ad_4x5.png",
+      "width": 1080,
+      "height": 1350,
+      "aspectRatio": "4:5",
+      "sha256": "1ef557b582da64eae74b47f8b3a7f20c1118f701d3bc75a8beaa0a5693fbd16b",
+      "publicUrl": null,
+      "approval": "PENDING_FOUNDER_EXACT_MEDIA_REVIEW",
+      "mediaSourceReadback": "NOT_VERIFIED"
+    },
+    "draftInputReady": false
   },
   "safety": "Live Site SYNC only; no blending Chat Edition or Lovable Edition; no unverified game-user numbers."
 }
