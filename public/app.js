@@ -132,9 +132,10 @@ function noteGameResult(state, me, roomSync) {
   const r = record();
   const high = Math.max(...state.players.map((player) => state.scores[player.id] || 0));
   const mine = state.scores[me.playerId] || 0;
+  const topScorers = state.players.filter((player) => (state.scores[player.id] || 0) === high).length;
   localStorage.setItem(RECORD_KEY, JSON.stringify({
     games: (r.games || 0) + 1,
-    wins: (r.wins || 0) + (mine === high && high > 0 ? 1 : 0),
+    wins: (r.wins || 0) + (mine === high && high > 0 && topScorers === 1 ? 1 : 0),
     bestSync: Math.max(r.bestSync || 0, roomSync)
   }));
 }
@@ -336,7 +337,11 @@ function renderResults(state, me) {
   const roomSync = state.syncHistory?.length ? Math.round(state.syncHistory.reduce((sum, value) => sum + value, 0) / state.syncHistory.length) : 0;
   const high = Math.max(...ranking.map((player) => state.scores[player.id] || 0));
   noteGameResult(state, me, roomSync);
-  gameFrame(`<div class="celebration" aria-hidden="true">${Array.from({ length: 16 }, (_, index) => `<i style="--x:${index * 6.3}%;--r:${index * 37}deg;--d:${(index % 5) * .13}s;--color:${["#ffcc4d", "#ef3cbe", "#7296ff"][index % 3]}"></i>`).join("")}</div><div class="center"><div class="trophy" aria-hidden="true">🏆</div><p class="meta">GAME OVER · ROOM ${escapeHtml(state.code)}</p><h1 class="screen-title">${escapeHtml(ranking[0]?.name || "Nobody")} wins!</h1><div class="final-sync"><span>FINAL ROOM SYNC</span><strong>${roomSync}%</strong><b>${syncLabel(roomSync)}</b></div></div><div class="scoreboard">${ranking.map((player, index) => `<div class="rank-row ${(state.scores[player.id] || 0) === high ? "leader" : ""}"><span class="rank-number">${index + 1}</span>${avatar(index)}<span class="rank-name">${escapeHtml(player.name)}${player.id === me.playerId ? " <small>(you)</small>" : ""}${(state.scores[player.id] || 0) === high ? " ♛" : ""}</span><strong>${state.scores[player.id] || 0}</strong></div>`).join("")}</div>${recordCardHtml()}<section id="leaderboard" class="leaderboard" aria-labelledby="leaderboardTitle"><h2 id="leaderboardTitle" class="meta">SYNC LEADERBOARD · TOP ROOMS BY SIZE</h2><p class="little" id="leaderboardStatus" role="status">Loading the board…</p><ol class="leaderboard-list" id="leaderboardList"></ol></section><div class="actions" style="margin-top:22px">${me.playerId === state.hostId ? `<button id="rematchBtn" class="btn btn-primary">PLAY AGAIN ↻</button>` : ""}<button id="shareResultBtn" class="btn btn-secondary">SHARE RESULT</button><button id="homeBtn" class="btn btn-secondary">NEW ROOM</button></div>`, "FINAL SCORES");
+  const leaders = ranking.filter((player) => (state.scores[player.id] || 0) === high);
+  const headline = leaders.length > 1
+    ? `IT'S A TIE ✦ ${leaders.map((player) => escapeHtml(player.name)).join(" & ")}`
+    : `${escapeHtml(ranking[0]?.name || "Nobody")} wins!`;
+  gameFrame(`<div class="celebration" aria-hidden="true">${Array.from({ length: 16 }, (_, index) => `<i style="--x:${index * 6.3}%;--r:${index * 37}deg;--d:${(index % 5) * .13}s;--color:${["#ffcc4d", "#ef3cbe", "#7296ff"][index % 3]}"></i>`).join("")}</div><div class="center"><div class="trophy" aria-hidden="true">🏆</div><p class="meta">GAME OVER · ROOM ${escapeHtml(state.code)}</p><h1 class="screen-title">${headline}</h1><div class="final-sync"><span>FINAL ROOM SYNC</span><strong>${roomSync}%</strong><b>${syncLabel(roomSync)}</b></div></div><div class="scoreboard">${ranking.map((player, index) => `<div class="rank-row ${(state.scores[player.id] || 0) === high ? "leader" : ""}"><span class="rank-number">${index + 1}</span>${avatar(index)}<span class="rank-name">${escapeHtml(player.name)}${player.id === me.playerId ? " <small>(you)</small>" : ""}${(state.scores[player.id] || 0) === high ? " ♛" : ""}</span><strong>${state.scores[player.id] || 0}</strong></div>`).join("")}</div>${recordCardHtml()}<section id="leaderboard" class="leaderboard" aria-labelledby="leaderboardTitle"><h2 id="leaderboardTitle" class="meta">SYNC LEADERBOARD · TOP ROOMS BY SIZE</h2><p class="little" id="leaderboardStatus" role="status">Loading the board…</p><ol class="leaderboard-list" id="leaderboardList"></ol></section><div class="actions" style="margin-top:22px">${me.playerId === state.hostId ? `<button id="rematchBtn" class="btn btn-primary">PLAY AGAIN ↻</button>` : ""}<button id="shareResultBtn" class="btn btn-secondary">SHARE RESULT</button><button id="homeBtn" class="btn btn-secondary">NEW ROOM</button></div>`, "FINAL SCORES");
   loadLeaderboard(roomSync, state.players.length);
   document.querySelector("#shareResultBtn")?.addEventListener("click", async () => {
     const url = new URL("/", location.origin);
