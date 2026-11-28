@@ -23,7 +23,10 @@ function markHomeState() {
 }
 
 function decorateV2() {
-  mountChatSocialScene();
+  // mountChatSocialScene() call retired 2026-11-28: its target DOM
+  // (.chat-home-v1 > .bubble.you) is no longer emitted by the founder
+  // home composition, so the mount could never land. The function stays
+  // defined above for reference; markHomeState() still runs.
   markHomeState();
 }
 
