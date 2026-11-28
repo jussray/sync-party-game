@@ -102,6 +102,57 @@ function identity(code) {
   try { return JSON.parse(localStorage.getItem(`sync.room.${code}`)); } catch { return null; }
 }
 function saveIdentity(code, value) { localStorage.setItem(`sync.room.${code}`, JSON.stringify(value)); }
+// Cross-session player memory: who you are (name + face) and your personal record.
+// Presentation-layer only — never sent to the room or used by gameplay.
+const PROFILE_KEY = "sync.profile";
+function profile() {
+  try { return JSON.parse(localStorage.getItem(PROFILE_KEY)); } catch { return null; }
+}
+function saveProfile(name, fallbackFaceIndex) {
+  const current = profile() || {};
+  const faceIndex = Number.isInteger(current.faceIndex) ? current.faceIndex : fallbackFaceIndex;
+  localStorage.setItem(PROFILE_KEY, JSON.stringify({ name, faceIndex }));
+}
+const RECORD_KEY = "sync.record";
+function record() {
+  try { return JSON.parse(localStorage.getItem(RECORD_KEY)) || {}; } catch { return {}; }
+}
+function recordCardHtml() {
+  const r = record();
+  if (!r.games) return "";
+  return `<div class="record-card"><span class="record-title">YOUR RECORD</span><span>Games <b>${r.games}</b></span><span>Wins <b>${r.wins || 0}</b></span><span>Best room sync <b>${r.bestSync || 0}%</b></span></div>`;
+}
+function noteGameResult(state, me, roomSync) {
+  // Count each finished game once per tab: the results state hash identifies this game instance.
+  const key = `sync.record.counted.${state.code}`;
+  try {
+    if (sessionStorage.getItem(key) === state.stateHash) return;
+    sessionStorage.setItem(key, state.stateHash);
+  } catch { return; }
+  const r = record();
+  const high = Math.max(...state.players.map((player) => state.scores[player.id] || 0));
+  const mine = state.scores[me.playerId] || 0;
+  localStorage.setItem(RECORD_KEY, JSON.stringify({
+    games: (r.games || 0) + 1,
+    wins: (r.wins || 0) + (mine === high && high > 0 ? 1 : 0),
+    bestSync: Math.max(r.bestSync || 0, roomSync)
+  }));
+}
+async function copyResultText(value) {
+  if (navigator.clipboard?.writeText) {
+    try { await navigator.clipboard.writeText(value); return; } catch { /* fall through to DOM copy */ }
+  }
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.append(textarea);
+  textarea.select();
+  const copied = document.execCommand("copy");
+  textarea.remove();
+  if (!copied) throw new Error("Copy is unavailable in this browser.");
+}
 function closeSocket() {
   if (socket) { socket.onclose = null; socket.close(); socket = null; }
   clearInterval(timerHandle);
@@ -136,7 +187,8 @@ function gameFrame(body, label = "LIVE MULTIPLAYER") {
 function home() {
   snapToTop("home");
   closeSocket(); roomState = null; sound.stopEffects(); sound.setPhase("home"); audioRoomKey = null; audioPhaseKey = null;
-  app.innerHTML = `<section class="party-home founder-home"><div class="fl-hero"><div class="fl-title"><div class="game-logo" role="img" aria-label="Live Site SYNC: can you read the room before time runs out?">SYNC</div><div class="fl-people-strip" aria-hidden="true"></div><h1 class="fl-visually-hidden">Live Site SYNC. Can you read the room before time runs out?</h1><p class="fl-lede">A live pressure party game where hidden picks, changing rules, and synchronized reveals decide the winner.</p><div class="hero-actions fl-actions"><button id="create" class="btn btn-primary" type="button">Create a game <span aria-hidden="true">→</span></button><button id="join" class="btn btn-secondary" type="button">Join a game <span aria-hidden="true">→</span></button></div><p class="fl-sub"><span>No account · No install</span><span>👥 It's better together</span></p></div></div><section class="fl-features" id="features" aria-label="Features"><div><span aria-hidden="true">👥</span><p><b>2 – 8 players</b><small>Friends. Anywhere.</small></p></div><div><span aria-hidden="true">⤨</span><p><b>Changing modes</b><small>A new twist every round</small></p></div><div><span aria-hidden="true">⚡</span><p><b>Pressure rounds</b><small>Fast. Fun. Unpredictable.</small></p></div><div><span aria-hidden="true">🏆</span><p><b>Big reveal</b><small>Same minds. Big moments.</small></p></div></section><section class="fl-board" id="how" aria-label="How a round looks (demo)"><div class="fl-board-top"><div class="fl-round"><span>Round 3 / 5</span><b class="fl-mode-pill">ODD ONE OUT</b><small>Be the only one to pick it.<br>One player picked differently.</small></div><div class="fl-clock" aria-label="Timer demo, 7 seconds"><strong>07</strong><small>PICK NOW</small></div><ol class="fl-steps" aria-label="Pick, lock, reveal"><li>Pick</li><li>Lock</li><li class="on">Reveal</li></ol></div><div class="fl-players" aria-hidden="true"><div class="fl-player"><b>Alex</b><span class="fl-face" style="background-image:url(/founder/live-face-0.webp)"></span><span class="fl-pick">🍕</span></div><div class="fl-player"><b>Mina</b><span class="fl-face" style="background-image:url(/founder/live-face-1.webp)"></span><span class="fl-pick">🍕</span></div><div class="fl-player"><b>Jace</b><span class="fl-face" style="background-image:url(/founder/live-face-2.webp)"></span><span class="fl-pick">🍕</span></div><div class="fl-player"><b>Riley</b><span class="fl-face" style="background-image:url(/founder/live-face-3.webp)"></span><span class="fl-pick">🍕</span></div><div class="fl-player"><b>Taylor</b><span class="fl-face" style="background-image:url(/founder/live-face-4.webp)"></span><span class="fl-pick">🍕</span></div><div class="fl-player fl-player--odd"><b>Noah</b><span class="fl-face" style="background-image:url(/founder/live-face-5.webp)"></span><span class="fl-pick">🍔</span></div><div class="fl-player"><b>Casey</b><span class="fl-face" style="background-image:url(/founder/live-face-6.webp)"></span><span class="fl-pick">🍕</span></div><div class="fl-player"><b>Jamie</b><span class="fl-face" style="background-image:url(/founder/live-face-7.webp)"></span><span class="fl-pick">🍕</span></div></div><div class="fl-reveal" aria-hidden="true"><b class="fl-reveal-word">Reveal!</b><div class="fl-reveal-row"><span class="">🍕</span><span class="">🍕</span><span class="">🍕</span><span class="">🍕</span><span class="odd">🍔</span><span class="">🍕</span><span class="">🍕</span></div><div class="fl-roomsync"><span>ROOM SYNC</span><strong>87%</strong><i><em style="width:87%"></em></i></div></div><p class="fl-demo-tag">Demo round · names are examples</p></section><section class="fl-modes" id="modes" aria-label="Game modes"><div class="fl-mode fl-mode--classic"><span class="fl-mode-icon" aria-hidden="true">👑</span><h3>Classic Sync</h3><p>Pick the same as the room.<br><span>Simple. Timeless. Always fun.</span></p></div><div class="fl-mode fl-mode--twin"><span class="fl-mode-icon" aria-hidden="true">∞</span><h3>Twin</h3><p>Match exactly one other player.<br><span>You're on the same wavelength?</span></p></div><div class="fl-mode fl-mode--odd"><span class="fl-mode-icon" aria-hidden="true">👥</span><h3>Odd One Out</h3><p>Be the only one to pick it.<br><span>Blend in or stand out?</span></p></div><div class="fl-mode fl-mode--reverse"><span class="fl-mode-icon" aria-hidden="true">⇄</span><h3>Reverse</h3><p>The smallest group wins.<br><span>Trust nothing.</span></p></div><div class="fl-mode fl-mode--perfect"><span class="fl-mode-icon" aria-hidden="true">◎</span><h3>Perfect Sync</h3><p>Everyone must match.<br><span>No mistakes. Legendary.</span></p></div></section><div class="fl-crowd" aria-hidden="true"><p>Different people<br>different minds<br><span>same thrill</span></p></div></section>`;
+  const savedProfile = profile();
+  app.innerHTML = `<section class="party-home founder-home"><div class="fl-hero"><div class="fl-title"><div class="game-logo" role="img" aria-label="Live Site SYNC: can you read the room before time runs out?">SYNC</div><div class="fl-people-strip" aria-hidden="true"></div><h1 class="fl-visually-hidden">Live Site SYNC. Can you read the room before time runs out?</h1><p class="fl-lede">A live pressure party game where hidden picks, changing rules, and synchronized reveals decide the winner.</p>${savedProfile?.name ? `<p class="profile-greeting">Welcome back, <b>${escapeHtml(savedProfile.name)}</b> — the room missed you.</p>` : ""}<div class="hero-actions fl-actions"><button id="create" class="btn btn-primary" type="button">Create a game <span aria-hidden="true">→</span></button><button id="join" class="btn btn-secondary" type="button">Join a game <span aria-hidden="true">→</span></button></div><p class="fl-sub"><span>No account · No install</span><span>👥 It's better together</span></p>${recordCardHtml()}</div></div><section class="fl-features" id="features" aria-label="Features"><div><span aria-hidden="true">👥</span><p><b>2 – 8 players</b><small>Friends. Anywhere.</small></p></div><div><span aria-hidden="true">⤨</span><p><b>Changing modes</b><small>A new twist every round</small></p></div><div><span aria-hidden="true">⚡</span><p><b>Pressure rounds</b><small>Fast. Fun. Unpredictable.</small></p></div><div><span aria-hidden="true">🏆</span><p><b>Big reveal</b><small>Same minds. Big moments.</small></p></div></section><section class="fl-board" id="how" aria-label="How a round looks (demo)"><div class="fl-board-top"><div class="fl-round"><span>Round 3 / 5</span><b class="fl-mode-pill">ODD ONE OUT</b><small>Be the only one to pick it.<br>One player picked differently.</small></div><div class="fl-clock" aria-label="Timer demo, 7 seconds"><strong>07</strong><small>PICK NOW</small></div><ol class="fl-steps" aria-label="Pick, lock, reveal"><li>Pick</li><li>Lock</li><li class="on">Reveal</li></ol></div><div class="fl-players" aria-hidden="true"><div class="fl-player"><b>Alex</b><span class="fl-face" style="background-image:url(/founder/live-face-0.webp)"></span><span class="fl-pick">🍕</span></div><div class="fl-player"><b>Mina</b><span class="fl-face" style="background-image:url(/founder/live-face-1.webp)"></span><span class="fl-pick">🍕</span></div><div class="fl-player"><b>Jace</b><span class="fl-face" style="background-image:url(/founder/live-face-2.webp)"></span><span class="fl-pick">🍕</span></div><div class="fl-player"><b>Riley</b><span class="fl-face" style="background-image:url(/founder/live-face-3.webp)"></span><span class="fl-pick">🍕</span></div><div class="fl-player"><b>Taylor</b><span class="fl-face" style="background-image:url(/founder/live-face-4.webp)"></span><span class="fl-pick">🍕</span></div><div class="fl-player fl-player--odd"><b>Noah</b><span class="fl-face" style="background-image:url(/founder/live-face-5.webp)"></span><span class="fl-pick">🍔</span></div><div class="fl-player"><b>Casey</b><span class="fl-face" style="background-image:url(/founder/live-face-6.webp)"></span><span class="fl-pick">🍕</span></div><div class="fl-player"><b>Jamie</b><span class="fl-face" style="background-image:url(/founder/live-face-7.webp)"></span><span class="fl-pick">🍕</span></div></div><div class="fl-reveal" aria-hidden="true"><b class="fl-reveal-word">Reveal!</b><div class="fl-reveal-row"><span class="">🍕</span><span class="">🍕</span><span class="">🍕</span><span class="">🍕</span><span class="odd">🍔</span><span class="">🍕</span><span class="">🍕</span></div><div class="fl-roomsync"><span>ROOM SYNC</span><strong>87%</strong><i><em style="width:87%"></em></i></div></div><p class="fl-demo-tag">Demo round · names are examples</p></section><section class="fl-modes" id="modes" aria-label="Game modes"><div class="fl-mode fl-mode--classic"><span class="fl-mode-icon" aria-hidden="true">👑</span><h3>Classic Sync</h3><p>Pick the same as the room.<br><span>Simple. Timeless. Always fun.</span></p></div><div class="fl-mode fl-mode--twin"><span class="fl-mode-icon" aria-hidden="true">∞</span><h3>Twin</h3><p>Match exactly one other player.<br><span>You're on the same wavelength?</span></p></div><div class="fl-mode fl-mode--odd"><span class="fl-mode-icon" aria-hidden="true">👥</span><h3>Odd One Out</h3><p>Be the only one to pick it.<br><span>Blend in or stand out?</span></p></div><div class="fl-mode fl-mode--reverse"><span class="fl-mode-icon" aria-hidden="true">⇄</span><h3>Reverse</h3><p>The smallest group wins.<br><span>Trust nothing.</span></p></div><div class="fl-mode fl-mode--perfect"><span class="fl-mode-icon" aria-hidden="true">◎</span><h3>Perfect Sync</h3><p>Everyone must match.<br><span>No mistakes. Legendary.</span></p></div></section><div class="fl-crowd" aria-hidden="true"><p>Different people<br>different minds<br><span>same thrill</span></p></div></section>`;
   document.querySelector("#create").addEventListener("click", () => setup(false));
   document.querySelector("#join").addEventListener("click", () => setup(true));
 }
@@ -144,6 +196,15 @@ function setup(joining) {
   snapToTop(joining ? "join" : "create");
   closeSocket(); roomState = null; sound.stopEffects(); sound.setPhase("home"); audioRoomKey = null; audioPhaseKey = null;
   gameFrame(`<div class="center"><div class="setup-icon">${joining ? "🎮" : "✦"}</div><h1 class="screen-title">${joining ? "Join the party." : "Start something fun."}</h1><p class="little">${joining ? "Drop the room code your friend sent you." : "Create the room, send the code, then read the room."}</p></div>${joining ? `<form id="joinForm" class="setup-form"><div class="field"><label for="joinCode">ROOM CODE</label><input class="input code-input" id="joinCode" placeholder="ABCDE" maxlength="5" autocomplete="off" required /></div><div class="field"><label for="joinName">NICKNAME</label><div class="name-input">${avatar(1)}<input class="input" id="joinName" placeholder="Your friends know you as…" maxlength="18" autocomplete="nickname" required /></div></div><button class="btn btn-primary wide" type="submit">JOIN A GAME →</button><p class="little center">Room codes are five characters.</p></form>` : `<form id="createForm" class="setup-form"><div class="field"><label for="createName">YOUR NICKNAME</label><div class="name-input">${avatar(0)}<input class="input" id="createName" placeholder="Your friends know you as…" maxlength="18" autocomplete="nickname" required /></div></div><button class="btn btn-primary wide" type="submit">CREATE A GAME →</button><p class="little center">You’ll be the host. Share the code after the room opens.</p></form>`}`, joining ? "JOIN SYNC" : "HOST SYNC");
+  const savedProfile = profile();
+  if (savedProfile?.name) {
+    const nameInput = document.querySelector(joining ? "#joinName" : "#createName");
+    if (nameInput) nameInput.value = savedProfile.name;
+  }
+  if (Number.isInteger(savedProfile?.faceIndex)) {
+    const face = document.querySelector(".name-input .face");
+    if (face) face.className = `face face-${savedProfile.faceIndex % 4}`;
+  }
   document.querySelector("#createForm")?.addEventListener("submit", createRoom);
   document.querySelector("#joinForm")?.addEventListener("submit", joinRoom);
 }
@@ -156,6 +217,7 @@ async function createRoom(event) {
   const data = await response.json();
   if (!response.ok) return notify(data.error || "Could not create room");
   saveIdentity(data.code, { playerId: data.playerId, resumeToken: data.resumeToken, name });
+  saveProfile(name, 0);
   history.pushState({}, "", `/?room=${data.code}`);
   connect(data.code);
 }
@@ -169,6 +231,7 @@ async function joinRoom(event) {
   const data = await response.json();
   if (!response.ok) return notify(data.error || "Could not join room");
   saveIdentity(code, { playerId: data.playerId, resumeToken: data.resumeToken, name });
+  saveProfile(name, 1);
   history.pushState({}, "", `/?room=${code}`);
   connect(code);
 }
@@ -272,8 +335,28 @@ function renderResults(state, me) {
   const ranking = [...state.players].sort((a, b) => (state.scores[b.id] || 0) - (state.scores[a.id] || 0));
   const roomSync = state.syncHistory?.length ? Math.round(state.syncHistory.reduce((sum, value) => sum + value, 0) / state.syncHistory.length) : 0;
   const high = Math.max(...ranking.map((player) => state.scores[player.id] || 0));
-  gameFrame(`<div class="celebration" aria-hidden="true">${Array.from({ length: 16 }, (_, index) => `<i style="--x:${index * 6.3}%;--r:${index * 37}deg;--d:${(index % 5) * .13}s;--color:${["#ffcc4d", "#ef3cbe", "#7296ff"][index % 3]}"></i>`).join("")}</div><div class="center"><div class="trophy" aria-hidden="true">🏆</div><p class="meta">GAME OVER · ROOM ${escapeHtml(state.code)}</p><h1 class="screen-title">${escapeHtml(ranking[0]?.name || "Nobody")} wins!</h1><div class="final-sync"><span>FINAL ROOM SYNC</span><strong>${roomSync}%</strong><b>${syncLabel(roomSync)}</b></div></div><div class="scoreboard">${ranking.map((player, index) => `<div class="rank-row ${(state.scores[player.id] || 0) === high ? "leader" : ""}"><span class="rank-number">${index + 1}</span>${avatar(index)}<span class="rank-name">${escapeHtml(player.name)}${player.id === me.playerId ? " <small>(you)</small>" : ""}${(state.scores[player.id] || 0) === high ? " ♛" : ""}</span><strong>${state.scores[player.id] || 0}</strong></div>`).join("")}</div><section id="leaderboard" class="leaderboard" aria-labelledby="leaderboardTitle"><h2 id="leaderboardTitle" class="meta">SYNC LEADERBOARD · TOP ROOMS BY SIZE</h2><p class="little" id="leaderboardStatus" role="status">Loading the board…</p><ol class="leaderboard-list" id="leaderboardList"></ol></section><div class="actions" style="margin-top:22px">${me.playerId === state.hostId ? `<button id="rematchBtn" class="btn btn-primary">PLAY AGAIN ↻</button>` : ""}<button id="homeBtn" class="btn btn-secondary">NEW ROOM</button></div>`, "FINAL SCORES");
+  noteGameResult(state, me, roomSync);
+  gameFrame(`<div class="celebration" aria-hidden="true">${Array.from({ length: 16 }, (_, index) => `<i style="--x:${index * 6.3}%;--r:${index * 37}deg;--d:${(index % 5) * .13}s;--color:${["#ffcc4d", "#ef3cbe", "#7296ff"][index % 3]}"></i>`).join("")}</div><div class="center"><div class="trophy" aria-hidden="true">🏆</div><p class="meta">GAME OVER · ROOM ${escapeHtml(state.code)}</p><h1 class="screen-title">${escapeHtml(ranking[0]?.name || "Nobody")} wins!</h1><div class="final-sync"><span>FINAL ROOM SYNC</span><strong>${roomSync}%</strong><b>${syncLabel(roomSync)}</b></div></div><div class="scoreboard">${ranking.map((player, index) => `<div class="rank-row ${(state.scores[player.id] || 0) === high ? "leader" : ""}"><span class="rank-number">${index + 1}</span>${avatar(index)}<span class="rank-name">${escapeHtml(player.name)}${player.id === me.playerId ? " <small>(you)</small>" : ""}${(state.scores[player.id] || 0) === high ? " ♛" : ""}</span><strong>${state.scores[player.id] || 0}</strong></div>`).join("")}</div>${recordCardHtml()}<section id="leaderboard" class="leaderboard" aria-labelledby="leaderboardTitle"><h2 id="leaderboardTitle" class="meta">SYNC LEADERBOARD · TOP ROOMS BY SIZE</h2><p class="little" id="leaderboardStatus" role="status">Loading the board…</p><ol class="leaderboard-list" id="leaderboardList"></ol></section><div class="actions" style="margin-top:22px">${me.playerId === state.hostId ? `<button id="rematchBtn" class="btn btn-primary">PLAY AGAIN ↻</button>` : ""}<button id="shareResultBtn" class="btn btn-secondary">SHARE RESULT</button><button id="homeBtn" class="btn btn-secondary">NEW ROOM</button></div>`, "FINAL SCORES");
   loadLeaderboard(roomSync, state.players.length);
+  document.querySelector("#shareResultBtn")?.addEventListener("click", async () => {
+    const url = new URL("/", location.origin);
+    url.searchParams.set("room", state.code);
+    const text = `We hit ${roomSync}% SYNC — beat that`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "SYNC Party result", text, url: url.toString() });
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+    try {
+      await copyResultText(`${text} ${url.toString()}`);
+      notify("Result copied — go share it.");
+    } catch {
+      notify("Sharing is unavailable in this browser.");
+    }
+  });
   document.querySelector("#rematchBtn")?.addEventListener("click", () => send("REMATCH"));
   document.querySelector("#homeBtn").addEventListener("click", () => { closeSocket(); history.pushState({}, "", "/"); home(); });
 }
@@ -312,3 +395,24 @@ addEventListener("popstate", route);
 function route() { const code = new URLSearchParams(location.search).get("room")?.toUpperCase(); code ? connect(code) : home(); }
 trackGrowth("landing_view");
 route();
+// Scroll reveal for the long-page sections (modes, how-it-works demo, SYNC worlds).
+// The hidden start state (.reveal-init) is applied here, never by CSS defaults:
+// with no JS, or with reduced motion, every section is simply visible.
+const revealObserver = !matchMedia("(prefers-reduced-motion: reduce)").matches && "IntersectionObserver" in window
+  ? new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) { entry.target.classList.add("revealed"); revealObserver.unobserve(entry.target); }
+      }
+    }, { threshold: 0.12 })
+  : null;
+function armReveal() {
+  if (!revealObserver) return;
+  document.querySelectorAll(".fl-modes, .fl-board, .sync-worlds").forEach((node) => {
+    if (node.dataset.revealArmed) return;
+    node.dataset.revealArmed = "1";
+    node.classList.add("reveal-init");
+    revealObserver.observe(node);
+  });
+}
+new MutationObserver(armReveal).observe(document.body, { childList: true, subtree: true });
+armReveal();
