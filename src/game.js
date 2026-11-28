@@ -19,8 +19,52 @@ export const PROMPTS = [
   { id: "p5", text: "Choose the group mascot.", choices: ["🐼 Panda", "🦊 Fox", "🐙 Octopus", "🦖 Dino", "🐝 Bee"] },
   { id: "p6", text: "Pick a power for one day.", choices: ["🪽 Fly", "🫥 Invisible", "⚡ Super speed", "🧠 Read minds", "⏸️ Pause time"] },
   { id: "p7", text: "What makes a road trip better?", choices: ["🎵 Music", "🍬 Snacks", "😂 Jokes", "🗺️ Detours", "😴 Naps"] },
-  { id: "p8", text: "Choose a perfect Friday night.", choices: ["🎮 Games", "🎬 Movie", "🛼 Going out", "🍕 Food", "💤 Early sleep"] }
+  { id: "p8", text: "Choose a perfect Friday night.", choices: ["🎮 Games", "🎬 Movie", "🛼 Going out", "🍕 Food", "💤 Early sleep"] },
+  { id: "p9", text: "The group chat went silent. What revives it?", choices: ["😂 A meme", "📸 Photo dump", "🎤 Voice note", "🔥 Hot gossip", "🎲 Random question"] },
+  { id: "p10", text: "Pick a dream house upgrade.", choices: ["🎬 Movie room", "🏊 Pool", "🍕 Pizza oven", "🎮 Game loft", "🌿 Garden deck"] },
+  { id: "p11", text: "What makes the group photo iconic?", choices: ["😎 Sunglasses", "✌️ Peace signs", "🤪 Silly faces", "👕 Matching shirts", "🐶 The dog"] },
+  { id: "p12", text: "Pick the ultimate birthday surprise.", choices: ["🎂 Cake drop", "🎈 Balloon room", "🎤 Singing crew", "🎁 Mystery box", "🚗 Surprise trip"] },
+  { id: "p13", text: "Settle it: the best pizza topping is…", choices: ["🧀 Extra cheese", "🍖 Pepperoni", "🍍 Pineapple", "🍄 Mushrooms", "🌶️ Jalapeños"] },
+  { id: "p14", text: "What's the group's karaoke anthem?", choices: ["🎤 Power ballad", "🕺 Dance hit", "🎸 Rock classic", "🎶 Throwback jam", "😂 Meme song"] },
+  { id: "p15", text: "Choose a vacation rental vibe.", choices: ["🏖️ Beach house", "🛖 Cozy cabin", "🏙️ City loft", "🏰 Fancy villa", "🚐 Camper van"] },
+  { id: "p16", text: "Pick the best rainy-day plan.", choices: ["🎲 Board games", "🧩 Puzzle day", "🍪 Baking day", "🎮 Tournament", "😴 Nap marathon"] },
+  { id: "p17", text: "The Wi-Fi dies for a whole day. First move?", choices: ["📚 Read a book", "🚶 Group walk", "🃏 Card games", "🍳 Cook together", "😴 Sleep it off"] },
+  { id: "p18", text: "Pick a group costume theme.", choices: ["🦸 Superheroes", "🏴‍☠️ Pirates", "👽 Aliens", "🎬 Movie stars", "🦖 Dinosaurs"] },
+  { id: "p19", text: "What's the best concert seat?", choices: ["🎤 Front row", "🎶 Middle crowd", "🪑 Back row chill", "🎧 VIP lounge", "📺 From home"] },
+  { id: "p20", text: "Choose a midnight snack run target.", choices: ["🌮 Taco truck", "🍩 Donut shop", "🍔 Burger joint", "🏪 Corner store", "🍦 Ice cream stand"] },
+  { id: "p21", text: "Pick a dream job for one week.", choices: ["🚀 Astronaut", "🎬 Movie director", "🏝️ Island host", "🎮 Game tester", "🍰 Taste tester"] },
+  { id: "p22", text: "What wins the talent show?", choices: ["🎤 Singing", "💃 Dancing", "🎩 Magic tricks", "😂 Comedy", "🎸 Guitar solo"] },
+  { id: "p23", text: "What's the first thing you'd teach a robot?", choices: ["💃 A dance", "😂 A joke", "🍳 Cooking", "🎮 Gaming", "🤗 A hug"] },
+  { id: "p24", text: "Choose a season for the group trip.", choices: ["☀️ Summer", "🍂 Fall", "❄️ Winter", "🌸 Spring", "🎲 Surprise us"] }
 ];
+
+function shuffledCopy(items, rng) {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+// Build one game's deal: `rounds` slots of { modeId, promptId }, chosen when
+// the game starts and stored in the authoritative state. Modes cycle through
+// shuffled permutations of all five, so a 5-round game showcases every mode
+// exactly once; prompts come from shuffled passes over the pool, so a game's
+// prompts are always distinct (and never repeat back-to-back across passes).
+export function buildDeal(rounds = DEFAULT_ROUNDS, rng = Math.random) {
+  const modeOrder = [];
+  while (modeOrder.length < rounds) modeOrder.push(...shuffledCopy(MODES.map((mode) => mode.id), rng));
+  const promptOrder = [];
+  while (promptOrder.length < rounds) {
+    const pass = shuffledCopy(PROMPTS.map((prompt) => prompt.id), rng);
+    if (promptOrder.length && pass[0] === promptOrder[promptOrder.length - 1]) {
+      [pass[0], pass[1]] = [pass[1], pass[0]];
+    }
+    promptOrder.push(...pass);
+  }
+  return Array.from({ length: rounds }, (_, index) => ({ modeId: modeOrder[index], promptId: promptOrder[index] }));
+}
 
 export function createRoomState(code, hostPlayer, rounds = DEFAULT_ROUNDS) {
   return {
@@ -31,6 +75,7 @@ export function createRoomState(code, hostPlayer, rounds = DEFAULT_ROUNDS) {
     players: { [hostPlayer.id]: hostPlayer },
     roundIndex: -1,
     rounds,
+    deal: null,
     mode: null,
     prompt: null,
     answers: {},
@@ -74,7 +119,10 @@ export function publicState(state) {
   const players = Object.values(state.players)
     .map(({ resumeToken, ...safe }) => safe)
     .sort((a, b) => (a.id === state.hostId ? -1 : b.id === state.hostId ? 1 : a.name.localeCompare(b.name)));
-  return { ...state, players, answers: publicAnswers(state) };
+  // The deal is server-side authority: clients play the round they are dealt
+  // (state.mode / state.prompt) and never receive upcoming rounds in advance.
+  const { deal, ...rest } = state;
+  return { ...rest, players, answers: publicAnswers(state) };
 }
 
 export function joinPlayer(state, player) {
@@ -87,7 +135,7 @@ export function joinPlayer(state, player) {
   };
 }
 
-export function startGame(state, actorId, now = Date.now()) {
+export function startGame(state, actorId, now = Date.now(), rng = Math.random) {
   if (state.hostId !== actorId) throw new Error("Only the host can start");
   if (state.phase !== "lobby" && state.phase !== "results") throw new Error("Cannot start now");
   const connected = Object.values(state.players).filter((player) => player.connected).length;
@@ -98,7 +146,8 @@ export function startGame(state, actorId, now = Date.now()) {
     scores: Object.fromEntries(Object.keys(state.players).map((id) => [id, 0])),
     answers: {},
     syncHistory: [],
-    lastResults: null
+    lastResults: null,
+    deal: buildDeal(state.rounds, rng)
   };
   return startRound(reset, now);
 }
@@ -106,12 +155,15 @@ export function startGame(state, actorId, now = Date.now()) {
 export function startRound(state, now = Date.now()) {
   const next = state.roundIndex + 1;
   if (next >= state.rounds) return { ...state, phase: "results", deadline: null };
+  const slot = Array.isArray(state.deal) ? state.deal[next] : null;
+  const mode = (slot && MODES.find((entry) => entry.id === slot.modeId)) || MODES[next % MODES.length];
+  const prompt = (slot && PROMPTS.find((entry) => entry.id === slot.promptId)) || PROMPTS[next % PROMPTS.length];
   return {
     ...state,
     phase: "choosing",
     roundIndex: next,
-    mode: MODES[next % MODES.length],
-    prompt: PROMPTS[next % PROMPTS.length],
+    mode,
+    prompt,
     answers: {},
     lastResults: null,
     deadline: now + ROUND_SECONDS * 1000
@@ -131,13 +183,11 @@ export function allConnectedAnswered(state) {
   return connected.length >= 2 && connected.every((id) => Object.prototype.hasOwnProperty.call(state.answers, id));
 }
 
-// CHOOSING -> LOCKED: no more choices accepted; answers stay private until REVEAL.
 export function lockRound(state, now = Date.now()) {
   if (state.phase !== "choosing") throw new Error("Cannot lock now");
   return { ...state, phase: "locked", deadline: null, revealAt: now + LOCK_MS };
 }
 
-// If the host dropped, hand authority to the earliest-joined connected player so the room never stalls.
 export function transferHostIfGone(state) {
   if (state.players[state.hostId]?.connected) return state;
   const next = Object.values(state.players).find((player) => player.connected);

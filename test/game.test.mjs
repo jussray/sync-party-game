@@ -1,12 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { advance, allConnectedAnswered, createRoomState, joinPlayer, lockRound, publicFingerprint, publicState, revealRound, startGame, submitChoice, transferHostIfGone } from "../src/game.js";
+import { advance, allConnectedAnswered, buildDeal, createRoomState, joinPlayer, lockRound, MODES, PROMPTS, publicFingerprint, publicState, revealRound, startGame, startRound, submitChoice, transferHostIfGone } from "../src/game.js";
 
 const player = (id, name, connected = true) => ({ id, name, resumeToken: `r-${id}`, connected });
-function started(ids = ["a", "b", "c"]) {
+// A constant near-1 RNG makes the Fisher-Yates shuffle swap every slot with
+// itself, so the deal comes out in the canonical order (classic -> perfect,
+// p1 -> p5). The mode tests below were written against that order and stay
+// exact; production startGame calls use the default Math.random.
+const identityRng = () => 0.999999;
+function startedWith(rng, ids = ["a", "b", "c"]) {
   let state = createRoomState("ABCDE", player(ids[0], ids[0]), 5);
   for (const id of ids.slice(1)) state = joinPlayer(state, player(id, id));
-  return startGame(state, ids[0], 1000);
+  return startGame(state, ids[0], 1000, rng);
+}
+function started(ids = ["a", "b", "c"]) {
+  return startedWith(identityRng, ids);
 }
 function answer(state, mapping) {
   for (const [id, choice] of Object.entries(mapping)) state = submitChoice(state, id, choice);
@@ -140,4 +148,60 @@ test("host authority transfers to a connected player when the host drops", () =>
   assert.equal(state.hostId, "b");
   assert.doesNotThrow(() => advance(revealRound(lockRound(state, 1)), "b", 2));
   assert.throws(() => advance(revealRound(lockRound(state, 1)), "a", 2), /Only the host/);
+});
+
+test("prompt pool holds 24 unique prompts with five choices each", () => {
+  assert.equal(PROMPTS.length, 24);
+  assert.equal(new Set(PROMPTS.map((prompt) => prompt.id)).size, 24);
+  assert.equal(new Set(PROMPTS.map((prompt) => prompt.text)).size, 24);
+  for (const prompt of PROMPTS) assert.equal(prompt.choices.length, 5);
+});
+test("a deal showcases every mode exactly once with five distinct prompts", () => {
+  const deal = buildDeal(5, () => 0);
+  assert.equal(deal.length, 5);
+  assert.deepEqual(deal.map((slot) => slot.modeId).sort(), MODES.map((mode) => mode.id).sort());
+  assert.equal(new Set(deal.map((slot) => slot.promptId)).size, 5);
+});
+test("a shuffled game plays its deal in order, all modes once, prompts distinct", () => {
+  let state = startedWith(() => 0, ["a", "b"]);
+  const modeIds = [];
+  const promptIds = [];
+  for (let round = 0; round < 5; round += 1) {
+    modeIds.push(state.mode.id);
+    promptIds.push(state.prompt.id);
+    state = answer(state, { a: 0, b: 0 });
+    if (round < 4) state = advance(state, "a", 2000 + round);
+  }
+  assert.deepEqual(modeIds, state.deal.map((slot) => slot.modeId));
+  assert.deepEqual(promptIds, state.deal.map((slot) => slot.promptId));
+  assert.equal(new Set(modeIds).size, 5);
+  assert.equal(new Set(promptIds).size, 5);
+});
+test("consecutive games and a rematch never repeat the previous deal order", () => {
+  const first = startedWith(identityRng, ["a", "b"]);
+  const second = startedWith(() => 0, ["a", "b"]);
+  assert.notDeepEqual(second.deal, first.deal);
+  assert.notDeepEqual(second.deal.map((slot) => slot.modeId), first.deal.map((slot) => slot.modeId));
+
+  let rematch = first;
+  for (let round = 0; round < 5; round += 1) {
+    rematch = answer(rematch, { a: 0, b: 0 });
+    rematch = advance(rematch, "a", 3000 + round);
+  }
+  assert.equal(rematch.phase, "results");
+  rematch = startGame(rematch, "a", 9000, () => 0);
+  assert.notDeepEqual(rematch.deal, first.deal);
+  assert.notDeepEqual(rematch.deal.map((slot) => slot.modeId), first.deal.map((slot) => slot.modeId));
+});
+test("the deal stays server-side and never reaches public state", () => {
+  const state = startedWith(() => 0, ["a", "b"]);
+  assert.equal(Object.prototype.hasOwnProperty.call(publicState(state), "deal"), false);
+  assert.equal(publicState(state).mode.id, state.mode.id);
+  assert.equal(publicState(state).prompt.id, state.prompt.id);
+});
+test("rounds without a deal keep the original fixed cycles", () => {
+  const legacy = { ...createRoomState("LEGAC", player("a", "a")), deal: null };
+  const round = startRound(legacy, 1000);
+  assert.equal(round.mode.id, "classic");
+  assert.equal(round.prompt.id, "p1");
 });
