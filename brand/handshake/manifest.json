@@ -1,0 +1,78 @@
+{
+  "schema": "fcr/handshake-brand-social@v1",
+  "slug": "sync",
+  "product": "SYNC Party",
+  "sourceRepository": "jussray/sync-party-game",
+  "publicProductUrl": "https://sync.jussco.company/",
+  "brand": {
+    "logoSource": "brand/handshake/logo.svg",
+    "logoFormat": "svg",
+    "logoWidth": 1200,
+    "logoHeight": 490,
+    "colors": [
+      "#21dfff",
+      "#ff3fbd",
+      "#ffc85a"
+    ],
+    "sourceAuthority": "repository visual design source plus live site; logo is an authored candidate, not approved canonical",
+    "reviewState": "PENDING_FOUNDER_LIVE_SITE_COMPARISON",
+    "neverBorrowBrandFromOtherProjects": true,
+    "logoSha256": "8b8d76530f2fdef66f0145b312a96702a6b3d0b3733bad8fc6a959a246a96827"
+  },
+  "handshake": {
+    "target": "Handshake AI Showcase project card",
+    "coverLocalOutput": "handshake-cover.png (included in founder download ZIP, not yet hosted in repository)",
+    "coverWidth": 1536,
+    "coverHeight": 1024,
+    "coverSha256": "ffe59a6338e37f5148463a7252d24e7e41df59747666cd63b7fc6edffb754a18",
+    "mediaPublicUrl": null,
+    "externalSubmissionState": "NOT_SUBMITTED",
+    "requireNativeConfirmation": true,
+    "coverPackagePath": "Handshake/SYNC_Party_Handshake_3x2.png",
+    "coverDimensions": [
+      1536,
+      1024
+    ]
+  },
+  "social": {
+    "owner": "jussray/founder-control-room",
+    "adapter": "src/lib/handshakeBrandSocial.ts",
+    "existingClassification": "src/lib/socialCampaignPolicy.ts",
+    "existingPublisher": "src/lib/firstPartySocialPublisher.ts",
+    "targetAudience": "business",
+    "firstPartyMode": "draft",
+    "publishAllowed": false,
+    "businessAccountBinding": "PUBLORA_INSTAGRAM_CONNECTED_FCR_PUBLISHING_UNVERIFIED",
+    "publicMediaReadback": "BYTES_NOT_INDEPENDENTLY_VERIFIED",
+    "exactMediaReview": "REQUIRED",
+    "nativePublicationReceipt": "NOT_PRESENT",
+    "proofRoot": "https://github.com/jussray/sync-party-game",
+    "adCreative": {
+      "source": "founder-delivered download package only; not committed, hosted or published",
+      "packagePath": "Social/SYNC_Party_Social_Ad_4x5.png",
+      "width": 1080,
+      "height": 1350,
+      "aspectRatio": "4:5",
+      "sha256": "1ef557b582da64eae74b47f8b3a7f20c1118f701d3bc75a8beaa0a5693fbd16b",
+      "publicUrl": "https://media.publora.com/images/1795755735837-0-a495c153-SYNC_Party_Social_Ad_4x5.png",
+      "approval": "PENDING_FOUNDER_EXACT_MEDIA_REVIEW",
+      "mediaSourceReadback": "PUBLORA_READY_METADATA_ONLY"
+    },
+    "draftInputReady": false,
+    "providerDraft": {
+      "provider": "publora",
+      "platform": "instagram",
+      "businessChannel": "@jussnco",
+      "postGroupId": "6b090ed6f04b2c093e246545",
+      "mediaId": "6b090ed7f04b2c093e24656e",
+      "editorUrl": "https://app.publora.com/dashboard/editor?id=6b090ed6f04b2c093e246545",
+      "state": "draft",
+      "mediaState": "ready",
+      "scheduled": false,
+      "published": false,
+      "verifiedSource": "Publora get_post metadata",
+      "assetByteParity": "UNVERIFIED"
+    }
+  },
+  "safety": "Live Site SYNC only; no blending Chat Edition or Lovable Edition; no unverified game-user numbers."
+}
