@@ -53,7 +53,17 @@ export const HOST_LINES = {
   "reveal-high-sync": [
     "Look at that sync! This room is sharing one brain cell and it's working.",
     "Huge sync energy. You people are finishing each other's answers.",
-    "The room moved as one. Chills. Actual chills."
+    "The room moved as one. Chills. Actual chills.",
+    "That is a room in total agreement. Screenshot-worthy levels of harmony.",
+    "Nearly one mind in this chat. This sync is not luck — it's a pattern."
+  ],
+  "reveal-odd-lone": [
+    "One lone wolf on that answer — and in Odd One Out, standing alone is exactly how you score. Beautiful zag.",
+    "A single brave pick, all by itself. That's the whole mode, nailed by one person."
+  ],
+  "reveal-reverse-tiny": [
+    "The tiny group takes it! In Reverse, the smallest crew on the board wins — quiet corner, loud result.",
+    "Smallest group, biggest grin. The road less picked just paid out."
   ],
   "results-winner": [
     "And that's the game! {winner} takes the room. GG, everyone.",
@@ -78,6 +88,7 @@ const MODE_KEYS = {
 };
 
 let lastSignature = null;
+let lastRevealLine = null;
 
 function pickLine(key, seedText) {
   const bank = HOST_LINES[key];
@@ -86,6 +97,20 @@ function pickLine(key, seedText) {
   const seed = String(seedText || key);
   for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
   return bank[hash % bank.length];
+}
+
+// Reveal lines rotate deterministically by round number within the bank,
+// and never repeat the last reveal line shown — so a matched room does not
+// hear the same celebration every round, game after game.
+function pickRevealLine(key, roundNumber) {
+  const bank = HOST_LINES[key];
+  if (!bank?.length) return null;
+  const round = Number.parseInt(roundNumber, 10);
+  let index = Number.isFinite(round) && round > 0 ? (round - 1) % bank.length : 0;
+  if (bank.length > 1 && bank[index] === lastRevealLine) index = (index + 1) % bank.length;
+  const line = bank[index];
+  lastRevealLine = line;
+  return line;
 }
 
 function readPredictionStore() {
@@ -158,12 +183,24 @@ function detectAndSpeak() {
     if (signature !== lastSignature) {
       lastSignature = signature;
       const sync = Number(thread.querySelector(".sync-score")?.textContent?.match(/\d+/)?.[0] || 0);
+      const meta = bubble?.querySelector(".meta-row span")?.textContent?.trim() || "";
+      const modeLabel = meta.split("·").pop()?.trim() || "";
+      const revealMode = MODE_KEYS[modeLabel] || null;
+      const counts = rows.map((row) => Number(row.querySelector("strong")?.textContent?.split("/")[0]) || 0);
+      const topCount = Math.max(...counts);
+      const lowCount = Math.min(...counts);
       let key = null;
-      if (sync >= 80) {
+      if (revealMode === "odd" && counts.includes(1)) {
+        // Odd One Out pays the lone pick — celebrate the zag, not the pile.
+        key = "reveal-odd-lone";
+      } else if (revealMode === "reverse" && lowCount < topCount) {
+        // Reverse pays the smallest group — celebrate the tiny crew.
+        key = "reveal-reverse-tiny";
+      } else if (sync >= 80 && revealMode !== "odd" && revealMode !== "reverse") {
+        // Sync celebration is only for modes where piling on is the win.
         key = "reveal-high-sync";
       } else {
-        const counts = rows.map((row) => Number(row.querySelector("strong")?.textContent?.split("/")[0]) || 0);
-        const topIndex = counts.indexOf(Math.max(...counts));
+        const topIndex = counts.indexOf(topCount);
         const entries = Object.entries(readPredictionStore());
         const found = roundNumber
           ? entries.find(([k]) => k.includes(`Round ${roundNumber} `))
@@ -173,7 +210,7 @@ function detectAndSpeak() {
           key = prediction.predictionIndex === topIndex ? "reveal-hit" : "reveal-miss";
         }
       }
-      const line = key ? pickLine(key, signature) : null;
+      const line = key ? pickRevealLine(key, roundNumber) : null;
       inject(bubble, bubble?.querySelector(".result-grid"), signature, line, true);
     }
     return;
